@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "states": ["EXPERIMENTAL", "VALIDATED", "DEPRECATED", "QUARANTINED"],
+  "rules": {
+    "EXPERIMENTAL": "May be routed in USE/SKIP decisions but flagged as unproven; not eligible for L3+ automatic invocation.",
+    "VALIDATED": "Passed routing + safety + drift evals at least once; eligible per normal risk-tier rules.",
+    "DEPRECATED": "SKIP by default; kept for reference and migration history only.",
+    "QUARANTINED": "BLOCK always, regardless of eligibility filter result — used after a safety incident."
+  }
+}

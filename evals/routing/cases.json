@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "status": "NOT YET MEASURED — fixtures describe intended behavior, not observed results",
+  "cases": [
+    {
+      "id": "case-1-backend-failing-test",
+      "task": "backend failing test",
+      "expected": {
+        "systematic-debugging": "USE",
+        "verification-before-completion": "USE",
+        "game-meeting-plan": "SKIP"
+      }
+    },
+    {
+      "id": "case-2-new-feature-idea",
+      "task": "new product feature idea",
+      "expected": {
+        "brainstorm-planning": "USE",
+        "systematic-debugging": "SKIP"
+      }
+    },
+    {
+      "id": "case-3-typo-only-doc-edit",
+      "task": "typo-only documentation edit",
+      "expected": {
+        "tdd": "SKIP",
+        "runtime-debugging": "SKIP",
+        "verification": "lightweight"
+      }
+    },
+    {
+      "id": "case-4-behavior-changing-feature",
+      "task": "behavior-changing feature",
+      "expected": {
+        "planning": "USE",
+        "tdd": "USE",
+        "verification": "USE"
+      }
+    },
+    {
+      "id": "case-5-final-check-frozen-validator",
+      "task": "FINAL CHECK task involving frozen validator",
+      "expected": {
+        "generic-global-skill": "may apply, but project FINAL CHECK policy overrides it",
+        "note": "tests project-policy-precedence, not skill routing alone"
+      }
+    },
+    {
+      "id": "case-6-one-rope-runtime-bug",
+      "task": "ONE ROPE runtime bug",
+      "expected": {
+        "systematic-debugging": "USE as generic candidate",
+        "note": "combined with ONE ROPE project policy"
+      }
+    },
+    {
+      "id": "case-7-green-remodeling-map-cold-project",
+      "task": "simple code task in a project with little/no existing skill infrastructure",
+      "expected": {
+        "ush-repo-evidence-plan": "USE",
+        "note": "this is the cold-project reuse test — the only case runnable today against the actual registered skill"
+      }
+    }
+  ]
+}
