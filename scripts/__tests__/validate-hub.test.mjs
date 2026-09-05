@@ -42,3 +42,37 @@ test('Test F: project-bound skill exposed as global scope is rejected', () => {
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(e => e.includes('project') || e.includes('scope')), `expected scope conflict error, got: ${JSON.stringify(result.errors)}`);
 });
+
+test('a 65-character name (one over the Agent Skills limit) is rejected', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'name-too-long', 'ush-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(e => e.includes('64')), `expected a length error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('a name with consecutive hyphens is rejected', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'consecutive-hyphen', 'ush-foo--bar'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(e => e.includes('consecutive') || e.includes('--')), `expected a consecutive-hyphen error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('a description over 1024 characters is rejected', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'description-too-long', 'ush-desc-too-long'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(e => e.includes('1024')), `expected a description-length error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('malformed YAML frontmatter is rejected with a clear error, not a crash', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'malformed-yaml', 'ush-malformed'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(e => e.toLowerCase().includes('yaml') || e.toLowerCase().includes('frontmatter')), `expected a YAML/frontmatter error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('a quoted YAML description containing a colon is parsed correctly and accepted', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'quoted-yaml', 'ush-quoted-desc'));
+  assert.equal(result.valid, true, `expected valid, got errors: ${JSON.stringify(result.errors)}`);
+});
+
+test('metadata nested deeper than one level (with a list value) is parsed correctly and accepted', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'nested-metadata', 'ush-nested-ok'));
+  assert.equal(result.valid, true, `expected valid, got errors: ${JSON.stringify(result.errors)}`);
+});

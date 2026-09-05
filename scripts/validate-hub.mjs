@@ -1,41 +1,25 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
+import { load as loadYaml } from 'js-yaml';
 
+// Agent Skills spec constraints + hub-specific ush- namespace rule.
+const NAME_MAX_LENGTH = 64;
+const DESCRIPTION_MAX_LENGTH = 1024;
 const NAME_PATTERN = /^ush-[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /**
- * Minimal frontmatter parser for the flat + one-level-nested YAML subset
- * canonical SKILL.md files use (name, description, metadata: {k: v, ...}).
- * Not a general YAML parser — do not extend beyond this shape without
- * switching to a real YAML library.
+ * Parses SKILL.md frontmatter with a real YAML parser (js-yaml), so
+ * quoted scalars, multiline strings, and arbitrarily nested metadata are
+ * handled correctly. Returns null if the file has no frontmatter block,
+ * and throws if the frontmatter block is present but not valid YAML —
+ * callers must catch that to produce a clear validation error instead of
+ * crashing.
  */
 function parseFrontmatter(raw) {
   const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return null;
-  const lines = match[1].split(/\r?\n/);
-  const result = {};
-  let currentNestedKey = null;
-  for (const line of lines) {
-    if (line.trim() === '') continue;
-    const nestedMatch = line.match(/^ {2}([A-Za-z0-9_]+):\s*(.*)$/);
-    if (nestedMatch && currentNestedKey) {
-      result[currentNestedKey][nestedMatch[1]] = nestedMatch[2].trim();
-      continue;
-    }
-    const topMatch = line.match(/^([A-Za-z0-9_]+):\s*(.*)$/);
-    if (topMatch) {
-      const [, key, value] = topMatch;
-      if (value.trim() === '') {
-        currentNestedKey = key;
-        result[key] = {};
-      } else {
-        currentNestedKey = null;
-        result[key] = value.trim();
-      }
-    }
-  }
-  return result;
+  return loadYaml(match[1]) || {};
 }
 
 export function validateSkillDir(dirPath) {
@@ -48,7 +32,12 @@ export function validateSkillDir(dirPath) {
   }
 
   const raw = fs.readFileSync(skillFile, 'utf8');
-  const frontmatter = parseFrontmatter(raw);
+  let frontmatter;
+  try {
+    frontmatter = parseFrontmatter(raw);
+  } catch (err) {
+    return { valid: false, errors: [`invalid YAML frontmatter in ${skillFile}: ${err.message}`] };
+  }
 
   if (!frontmatter) {
     return { valid: false, errors: [`missing or malformed frontmatter in ${skillFile}`] };
@@ -58,13 +47,18 @@ export function validateSkillDir(dirPath) {
   if (!name || !NAME_PATTERN.test(name)) {
     errors.push(`invalid name "${name}" — name must match ${NAME_PATTERN} (lowercase, digits, single hyphens, ush- prefix, no dots)`);
   }
+  if (typeof name === 'string' && name.length > NAME_MAX_LENGTH) {
+    errors.push(`name "${name}" is ${name.length} characters — must be at most ${NAME_MAX_LENGTH}`);
+  }
 
   if (name && name !== dirName) {
     errors.push(`frontmatter name "${name}" does not match directory name "${dirName}" — directory and name must match`);
   }
 
-  if (!frontmatter.description || frontmatter.description.trim() === '') {
+  if (!frontmatter.description || String(frontmatter.description).trim() === '') {
     errors.push('missing required "description" field');
+  } else if (String(frontmatter.description).length > DESCRIPTION_MAX_LENGTH) {
+    errors.push(`description is ${frontmatter.description.length} characters — must be at most ${DESCRIPTION_MAX_LENGTH}`);
   }
 
   const metadata = frontmatter.metadata || {};
@@ -92,7 +86,12 @@ export function validateAllSkills(rootDir) {
         const result = validateSkillDir(full);
         errors.push(...result.errors);
         const raw = fs.readFileSync(path.join(full, 'SKILL.md'), 'utf8');
-        const frontmatter = parseFrontmatter(raw);
+        let frontmatter;
+        try {
+          frontmatter = parseFrontmatter(raw);
+        } catch {
+          frontmatter = null; // already reported by validateSkillDir above
+        }
         const name = frontmatter && frontmatter.name;
         if (name) {
           if (seenNames.has(name)) {

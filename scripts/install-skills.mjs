@@ -1,0 +1,145 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import url from 'node:url';
+import { renderAdapter } from './render-adapters.mjs';
+
+// User-level install directories. These are STABLE, user-level paths only —
+// never a project checkout's absolute path (that mistake is exactly what
+// broke shell access in the incident documented in docs/DESIGN.md's Phase 1.1
+// hardening section: a hook config pointed at a specific project's absolute
+// checkout, and once that checkout was deleted, every shell call broke).
+const USER_SKILL_DIRS = {
+  codex: ['.agents', 'skills'],
+  'claude-code': ['.claude', 'skills'],
+  cursor: ['.cursor', 'skills'],
+  opencode: ['.opencode', 'skills'],
+};
+
+const PROJECT_SKILL_DIRS = USER_SKILL_DIRS;
+
+export function computeInstallPath({ platform, scope, skillId, homeDir, projectRoot }) {
+  if (scope === 'user') {
+    if (projectRoot) {
+      throw new Error('a user-scope install must not be passed a projectRoot — user-level installs use a stable home-relative path only, never a project checkout path');
+    }
+    const segments = USER_SKILL_DIRS[platform];
+    if (!segments) throw new Error(`no user-level skill directory convention known for platform "${platform}"`);
+    return path.join(homeDir || os.homedir(), ...segments, skillId, 'SKILL.md');
+  }
+  if (scope === 'project') {
+    if (!projectRoot) throw new Error('a project-scope install requires a projectRoot');
+    const segments = PROJECT_SKILL_DIRS[platform];
+    if (!segments) throw new Error(`no project-level skill directory convention known for platform "${platform}"`);
+    return path.join(projectRoot, ...segments, skillId, 'SKILL.md');
+  }
+  throw new Error(`unknown scope "${scope}" — expected "user" or "project"`);
+}
+
+export function classifyExisting({ existingContent, expectedContent }) {
+  if (existingContent === null || existingContent === undefined) return 'not_installed';
+  if (!existingContent.includes('GENERATED')) return 'unmanaged';
+  if (existingContent === expectedContent) return 'managed_current';
+  return 'managed_stale';
+}
+
+/**
+ * Computes what an install would do without necessarily doing it.
+ * `apply: false` (the default the CLI uses) never calls `write` regardless
+ * of classification. `apply: true` still refuses to touch an "unmanaged"
+ * file — the installer never overwrites a file it did not generate.
+ */
+export function planInstall({ skillId, platform, scope, canonicalBody, render, homeDir, projectRoot, existingContent, apply, sourceCommit, capabilities, write }) {
+  const targetPath = computeInstallPath({ platform, scope, skillId, homeDir, projectRoot });
+  const rendered = (render || renderAdapter)({ skillId, canonicalBody, platform, capabilities, sourceCommit });
+
+  if (rendered.blocked) {
+    return { targetPath, classification: 'blocked', wouldWrite: false, wrote: false, reason: rendered.reason };
+  }
+
+  const classification = classifyExisting({ existingContent: existingContent ?? null, expectedContent: rendered.content });
+
+  if (classification === 'unmanaged') {
+    return {
+      targetPath,
+      classification,
+      wouldWrite: false,
+      wrote: false,
+      reason: 'target file exists and is unmanaged (no GENERATED marker) — refusing to overwrite a file this installer did not create',
+    };
+  }
+
+  if (classification === 'managed_current') {
+    return { targetPath, classification, wouldWrite: false, wrote: false, reason: 'already up to date' };
+  }
+
+  // not_installed or managed_stale: writing is the correct action.
+  if (!apply) {
+    return { targetPath, classification, wouldWrite: true, wrote: false, reason: 'dry-run: pass --apply to write' };
+  }
+
+  (write || ((p, c) => {
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, c);
+  }))(targetPath, rendered.content);
+
+  return { targetPath, classification, wouldWrite: true, wrote: true, reason: classification === 'not_installed' ? 'installed' : 'updated stale copy' };
+}
+
+function parseArgs(argv) {
+  const args = { scope: 'user', apply: false, check: false };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--platform') args.platform = argv[++i];
+    else if (a === '--scope') args.scope = argv[++i];
+    else if (a === '--project-root') args.projectRoot = argv[++i];
+    else if (a === '--check') args.check = true;
+    else if (a === '--dry-run') args.apply = false;
+    else if (a === '--apply') args.apply = true;
+  }
+  return args;
+}
+
+function runCli() {
+  const args = parseArgs(process.argv.slice(2));
+  if (!args.platform) {
+    console.error('usage: node scripts/install-skills.mjs --platform <codex|claude-code|cursor|opencode> [--scope user|project] [--project-root <path>] [--dry-run|--apply] [--check]');
+    process.exit(2);
+  }
+
+  const registry = JSON.parse(fs.readFileSync(path.join('registry', 'skills-index.json'), 'utf8'));
+  const compatibility = JSON.parse(fs.readFileSync(path.join('registry', 'compatibility.json'), 'utf8'));
+  let anyStaleOrMissing = false;
+
+  for (const skill of registry.skills) {
+    if (!skill.platforms.includes(args.platform)) continue;
+    const canonicalBody = fs.readFileSync(path.join(skill.path, 'SKILL.md'), 'utf8');
+    const capabilities = (compatibility.skills && compatibility.skills[skill.skill_id]) || { requires: [] };
+    const targetPath = computeInstallPath({ platform: args.platform, scope: args.scope, skillId: skill.skill_id, projectRoot: args.projectRoot });
+    const existingContent = fs.existsSync(targetPath) ? fs.readFileSync(targetPath, 'utf8') : null;
+
+    const plan = planInstall({
+      skillId: skill.skill_id,
+      platform: args.platform,
+      scope: args.scope,
+      canonicalBody,
+      homeDir: undefined,
+      projectRoot: args.projectRoot,
+      existingContent,
+      apply: args.apply,
+      sourceCommit: skill.source_commit,
+      capabilities,
+    });
+
+    console.log(`${plan.classification.toUpperCase()}: ${plan.targetPath} — ${plan.reason}`);
+    if (plan.classification === 'managed_stale' || plan.classification === 'not_installed') anyStaleOrMissing = true;
+  }
+
+  if (args.check) {
+    process.exit(anyStaleOrMissing ? 1 : 0);
+  }
+}
+
+if (process.argv[1] && import.meta.url === url.pathToFileURL(process.argv[1]).href) {
+  runCli();
+}

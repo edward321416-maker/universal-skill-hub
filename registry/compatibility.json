@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "notes": "Platform capability requirements per skill. A platform not listed as supporting a required capability makes the skill BLOCK on that platform's adapter render, per Test G in evals/safety.",
+  "notes": "requires: host capabilities the skill needs to function — a platform not listing one of these makes render-adapters.mjs BLOCK (Test G). forbidden_capabilities: capabilities the skill/task must never actually USE — enforced by eligibility.mjs against task.capabilitiesUsed, not against what the host merely has available (host has capability != skill is using capability). The field was previously named requires_not; scripts/load-compatibility.mjs accepts either name for backward compatibility but new entries should use forbidden_capabilities.",
   "skills": {
     "ush-repo-evidence-plan": {
       "requires": ["read_files", "search_symbols"],
-      "requires_not": ["network_write", "shell_exec"],
+      "forbidden_capabilities": ["network_write", "shell_exec"],
       "platform_overrides": {}
     }
   }

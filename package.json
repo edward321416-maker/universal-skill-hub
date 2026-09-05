@@ -5,10 +5,16 @@
   "description": "Central registry of canonical, cross-platform Agent Skills with routing, safety, and drift verification.",
   "type": "module",
   "scripts": {
-    "test": "node --test scripts/__tests__/",
+    "test": "node --test scripts/__tests__/*.test.mjs",
     "validate": "node scripts/validate-hub.mjs",
+    "registry-consistency": "node scripts/registry-consistency.mjs",
     "render-adapters": "node scripts/render-adapters.mjs",
-    "check-drift": "node scripts/check-drift.mjs"
+    "check-drift": "node scripts/check-drift.mjs",
+    "install-skills": "node scripts/install-skills.mjs",
+    "verify": "npm test && npm run validate && npm run registry-consistency && npm run render-adapters && git diff --exit-code -- adapters && npm run check-drift"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "js-yaml": "5.4.1"
+  }
 }

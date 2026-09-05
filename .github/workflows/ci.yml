@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Validate canonical skills
+        run: npm run validate
+
+      - name: Registry <-> canonical consistency
+        run: npm run registry-consistency
+
+      - name: Render adapters (must be deterministic / already committed)
+        run: npm run render-adapters
+
+      - name: Fail if rendering produced an uncommitted diff (stale generated adapter)
+        run: git diff --exit-code -- adapters
+
+      - name: Check drift (full-render comparison against committed adapters)
+        run: npm run check-drift
+
+      - name: Installer dry-run (must not write; only reports)
+        run: |
+          node scripts/install-skills.mjs --platform claude-code --scope project --project-root "$(pwd)"
+          node scripts/install-skills.mjs --platform codex --scope project --project-root "$(pwd)"

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import url from 'node:url';
 
 export const ADAPTER_TARGETS = {
   codex: (skillId) => `.agents/skills/${skillId}/SKILL.md`,
@@ -8,6 +9,12 @@ export const ADAPTER_TARGETS = {
   cursor: (skillId) => `.cursor/skills/${skillId}/SKILL.md`,
   opencode: (skillId) => `.opencode/skills/${skillId}/SKILL.md`,
 };
+
+// Platforms with a filesystem skill-directory adapter implemented today.
+// chatgpt/claude-ai use an export-bundle strategy instead (see adapters/*/README.md)
+// and are deliberately excluded here — render-adapters.mjs and check-drift.mjs
+// both use this list so they never disagree about which platforms are "done".
+export const FILESYSTEM_ADAPTER_PLATFORMS = Object.keys(ADAPTER_TARGETS);
 
 const DEFAULT_PLATFORM_CAPABILITIES = {
   codex: ['native_skill_deployment', 'read_files', 'search_symbols'],
@@ -52,12 +59,10 @@ export function renderAdapter({ skillId, canonicalBody, platform, capabilities, 
   };
 }
 
-import url from 'node:url';
-
 function runCli() {
   const registryPath = path.join('registry', 'skills-index.json');
   const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
-  const platforms = ['codex', 'claude-code', 'cursor', 'opencode'];
+  const platforms = FILESYSTEM_ADAPTER_PLATFORMS;
   const compatibility = JSON.parse(fs.readFileSync(path.join('registry', 'compatibility.json'), 'utf8'));
   let wrote = 0;
   let blocked = 0;

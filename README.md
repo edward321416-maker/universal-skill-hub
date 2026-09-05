@@ -35,8 +35,10 @@ adapters/    generated, per-platform renders of canonical skills.
              `npm run render-adapters`.
 evals/       routing / compatibility / safety / regression fixtures
 scripts/     validate-hub.mjs, render-adapters.mjs, check-drift.mjs,
-             eligibility.mjs
+             eligibility.mjs, registry-consistency.mjs, install-skills.mjs,
+             hook-safety.mjs, load-compatibility.mjs
 docs/        design notes, migration mapping, superpowers plans
+.github/workflows/ci.yml   verify/validate/render/drift on every PR and push to main
 ```
 
 See [docs/DESIGN.md](docs/DESIGN.md) for the full rationale and
@@ -69,10 +71,14 @@ kept in adapter-side overrides rather than the canonical body.
 ## Quick start
 
 ```bash
-npm test               # run all unit tests (validator, adapters, drift, eligibility)
-npm run validate       # validate every skill under skills/
-npm run render-adapters  # regenerate adapters/<platform>/<skill>/SKILL.md from canonical sources
-npm run check-drift    # detect hand-edited or stale generated adapter files
+npm test                    # run all unit tests (validator, adapters, drift, eligibility, installer, ...)
+npm run validate            # validate every skill under skills/
+npm run registry-consistency  # check registry/skills-index.json against each skill's canonical source
+npm run render-adapters      # regenerate adapters/<platform>/<skill>/SKILL.md from canonical sources
+npm run check-drift          # full-render comparison: detect hand-edited or stale generated adapter files
+npm run install-skills -- --platform claude-code --scope user   # dry-run by default; add --apply to write
+npm run verify               # the full release gate CI runs: test + validate + registry-consistency +
+                              # render-adapters + `git diff --exit-code -- adapters` + check-drift
 ```
 
 ## Security model
@@ -98,6 +104,34 @@ Direct User Instruction
 A project-specific rule (a frozen validator SHA, an exact benchmark
 threshold, a gameplay constant) is never promoted into a global skill — see
 `policies/projects/README.md`.
+
+## Eligibility gates (risk tiers L0-L4)
+
+`scripts/eligibility.mjs` enforces, in order: QUARANTINED always BLOCKs;
+Project Policy can explicitly BLOCK a skill (Project Policy outranks Global
+Skill); declared skill conflicts (`registry/conflicts.json`) BLOCK; platform
+compatibility BLOCKs; a task that would actually use one of a skill's
+`forbidden_capabilities` BLOCKs; L4 BLOCKs on auto-invoke and requires
+explicit informed confirmation otherwise; L3 requires explicit user intent
+and permission, and an EXPERIMENTAL L3 skill BLOCKs on auto-invoke
+regardless; DEPRECATED SKIPs by default. Every decision carries a
+machine-readable `reasonCode`.
+
+## Configuration safety invariant
+
+**User/global Claude configuration MUST NOT reference a project-specific
+absolute checkout path for a required hook.** A hook pointing at
+`D:/Users/.../some-project/.claude/hooks/guard.py` breaks every tool call on
+every project the moment that one project's checkout is deleted or moved —
+this happened during this hub's own development (see
+`docs/DESIGN.md`'s Phase 1.1 notes) and blocked Bash/PowerShell entirely
+until repaired. Safe patterns: a stable home-relative dotfile path
+(`~/.claude/...`, or a `%USERPROFILE%`/`$env:USERPROFILE` expansion into one)
+or a path the harness resolves relative to the current project itself.
+`scripts/hook-safety.mjs` lints a `settings.json` for exactly this class of
+mistake (`node scripts/hook-safety.mjs <path-to-settings.json>`) and
+`scripts/__tests__/hook-safety.test.mjs` carries a regression test built
+from the actual incident.
 
 ## Generated adapter warning
 
