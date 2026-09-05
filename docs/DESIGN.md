@@ -140,18 +140,23 @@ checkout's absolute path.
 ## Phase 1.1: hook-safety invariant
 
 While developing this hub, a global Claude Code `PreToolUse` hook pointed at
-`D:/Users/.../s12d_agent/.claude/hooks/guard.py` — a specific project
-checkout's absolute path. When that checkout was later removed from the
-session, the hook command failed on every Bash/PowerShell call, blocking
-shell access across every project on the machine until the entry was
-removed. The original `guard.py`'s behavior could not be recovered — there
-was no other copy of it anywhere reachable — so it was removed rather than
-reconstructed; **old guard behavior: NOT RESTORED.**
+a specific project checkout's absolute path (shape:
+`<drive>:/Users/<name>/Desktop/<project-name>/.claude/hooks/guard.py` — the
+real machine-specific path is deliberately not reproduced in this public
+repository; `scripts/__tests__/hook-safety.test.mjs` uses a synthetic
+`X:/Users/example/Desktop/deleted-project/...` path of the identical shape).
+When that checkout was later removed from the session, the hook command
+failed on every Bash/PowerShell call, blocking shell access across every
+project on the machine until the entry was removed. The original
+`guard.py`'s behavior could not be recovered — there was no other copy of it
+anywhere reachable — so it was removed rather than reconstructed; **old
+guard behavior: NOT RESTORED.**
 
 Invariant added as a result: **user/global Claude configuration MUST NOT
 reference a project-specific absolute checkout path for a required hook.**
 `scripts/hook-safety.mjs` lints a `settings.json` for exactly this pattern,
-and its test suite includes a regression test built from the real broken
+and its test suite includes a regression test built from a synthetic
+reproduction of the real broken
 hook command. This is a hub-level regression guard and documentation
 artifact — it does not, and cannot, modify any user's actual local Claude
 Code configuration; it only flags the pattern for someone maintaining that
@@ -164,25 +169,57 @@ and `content_sha256` for the skill it was generalized from, so any generated
 adapter can be traced back to the exact upstream commit and content hash it
 came from.
 
-## What v1 / v1.1 does not claim
+## Platform capability claims — what is verified vs. not, and when
 
-- No numeric routing precision/recall — `evals/routing/README.md` and
+- **Codex skill directory convention**: VERIFIED against official OpenAI
+  Codex documentation on 2026-09-05 (`developers.openai.com/codex/skills`,
+  redirecting to `learn.chatgpt.com/docs/build-skills`). Codex reads
+  skills from, in order: `$CWD/.agents/skills` up to `$REPO_ROOT/.agents/skills`
+  (repository level), `$HOME/.agents/skills` (user level),
+  `/etc/codex/skills` (admin level), then built-in bundled skills.
+  Naming conflicts are not merged — both entries can appear in skill
+  selectors.
+- **claude.ai custom Skills**: VERIFIED against Anthropic's own
+  documentation on 2026-09-05 (support.claude.com, platform.claude.com).
+  ZIP upload with the skill folder as the archive's root (not a
+  subfolder), Settings > Features, Pro/Max/Team/Enterprise with code
+  execution enabled. `scripts/bundle-claude-ai.mjs` implements this shape.
+- **ChatGPT native Personal Skills**: VERIFIED to exist as of 2026-09-05
+  (OpenAI's Skills documentation, corroborated by third-party coverage) —
+  a native, SKILL.md-based upload feature reachable via the Plugin
+  Directory, on Business/Enterprise/Healthcare/Edu and paid Work plans.
+  Not the same surface as the OpenAI API's "project Skills" resource
+  targeted by `scripts/bundle-openai.mjs` — see `adapters/chatgpt/README.md`
+  for how these are kept distinct. No automatic Hub -> ChatGPT-account
+  sync exists or is planned; that upload step is always manual.
+- **OpenAI API project Skills**: VERIFIED against
+  `developers.openai.com/api/docs/guides/tools-skills` on 2026-09-05 —
+  directory-multipart or single-ZIP upload, immutable versions, 50 MB zip
+  / 500 file / 25 MB per-file limits. `scripts/bundle-openai.mjs`
+  implements this shape and enforces those limits at build time; no API
+  key is used and no upload is performed.
+- **No numeric routing precision/recall** — `evals/routing/README.md` and
   `evals/compatibility/README.md` are explicit that these are
   **NOT YET MEASURED**, not zero, not high.
-- No ChatGPT / claude.ai Projects native adapter, and no deterministic ZIP
-  export bundle generator either — both remain instruction/knowledge export
-  strategies that are not yet implemented (see `adapters/chatgpt/README.md`,
-  `adapters/claude-ai/README.md`). No upload/publish flow exists or is
-  planned to exist inside this repo's own automation; that would always be
-  a manual, human-initiated step.
-- Semantic routing (LLM judgment of task-to-skill fit) is out of scope for
-  this repository's own test suite by construction — it happens in the
+- **Semantic routing** (LLM judgment of task-to-skill fit) is out of scope
+  for this repository's own test suite by construction — it happens in the
   calling agent, not in this repo.
-- Codex's user-level skill directory convention (used by
-  `scripts/install-skills.mjs`) is assumed by symmetry with the project-level
-  convention already used for its adapter (`.agents/skills/`) — it has not
-  been independently verified against Codex's own current official
-  documentation. Treat it as unconfirmed until checked against that source.
-- `scripts/install-skills.mjs` has not been run against a real Codex or
-  Cursor or OpenCode installation — only against this repo's own registry in
-  dry-run mode, and unit-tested with injected fake filesystem state.
+- **Real installs performed** (2026-09-05, this machine, explicitly
+  authorized): `scripts/install-skills.mjs --apply` for both Claude Code
+  (`~/.claude/skills/ush-repo-evidence-plan/SKILL.md`) and Codex
+  (`~/.agents/skills/ush-repo-evidence-plan/SKILL.md`), each verified
+  byte-identical to a fresh `renderAdapter` render. Claude Code discovery
+  was independently confirmed within this same session: after install, the
+  harness's own skill listing surfaced `ush-repo-evidence-plan`, and
+  invoking it via the Skill tool loaded exactly the installed file's
+  content. Codex live discovery is **NOT TESTED** — no safe read-only
+  diagnostic in `codex doctor` surfaces skill discovery, and actually
+  checking would require a live `codex` session that contacts OpenAI's
+  ChatGPT backend, which was not separately authorized here. Cursor and
+  OpenCode installs remain **NOT TESTED** (no local install of either on
+  this machine).
+- **Implicit invocation** (the calling agent autonomously selecting this
+  skill for a task, without being told its name) is **NOT TESTED** for any
+  platform — that would require a fresh session given a task and observed
+  making its own choice, which this same verification pass cannot cleanly
+  produce without contaminating the test.

@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "description": "Central registry of canonical, cross-platform Agent Skills with routing, safety, and drift verification.",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "node --test scripts/__tests__/*.test.mjs",
     "validate": "node scripts/validate-hub.mjs",
@@ -11,7 +14,10 @@
     "render-adapters": "node scripts/render-adapters.mjs",
     "check-drift": "node scripts/check-drift.mjs",
     "install-skills": "node scripts/install-skills.mjs",
-    "verify": "npm test && npm run validate && npm run registry-consistency && npm run render-adapters && git diff --exit-code -- adapters && npm run check-drift"
+    "bundle:claude-ai": "node scripts/bundle-claude-ai.mjs",
+    "bundle:openai": "node scripts/bundle-openai.mjs",
+    "installer-dry-run-smoke": "node scripts/install-skills.mjs --platform claude-code --scope project --project-root . && node scripts/install-skills.mjs --platform codex --scope project --project-root .",
+    "verify": "npm test && npm run validate && npm run registry-consistency && npm run render-adapters && git diff --exit-code -- adapters/codex adapters/claude-code adapters/cursor adapters/opencode && npm run check-drift && npm run bundle:claude-ai && npm run bundle:openai && npm run installer-dry-run-smoke"
   },
   "license": "MIT",
   "dependencies": {

@@ -3,19 +3,25 @@
  * (deterministic filter -> native semantic skill matching, see docs/DESIGN.md).
  * This stage never makes a semantic "does this skill fit the task" judgment;
  * it only rules skills IN or OUT based on machine-checkable facts: lifecycle
- * state, risk tier vs. invocation mode/permission, forbidden capability use,
- * declared conflicts, platform compatibility, and project policy.
+ * state, risk tier vs. invocation mode/permission, required vs. available
+ * inputs/tools/capabilities/permissions, forbidden capability use, declared
+ * conflicts, platform/project-scope compatibility, and project policy.
  *
  * Checks run in this order (each returns immediately on match):
- *   1. QUARANTINED lifecycle           — host/system safety, always wins
- *   2. Project Policy explicit block   — Project Policy outranks Global Skill
- *   3. Declared skill conflicts        — two mutually exclusive skills for one task
+ *   1. QUARANTINED lifecycle             — host/system safety, always wins
+ *   2. Project Policy explicit skill block, or a denied operation against a
+ *      protected resource                — Project Policy outranks Global Skill
+ *   3. Declared skill conflicts          — two mutually exclusive skills for one task
  *   4. Platform compatibility
- *   5. Forbidden capability actually used by the task (not merely declared)
- *   6. L4 risk tier (no auto-invoke; requires informed confirmation)
- *   7. L3 risk tier (requires explicit intent + permission; never auto for
+ *   5. Project scope mismatch            — SKIP, not BLOCK (just not applicable here)
+ *   6. Missing required input/tool/capability/permission — fail-closed: an
+ *      unstated availability list is treated as "nothing available", not as
+ *      "assume it's fine"
+ *   7. Forbidden capability actually used by the task (not merely declared)
+ *   8. L4 risk tier (no auto-invoke; requires informed confirmation)
+ *   9. L3 risk tier (requires explicit intent + permission; never auto for
  *      an EXPERIMENTAL skill)
- *   8. DEPRECATED lifecycle            — SKIP, not BLOCK
+ *   10. DEPRECATED lifecycle             — SKIP, not BLOCK
  *
  * Every BLOCK/SKIP carries a `reasonCode` so callers can act on the decision
  * programmatically instead of string-matching `reasons`.
@@ -31,12 +37,28 @@ export function evaluateEligibility({ skill, task, conflicts = [], projectPolicy
     };
   }
 
-  if (projectPolicy && Array.isArray(projectPolicy.blockedSkillIds) && projectPolicy.blockedSkillIds.includes(skill.skill_id)) {
-    return {
-      decision: 'BLOCK',
-      reasonCode: 'PROJECT_POLICY',
-      reasons: [`project policy blocks skill "${skill.skill_id}"${projectPolicy.reason ? `: ${projectPolicy.reason}` : ''} — Project Policy outranks Global Skill`],
-    };
+  if (projectPolicy) {
+    if (Array.isArray(projectPolicy.blockedSkillIds) && projectPolicy.blockedSkillIds.includes(skill.skill_id)) {
+      return {
+        decision: 'BLOCK',
+        reasonCode: 'PROJECT_POLICY',
+        reasons: [`project policy blocks skill "${skill.skill_id}"${projectPolicy.reason ? `: ${projectPolicy.reason}` : ''} — Project Policy outranks Global Skill`],
+      };
+    }
+
+    const requestedOperations = (task && task.requestedOperations) || [];
+    const targetResources = (task && task.targetResources) || [];
+    const deniedOperations = projectPolicy.deniedOperations || [];
+    const protectedResources = projectPolicy.protectedResources || [];
+    const deniedOpHit = requestedOperations.find((op) => deniedOperations.includes(op));
+    const protectedResourceHit = targetResources.find((r) => protectedResources.includes(r));
+    if (deniedOpHit && protectedResourceHit) {
+      return {
+        decision: 'BLOCK',
+        reasonCode: 'PROJECT_POLICY',
+        reasons: [`project policy denies operation "${deniedOpHit}" against protected resource "${protectedResourceHit}"${projectPolicy.reason ? `: ${projectPolicy.reason}` : ''} — Project Policy outranks Global Skill`],
+      };
+    }
   }
 
   const selectedSkillIds = (task && task.selectedSkillIds) || [];
@@ -62,6 +84,34 @@ export function evaluateEligibility({ skill, task, conflicts = [], projectPolicy
       reasons: [`skill "${skill.skill_id}" does not list platform "${task.platform}" as supported`],
     };
   }
+
+  if (skill.project_scope && skill.project_scope !== task.project) {
+    return {
+      decision: 'SKIP',
+      reasonCode: 'PROJECT_SCOPE_MISMATCH',
+      reasons: [`skill "${skill.skill_id}" is scoped to project "${skill.project_scope}", not applicable to task project "${task.project || '(none given)'}"`],
+    };
+  }
+
+  const missingFrom = (required, available, label, code) => {
+    if (!required || required.length === 0) return null;
+    const have = available || []; // fail-closed: an unstated list means "nothing available"
+    const missing = required.filter((item) => !have.includes(item));
+    if (missing.length === 0) return null;
+    return {
+      decision: 'BLOCK',
+      reasonCode: code,
+      reasons: [`skill "${skill.skill_id}" requires ${label} "${missing.join(', ')}" not available/granted to this task`],
+    };
+  };
+
+  const requiredChecks = [
+    missingFrom(skill.required_inputs, task.availableInputs, 'input', 'MISSING_INPUT'),
+    missingFrom(skill.required_tools, task.availableTools, 'tool', 'MISSING_TOOL'),
+    missingFrom(skill.required_capabilities, task.availableCapabilities, 'capability', 'MISSING_CAPABILITY'),
+    missingFrom(skill.required_permissions, task.grantedPermissions, 'permission', 'MISSING_PERMISSION'),
+  ].filter(Boolean);
+  if (requiredChecks.length > 0) return requiredChecks[0];
 
   const capabilitiesUsed = (task && task.capabilitiesUsed) || [];
   const forbidden = skill.forbidden_capabilities || [];

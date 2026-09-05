@@ -149,3 +149,112 @@ test('project policy explicitly blocking a skill overrides an otherwise-eligible
   assert.equal(result.reasonCode, 'PROJECT_POLICY');
   assert.ok(result.reasons.some((r) => r.includes('FINAL CHECK')));
 });
+
+// --- Phase 1.1 review fixes: required input/tool/capability/permission, project scope, resource/operation-aware project policy ---
+
+test('a skill requiring an input the task does not have available is BLOCKed with MISSING_INPUT', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, required_inputs: ['repo_path'] },
+    task: { platform: 'codex', autoInvoke: false, availableInputs: [] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'MISSING_INPUT');
+});
+
+test('a skill requiring an input is USE when the task declares that input available', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, required_inputs: ['repo_path'] },
+    task: { platform: 'codex', autoInvoke: false, availableInputs: ['repo_path'] },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('a skill with a required input is BLOCKed (fail-closed) when the task does not even state availableInputs', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, required_inputs: ['repo_path'] },
+    task: { platform: 'codex', autoInvoke: false },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'MISSING_INPUT');
+});
+
+test('a skill requiring a tool the task does not have available is BLOCKed with MISSING_TOOL', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, required_tools: ['grep'] },
+    task: { platform: 'codex', autoInvoke: false, availableTools: ['read'] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'MISSING_TOOL');
+});
+
+test('a skill requiring a host capability the task does not have available is BLOCKed with MISSING_CAPABILITY', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, required_capabilities: ['network_read'] },
+    task: { platform: 'codex', autoInvoke: false, availableCapabilities: [] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'MISSING_CAPABILITY');
+});
+
+test('a skill requiring a permission the task was not granted is BLOCKed with MISSING_PERMISSION', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, required_permissions: ['write_files'] },
+    task: { platform: 'codex', autoInvoke: false, grantedPermissions: [] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'MISSING_PERMISSION');
+});
+
+test('a project-scoped skill is SKIPped (not BLOCKed) for a task in a different project', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, project_scope: 'one-rope' },
+    task: { platform: 'codex', autoInvoke: false, project: 'decode' },
+  });
+  assert.equal(result.decision, 'SKIP');
+  assert.equal(result.reasonCode, 'PROJECT_SCOPE_MISMATCH');
+});
+
+test('a project-scoped skill is USE for a task in the matching project', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, project_scope: 'one-rope' },
+    task: { platform: 'codex', autoInvoke: false, project: 'one-rope' },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('a global skill with no project_scope is USE regardless of task.project', () => {
+  const result = evaluateEligibility({
+    skill: baseSkill,
+    task: { platform: 'codex', autoInvoke: false, project: 'anything' },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('project policy: a read-only operation on a protected resource is not blocked when only "modify" is denied', () => {
+  const result = evaluateEligibility({
+    skill: baseSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['read'], targetResources: ['validator'] },
+    projectPolicy: { deniedOperations: ['modify'], protectedResources: ['validator'], reason: 'FINAL CHECK frozen validator' },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('project policy: a denied operation against a protected resource is BLOCKed even though the skill itself is not on any blockedSkillIds list', () => {
+  const result = evaluateEligibility({
+    skill: baseSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['modify'], targetResources: ['validator'] },
+    projectPolicy: { deniedOperations: ['modify'], protectedResources: ['validator'], reason: 'FINAL CHECK frozen validator' },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'PROJECT_POLICY');
+  assert.ok(result.reasons.some((r) => r.includes('FINAL CHECK')));
+});
+
+test('project policy: a denied operation against a resource that is NOT protected is not blocked by that policy', () => {
+  const result = evaluateEligibility({
+    skill: baseSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['modify'], targetResources: ['unrelated-file'] },
+    projectPolicy: { deniedOperations: ['modify'], protectedResources: ['validator'] },
+  });
+  assert.equal(result.decision, 'USE');
+});

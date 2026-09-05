@@ -2,13 +2,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { lintHookConfig } from '../hook-safety.mjs';
 
-test('regression: the exact broken hook from the 2026-09-05 incident (a deleted project checkout absolute path) is flagged', () => {
+test('regression: a synthetic reproduction of the 2026-09-05 incident shape (a deleted project checkout absolute path) is flagged', () => {
+  // Synthetic path — the real incident's machine-specific path is not
+  // reproduced here since this repository is public. Shape matches: a
+  // drive-letter absolute path into Users/<name>/Desktop/<project-name>/....
   const settings = {
     hooks: {
       PreToolUse: [
         {
           matcher: 'Bash|PowerShell',
-          hooks: [{ type: 'command', command: 'py D:/Users/admin/Desktop/s12d_agent/.claude/hooks/guard.py' }],
+          hooks: [{ type: 'command', command: 'py X:/Users/example/Desktop/deleted-project/.claude/hooks/guard.py' }],
         },
       ],
     },

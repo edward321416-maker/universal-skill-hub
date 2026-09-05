@@ -3,10 +3,12 @@ import url from 'node:url';
 
 /**
  * Regression guard for the 2026-09-05 incident: a global Claude Code
- * PreToolUse hook pointed at `D:/Users/admin/Desktop/s12d_agent/.claude/hooks/guard.py`
- * — a specific project checkout's absolute path. When that project directory
- * was deleted, the hook command failed on every single Bash/PowerShell call,
- * blocking shell access entirely for every other project on the machine.
+ * PreToolUse hook pointed at a specific project checkout's absolute path
+ * (synthetic example shape: `X:/Users/example/Desktop/deleted-project/.claude/hooks/guard.py`
+ * — the real incident path is not reproduced here since this repository is
+ * public). When that project directory was deleted, the hook command failed
+ * on every single Bash/PowerShell call, blocking shell access entirely for
+ * every other project on the machine.
  *
  * Invariant (see docs/DESIGN.md): user/global Claude configuration MUST NOT
  * reference a project-specific absolute checkout path for a required hook.

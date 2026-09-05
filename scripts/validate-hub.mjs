@@ -3,10 +3,18 @@ import path from 'node:path';
 import url from 'node:url';
 import { load as loadYaml } from 'js-yaml';
 
-// Agent Skills spec constraints + hub-specific ush- namespace rule.
+// --- Agent Skills baseline constraints (apply to any Agent-Skills-shaped
+// SKILL.md, not specific to this hub) ---
 const NAME_MAX_LENGTH = 64;
 const DESCRIPTION_MAX_LENGTH = 1024;
-const NAME_PATTERN = /^ush-[a-z0-9]+(-[a-z0-9]+)*$/;
+
+// --- Hub-specific constraints (this repo's own rules, layered on top of
+// the Agent Skills baseline above) ---
+const NAME_PATTERN = /^ush-[a-z0-9]+(-[a-z0-9]+)*$/; // ush- namespace, see docs/DESIGN.md
+const VALID_STATUSES = ['EXPERIMENTAL', 'VALIDATED', 'DEPRECATED', 'QUARANTINED']; // registry/lifecycle.json
+const VALID_RISKS = ['L0', 'L1', 'L2', 'L3', 'L4']; // docs/DESIGN.md risk model
+const VALID_SCOPES = ['global', 'domain', 'project']; // skills/{global,git,game,discord,domain}/ + project-bound
+const SEMVER_PATTERN = /^\d+\.\d+\.\d+(-[0-9A-Za-z-.]+)?(\+[0-9A-Za-z-.]+)?$/;
 
 /**
  * Parses SKILL.md frontmatter with a real YAML parser (js-yaml), so
@@ -64,10 +72,39 @@ export function validateSkillDir(dirPath) {
   const metadata = frontmatter.metadata || {};
   if (!metadata.status) {
     errors.push('missing required "metadata.status" lifecycle field');
+  } else if (!VALID_STATUSES.includes(metadata.status)) {
+    errors.push(`invalid metadata.status "${metadata.status}" — must be one of ${VALID_STATUSES.join('|')}`);
+  }
+
+  if (metadata.risk !== undefined && !VALID_RISKS.includes(metadata.risk)) {
+    errors.push(`invalid metadata.risk "${metadata.risk}" — must be one of ${VALID_RISKS.join('|')}`);
+  }
+
+  if (metadata.scope !== undefined && !VALID_SCOPES.includes(metadata.scope)) {
+    errors.push(`invalid metadata.scope "${metadata.scope}" — must be one of ${VALID_SCOPES.join('|')}`);
+  }
+
+  if (metadata.version !== undefined && !SEMVER_PATTERN.test(String(metadata.version))) {
+    errors.push(`invalid metadata.version "${metadata.version}" — must be valid SemVer (e.g. 1.2.3)`);
   }
 
   if (metadata.scope === 'global' && metadata.project) {
     errors.push(`skill declares global scope but also binds to project "${metadata.project}" — project-bound skills must not be global scope`);
+  }
+
+  const compatibility = frontmatter.compatibility;
+  if (compatibility !== undefined) {
+    if (typeof compatibility !== 'object' || compatibility === null || Array.isArray(compatibility)) {
+      errors.push('optional frontmatter "compatibility" block must be an object');
+    } else {
+      for (const field of ['requires', 'forbidden_capabilities', 'requires_not']) {
+        if (compatibility[field] !== undefined && !Array.isArray(compatibility[field])) {
+          errors.push(`optional frontmatter compatibility.${field} must be an array of strings, got ${typeof compatibility[field]}`);
+        } else if (Array.isArray(compatibility[field]) && !compatibility[field].every((v) => typeof v === 'string')) {
+          errors.push(`optional frontmatter compatibility.${field} must be an array of strings`);
+        }
+      }
+    }
   }
 
   return { valid: errors.length === 0, errors };

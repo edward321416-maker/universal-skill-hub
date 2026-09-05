@@ -76,3 +76,33 @@ test('metadata nested deeper than one level (with a list value) is parsed correc
   const result = validateSkillDir(path.join(FIXTURES, 'nested-metadata', 'ush-nested-ok'));
   assert.equal(result.valid, true, `expected valid, got errors: ${JSON.stringify(result.errors)}`);
 });
+
+test('a metadata.status value outside EXPERIMENTAL|VALIDATED|DEPRECATED|QUARANTINED is rejected', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'invalid-status', 'ush-bad-status'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes('status')), `expected a status error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('a metadata.risk value outside L0-L4 is rejected', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'invalid-risk', 'ush-bad-risk'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes('risk')), `expected a risk error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('a metadata.version that is not valid SemVer is rejected', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'invalid-semver', 'ush-bad-semver'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.toLowerCase().includes('semver') || e.toLowerCase().includes('version')), `expected a version error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('a metadata.scope value outside the hub\'s supported scopes is rejected', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'invalid-scope', 'ush-bad-scope'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes('scope')), `expected a scope error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('an optional frontmatter compatibility block with the wrong field type is rejected', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'invalid-compatibility', 'ush-bad-compat'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.toLowerCase().includes('compatibility')), `expected a compatibility error, got: ${JSON.stringify(result.errors)}`);
+});

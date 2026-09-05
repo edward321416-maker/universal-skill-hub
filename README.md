@@ -56,12 +56,13 @@ Every canonical skill carries a `metadata.status` of `EXPERIMENTAL`,
 
 | Platform | Strategy |
 |---|---|
-| Codex | native skill directory (`.agents/skills/`), generated adapter |
-| Claude Code | native skill directory (`.claude/skills/`), generated adapter |
+| Codex | native skill directory — project: `.agents/skills/` (scanned from cwd up to repo root); user: `$HOME/.agents/skills/`; admin: `/etc/codex/skills/` (VERIFIED against official OpenAI Codex docs, 2026-09-05). Generated adapter; real filesystem install smoke-tested (`scripts/install-skills.mjs`), byte-identical to expected render. Live discovery NOT TESTED (no safe read-only diagnostic; an actual check would require a live `codex` session contacting OpenAI's backend) |
+| Claude Code | native skill directory `.claude/skills/` (project) / `~/.claude/skills/` (user). Generated adapter; real install + **live discovery confirmed** — this session's own harness listed and loaded the installed skill after `--apply` |
 | Cursor | native skill directory (`.cursor/skills/`), generated adapter |
 | OpenCode | native skill directory (`.opencode/skills/`), generated adapter |
-| ChatGPT / Work | instruction-export bundle (not yet implemented) |
-| claude.ai Projects | Project Knowledge export bundle (not yet implemented) |
+| ChatGPT / Work | Native Personal Skills feature confirmed (SKILL.md-based, Plugin Directory upload) — see `adapters/chatgpt/README.md`. Bundle generation targets the separate OpenAI API "project Skills" resource (`npm run bundle:openai`); no automatic Hub->ChatGPT-account sync exists or is planned |
+| OpenAI API (project Skills) | Deterministic ZIP bundle generator (`npm run bundle:openai`), documented size/file-count limits enforced at build time; no API key used, no upload performed |
+| claude.ai Projects | Deterministic ZIP bundle generator (`npm run bundle:claude-ai`), verified shape (skill folder at ZIP root); no upload performed. claude.ai Projects still does not share local Claude Code repository state |
 
 Claude Code is treated as first-class, not an afterthought: every canonical
 skill is expected to work with no Claude-specific capability required, with
@@ -77,8 +78,11 @@ npm run registry-consistency  # check registry/skills-index.json against each sk
 npm run render-adapters      # regenerate adapters/<platform>/<skill>/SKILL.md from canonical sources
 npm run check-drift          # full-render comparison: detect hand-edited or stale generated adapter files
 npm run install-skills -- --platform claude-code --scope user   # dry-run by default; add --apply to write
-npm run verify               # the full release gate CI runs: test + validate + registry-consistency +
-                              # render-adapters + `git diff --exit-code -- adapters` + check-drift
+npm run bundle:claude-ai      # deterministic ZIP for claude.ai custom Skills (no upload)
+npm run bundle:openai         # deterministic ZIP for the OpenAI API "project Skills" resource (no upload)
+npm run verify                # the full release gate: test + validate + registry-consistency +
+                               # render-adapters + `git diff --exit-code -- adapters` + check-drift +
+                               # both bundle generators + an installer dry-run smoke test
 ```
 
 ## Security model
