@@ -20,7 +20,10 @@ export function collectSkillFiles({ skillDir, skillId, fs = realFs }) {
       if (fs.statSync(abs).isDirectory()) {
         walk(abs, rel);
       } else {
-        results.push({ path: `${skillId}/${rel}`, content: fs.readFileSync(abs, 'utf8') });
+        // No encoding argument: read raw bytes into a Buffer. Reading as
+        // 'utf8' would decode every file as text, corrupting any binary
+        // asset (images, PDFs, etc.) whose bytes aren't valid UTF-8.
+        results.push({ path: `${skillId}/${rel}`, content: fs.readFileSync(abs) });
       }
     }
   }

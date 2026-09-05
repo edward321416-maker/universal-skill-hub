@@ -49,7 +49,11 @@ export function buildZip(entries) {
   for (const entry of entries) {
     assertSafeRelativePath(entry.path);
     const nameBuf = Buffer.from(entry.path.replace(/\\/g, '/'), 'utf8');
-    const dataBuf = Buffer.from(entry.content, 'utf8');
+    // Buffer.from(buf) copies raw bytes with no encoding reinterpretation
+    // when the input is already a Buffer/Uint8Array — only a string input
+    // goes through the 'utf8' decode. This is what makes binary content
+    // (images, PDFs, etc.) safe to pass through unchanged.
+    const dataBuf = Buffer.isBuffer(entry.content) ? entry.content : Buffer.from(entry.content, 'utf8');
     const crc = crc32(dataBuf);
 
     const localHeader = Buffer.alloc(30);
@@ -104,6 +108,38 @@ export function buildZip(entries) {
   eocd.writeUInt16LE(0, 20); // comment length
 
   return Buffer.concat([...localParts, ...centralParts, eocd]);
+}
+
+/**
+ * Minimal reader matching buildZip's own output exactly (STORE method,
+ * UTF-8 filenames, no Zip64) — used to unit-test round-trip byte fidelity
+ * without depending on an external unzip binary being present. Not a
+ * general-purpose ZIP reader.
+ */
+export function readZip(buf) {
+  const eocdSig = buf.readUInt32LE(buf.length - 22);
+  if (eocdSig !== 0x06054b50) throw new Error('not a valid zip produced by buildZip: missing EOCD signature');
+  const entryCount = buf.readUInt16LE(buf.length - 22 + 10);
+  const centralDirOffset = buf.readUInt32LE(buf.length - 22 + 16);
+
+  const entries = [];
+  let cdPos = centralDirOffset;
+  for (let i = 0; i < entryCount; i++) {
+    if (buf.readUInt32LE(cdPos) !== 0x02014b50) throw new Error(`expected central directory signature at offset ${cdPos}`);
+    const compressedSize = buf.readUInt32LE(cdPos + 20);
+    const nameLen = buf.readUInt16LE(cdPos + 28);
+    const localHeaderOffset = buf.readUInt32LE(cdPos + 42);
+    const name = buf.toString('utf8', cdPos + 46, cdPos + 46 + nameLen);
+
+    const localNameLen = buf.readUInt16LE(localHeaderOffset + 26);
+    const localExtraLen = buf.readUInt16LE(localHeaderOffset + 28);
+    const dataStart = localHeaderOffset + 30 + localNameLen + localExtraLen;
+    const content = buf.subarray(dataStart, dataStart + compressedSize); // STORE only: compressed === raw
+
+    entries.push({ path: name, content: Buffer.from(content) });
+    cdPos += 46 + nameLen;
+  }
+  return entries;
 }
 
 export function sha256OfBuffer(buf) {

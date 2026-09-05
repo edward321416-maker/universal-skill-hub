@@ -60,7 +60,7 @@ Every canonical skill carries a `metadata.status` of `EXPERIMENTAL`,
 | Claude Code | native skill directory `.claude/skills/` (project) / `~/.claude/skills/` (user). Generated adapter; real install + **live discovery confirmed** — this session's own harness listed and loaded the installed skill after `--apply` |
 | Cursor | native skill directory (`.cursor/skills/`), generated adapter |
 | OpenCode | native skill directory (`.opencode/skills/`), generated adapter |
-| ChatGPT / Work | Native Personal Skills feature confirmed (SKILL.md-based, Plugin Directory upload) — see `adapters/chatgpt/README.md`. Bundle generation targets the separate OpenAI API "project Skills" resource (`npm run bundle:openai`); no automatic Hub->ChatGPT-account sync exists or is planned |
+| ChatGPT / Work | See `adapters/chatgpt/README.md` for the full A/B/C breakdown (Standalone Skills / plugin-bundled Skills / OpenAI API project Skills) — only the third is implemented here, via `npm run bundle:openai`; no automatic account sync exists or is planned |
 | OpenAI API (project Skills) | Deterministic ZIP bundle generator (`npm run bundle:openai`), documented size/file-count limits enforced at build time; no API key used, no upload performed |
 | claude.ai Projects | Deterministic ZIP bundle generator (`npm run bundle:claude-ai`), verified shape (skill folder at ZIP root); no upload performed. claude.ai Projects still does not share local Claude Code repository state |
 

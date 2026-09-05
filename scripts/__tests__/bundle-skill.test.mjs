@@ -1,6 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { collectSkillFiles, buildSkillBundle } from '../bundle-skill.mjs';
+import { readZip } from '../zip-writer.mjs';
 
 const fakeFs = {
   files: {
@@ -46,4 +50,24 @@ test('buildSkillBundle is deterministic across two calls against the same fake f
   const zip1 = buildSkillBundle({ skillDir: 'skills/global/ush-example', skillId: 'ush-example', fs: fakeFs });
   const zip2 = buildSkillBundle({ skillDir: 'skills/global/ush-example', skillId: 'ush-example', fs: fakeFs });
   assert.ok(zip1.equals(zip2));
+});
+
+test('collectSkillFiles + buildZip is binary-safe end-to-end against a REAL filesystem: an asset with invalid-UTF-8 bytes round-trips exactly, alongside an ordinary UTF-8 SKILL.md', () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ush-bundle-test-'));
+  try {
+    const skillDir = path.join(tmpRoot, 'ush-example');
+    fs.mkdirSync(path.join(skillDir, 'assets'), { recursive: true });
+    fs.writeFileSync(path.join(skillDir, 'SKILL.md'), '---\nname: ush-example\ndescription: has a binary asset\n---\nbody\n', 'utf8');
+    const binaryBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff, 0x00, 0xfe, 0x80, 0x81]);
+    fs.writeFileSync(path.join(skillDir, 'assets', 'pixel.png'), binaryBytes);
+
+    const zip = buildSkillBundle({ skillDir, skillId: 'ush-example' });
+    const extracted = readZip(zip);
+    const byPath = Object.fromEntries(extracted.map((e) => [e.path.replace(/\\/g, '/'), e.content]));
+
+    assert.ok(byPath['ush-example/assets/pixel.png'].equals(binaryBytes), 'binary asset must round-trip byte-for-byte');
+    assert.equal(byPath['ush-example/SKILL.md'].toString('utf8'), '---\nname: ush-example\ndescription: has a binary asset\n---\nbody\n');
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
 });

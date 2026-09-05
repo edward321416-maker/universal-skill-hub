@@ -72,9 +72,14 @@ test('a quoted YAML description containing a colon is parsed correctly and accep
   assert.equal(result.valid, true, `expected valid, got errors: ${JSON.stringify(result.errors)}`);
 });
 
-test('metadata nested deeper than one level (with a list value) is parsed correctly and accepted', () => {
-  const result = validateSkillDir(path.join(FIXTURES, 'nested-metadata', 'ush-nested-ok'));
-  assert.equal(result.valid, true, `expected valid, got errors: ${JSON.stringify(result.errors)}`);
+test('YAML parsing itself still handles nesting/lists correctly (js-yaml, not the naive line parser) even though the spec forbids nested metadata values', () => {
+  // Distinct from spec-compliance: this only proves the YAML parser used by
+  // validate-hub.mjs can read a nested structure at all (rather than a
+  // regex-based parser choking on it) — the spec-compliance rejection of
+  // that structure once parsed is covered separately below.
+  const result = validateSkillDir(path.join(FIXTURES, 'invalid-metadata-nested', 'ush-bad-metadata-nested'));
+  assert.equal(result.valid, false, 'the structure must parse (not crash) but still fail spec validation');
+  assert.ok(result.errors.some((e) => e.toLowerCase().includes('metadata')), `expected a metadata error, got: ${JSON.stringify(result.errors)}`);
 });
 
 test('a metadata.status value outside EXPERIMENTAL|VALIDATED|DEPRECATED|QUARANTINED is rejected', () => {
@@ -101,8 +106,48 @@ test('a metadata.scope value outside the hub\'s supported scopes is rejected', (
   assert.ok(result.errors.some((e) => e.includes('scope')), `expected a scope error, got: ${JSON.stringify(result.errors)}`);
 });
 
-test('an optional frontmatter compatibility block with the wrong field type is rejected', () => {
+// --- Agent Skills spec compliance: `compatibility` is a 1-500 char STRING,
+// `metadata` is a flat string-to-string map — verified against the
+// cross-vendor spec at agentskills.io/specification (checked 2026-09-05).
+// registry/compatibility.json is a separate, Hub-owned, structured file and
+// is unaffected by these rules — they apply only to SKILL.md frontmatter.
+
+test('a spec-compliant string compatibility field is accepted', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'valid-compatibility-string', 'ush-good-compat-string'));
+  assert.equal(result.valid, true, `expected valid, got errors: ${JSON.stringify(result.errors)}`);
+});
+
+test('a compatibility field that is an object instead of a string is rejected', () => {
   const result = validateSkillDir(path.join(FIXTURES, 'invalid-compatibility', 'ush-bad-compat'));
   assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.toLowerCase().includes('compatibility') && e.toLowerCase().includes('string')), `expected a compatibility-must-be-a-string error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('an empty compatibility string is rejected', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'invalid-compatibility-empty', 'ush-bad-compat-empty'));
+  assert.equal(result.valid, false);
   assert.ok(result.errors.some((e) => e.toLowerCase().includes('compatibility')), `expected a compatibility error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('a compatibility string over 500 characters is rejected', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'invalid-compatibility-too-long', 'ush-bad-compat-long'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes('500')), `expected a 500-char limit error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('a spec-compliant flat string-to-string metadata map is accepted', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'valid-metadata-stringmap', 'ush-good-metadata-stringmap'));
+  assert.equal(result.valid, true, `expected valid, got errors: ${JSON.stringify(result.errors)}`);
+});
+
+test('a metadata value that is a nested object (not a string) is rejected', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'invalid-metadata-nested', 'ush-bad-metadata-nested'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.toLowerCase().includes('metadata') && e.toLowerCase().includes('string')), `expected a metadata-must-be-string-values error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('a metadata value that is a number (not a string) is rejected', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'invalid-metadata-numeric', 'ush-bad-metadata-numeric'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.toLowerCase().includes('metadata') && e.toLowerCase().includes('string')), `expected a metadata-must-be-string-values error, got: ${JSON.stringify(result.errors)}`);
 });

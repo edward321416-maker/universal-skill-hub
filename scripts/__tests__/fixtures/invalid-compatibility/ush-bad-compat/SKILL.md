@@ -1,16 +1,17 @@
 ---
 name: ush-bad-compat
-description: Fixture with a malformed optional compatibility block (wrong type).
+description: Fixture where compatibility is an object instead of the spec-required string.
+compatibility:
+  requires: read_files
 metadata:
-  type: global
   scope: global
   risk: L0
   status: EXPERIMENTAL
   version: 0.1.0
-compatibility:
-  requires: "read_files"
 ---
 
-# Bad Compatibility Fixture
+# Bad Compatibility Fixture (wrong type)
 
-The `requires` field must be an array of strings, not a bare string.
+The Agent Skills spec requires `compatibility` to be a plain string (max 500
+characters), not an object. Hub-specific structured capability data belongs
+in registry/compatibility.json, never in SKILL.md frontmatter.

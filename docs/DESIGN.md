@@ -184,14 +184,19 @@ came from.
   ZIP upload with the skill folder as the archive's root (not a
   subfolder), Settings > Features, Pro/Max/Team/Enterprise with code
   execution enabled. `scripts/bundle-claude-ai.mjs` implements this shape.
-- **ChatGPT native Personal Skills**: VERIFIED to exist as of 2026-09-05
-  (OpenAI's Skills documentation, corroborated by third-party coverage) —
-  a native, SKILL.md-based upload feature reachable via the Plugin
-  Directory, on Business/Enterprise/Healthcare/Edu and paid Work plans.
-  Not the same surface as the OpenAI API's "project Skills" resource
-  targeted by `scripts/bundle-openai.mjs` — see `adapters/chatgpt/README.md`
-  for how these are kept distinct. No automatic Hub -> ChatGPT-account
-  sync exists or is planned; that upload step is always manual.
+- **ChatGPT/Codex skill surfaces**: VERIFIED directly against
+  `learn.chatgpt.com/docs/build-skills` on 2026-09-05, which distinguishes
+  exactly two distribution surfaces in its own words: "Standalone skills are
+  available in the ChatGPT desktop app, Codex CLI, and IDE extension" vs.
+  "Skills bundled in plugins are also available in Chat and Work across
+  ChatGPT on the web, desktop, and mobile." An earlier pass in this repo
+  used unverified secondary-source terminology ("Personal Skills", "Plugin
+  Directory upload") that did not hold up against this primary source and
+  has been removed — see `adapters/chatgpt/README.md` for the corrected,
+  citation-backed A/B/C breakdown (Standalone / plugin-bundled / OpenAI API
+  project Skills) and exactly what is and isn't implemented for each. No
+  automatic Hub -> ChatGPT-account or Hub -> OpenAI-API-project sync exists
+  or is planned; any upload is always a manual, human-initiated step.
 - **OpenAI API project Skills**: VERIFIED against
   `developers.openai.com/api/docs/guides/tools-skills` on 2026-09-05 —
   directory-multipart or single-ZIP upload, immutable versions, 50 MB zip

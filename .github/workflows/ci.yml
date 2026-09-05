@@ -9,13 +9,17 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      # actions/checkout v4.4.0, pinned by commit SHA (verified via
-      # `gh api repos/actions/checkout/tags` on 2026-09-05)
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # actions/checkout v7.0.1, pinned by commit SHA (verified via
+      # `gh api repos/actions/checkout/tags` on 2026-09-05). v7's action.yml
+      # declares `runs.using: node24` (checked directly, not assumed) — v4
+      # declared node20 and triggered GitHub's Node 20 deprecation warning
+      # on every step; v7 does not.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # actions/setup-node v4.4.0, pinned by commit SHA (verified via
-      # `gh api repos/actions/setup-node/tags` on 2026-09-05)
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      # actions/setup-node v7.0.0, pinned by commit SHA (verified via
+      # `gh api repos/actions/setup-node/tags` on 2026-09-05). v7's
+      # action.yml also declares `runs.using: node24` (checked directly).
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24' # Active LTS as of 2026-09-05 (EOL 2028-04-30)
 

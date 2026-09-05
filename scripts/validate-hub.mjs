@@ -4,9 +4,15 @@ import url from 'node:url';
 import { load as loadYaml } from 'js-yaml';
 
 // --- Agent Skills baseline constraints (apply to any Agent-Skills-shaped
-// SKILL.md, not specific to this hub) ---
+// SKILL.md, not specific to this hub) — verified against the cross-vendor
+// spec at agentskills.io/specification, checked 2026-09-05. `compatibility`
+// is a plain string (1-500 chars); `metadata` is a flat string-to-string
+// map. Neither is an object/array of structured data in real SKILL.md
+// frontmatter — that structured shape belongs only in this hub's own
+// registry/compatibility.json, a separate file untouched by these rules.
 const NAME_MAX_LENGTH = 64;
 const DESCRIPTION_MAX_LENGTH = 1024;
+const COMPATIBILITY_MAX_LENGTH = 500;
 
 // --- Hub-specific constraints (this repo's own rules, layered on top of
 // the Agent Skills baseline above) ---
@@ -94,16 +100,16 @@ export function validateSkillDir(dirPath) {
 
   const compatibility = frontmatter.compatibility;
   if (compatibility !== undefined) {
-    if (typeof compatibility !== 'object' || compatibility === null || Array.isArray(compatibility)) {
-      errors.push('optional frontmatter "compatibility" block must be an object');
-    } else {
-      for (const field of ['requires', 'forbidden_capabilities', 'requires_not']) {
-        if (compatibility[field] !== undefined && !Array.isArray(compatibility[field])) {
-          errors.push(`optional frontmatter compatibility.${field} must be an array of strings, got ${typeof compatibility[field]}`);
-        } else if (Array.isArray(compatibility[field]) && !compatibility[field].every((v) => typeof v === 'string')) {
-          errors.push(`optional frontmatter compatibility.${field} must be an array of strings`);
-        }
-      }
+    if (typeof compatibility !== 'string') {
+      errors.push(`frontmatter "compatibility" must be a string (per the Agent Skills spec), got ${typeof compatibility} — hub-specific structured capability data belongs in registry/compatibility.json, not SKILL.md frontmatter`);
+    } else if (compatibility.length === 0 || compatibility.length > COMPATIBILITY_MAX_LENGTH) {
+      errors.push(`frontmatter "compatibility" must be 1-${COMPATIBILITY_MAX_LENGTH} characters, got ${compatibility.length}`);
+    }
+  }
+
+  for (const [key, value] of Object.entries(metadata)) {
+    if (typeof value !== 'string') {
+      errors.push(`metadata.${key} must be a string (per the Agent Skills spec, metadata is a flat string-to-string map), got ${typeof value}`);
     }
   }
 

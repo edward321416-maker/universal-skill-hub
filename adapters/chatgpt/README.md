@@ -1,34 +1,33 @@
 # ChatGPT / Work Adapter
 
-Verified 2026-09-05 against OpenAI's own documentation (developers.openai.com,
-via its learn.chatgpt.com redirect target, plus corroborating third-party
-coverage): ChatGPT (Business/Enterprise/Healthcare/Edu, and paid Work plans)
-has a native **Personal Skills** feature, reachable from the Plugin
-Directory, that uses the same `SKILL.md`-based Agent Skills format this hub
-already produces. A skill can be uploaded from a local folder/zip or
-imported from a source like GitHub. ChatGPT scans an uploaded skill and
-approves most of them automatically, flagging some for review.
+Verified 2026-09-05 directly against OpenAI's own skills documentation
+(`learn.chatgpt.com/docs/build-skills`, the canonical redirect target of
+`developers.openai.com/codex/skills`). That page distinguishes exactly two
+distribution surfaces, in its own words:
 
-Three distinct things must not be conflated:
+- **"Standalone skills are available in the ChatGPT desktop app, Codex CLI,
+  and IDE extension."**
+- **"Skills bundled in plugins are also available in Chat and Work across
+  ChatGPT on the web, desktop, and mobile."**
 
-1. **Bundle generation** (`scripts/bundle-openai.mjs` targets the separate
-   OpenAI API "project Skills" resource, not the ChatGPT product directly —
-   see below) — implemented, tested, verified against official docs.
-2. **Native ChatGPT Skill capability** (the product feature described
-   above) — verified to exist; this hub does not yet generate a
-   ChatGPT-Plugin-Directory-specific bundle distinct from the generic
-   claude.ai/OpenAI-API bundle shape, since no ChatGPT-specific packaging
-   requirement beyond "a folder/zip containing SKILL.md" was found in the
-   documentation consulted.
-3. **Automatic Hub -> ChatGPT account sync** — NOT implemented and not
-   claimed. Uploading a skill into a specific user's ChatGPT account is
-   always a manual, human-initiated action; nothing in this repo performs
-   it, and it requires no credential this repo would ever hold.
+Separately, `developers.openai.com/api/reference/resources/skills` documents
+a third, distinct resource: the **OpenAI API "project Skills"** endpoint
+(`skills.versions.create`, with `version`/`default_version`, directory or
+ZIP upload, immutable versions). This is not mentioned on the
+`build-skills` page and is a separate surface from both of the above.
 
-Separately, the **OpenAI API** exposes its own "project Skills" resource
-(`developers.openai.com/api/docs/guides/tools-skills`), distinct from both
-the ChatGPT product and the Codex CLI filesystem convention. This is what
-`scripts/bundle-openai.mjs` targets: it builds a deterministic ZIP (skill
-folder at the archive root, per that API's own upload contract) with no API
-key required to *build* it — only to actually call
-`skills.versions.create`, which this repo does not do.
+Status, using only the terminology actually confirmed above (no invented
+phrasing like "Personal Skills" or "Plugin Directory upload" — that wording
+came from secondary/aggregator sources during an earlier pass and did not
+hold up against the primary source, so it has been removed):
+
+| Surface | Status in this repo |
+|---|---|
+| Standalone Skills (ChatGPT desktop app, Codex CLI, Codex IDE extension) | Codex CLI: filesystem distribution IMPLEMENTED (`scripts/install-skills.mjs`, verified against a real local install — see `docs/DESIGN.md`). ChatGPT desktop app / Codex IDE extension: capability VERIFIED to exist per the quote above; no distribution mechanism implemented in this repo for either |
+| Skills bundled in plugins (Chat/Work, ChatGPT web/desktop/mobile) | NOT IMPLEMENTED in Phase 1.1. No plugin-packaging format was found in the documentation consulted beyond what's quoted above; expanding into it is deferred rather than guessed at |
+| OpenAI API project Skills | IMPLEMENTED: `scripts/bundle-openai.mjs` builds a deterministic ZIP matching this resource's documented upload shape and size/file-count limits. No API key is used and no upload is performed — a human would call `skills.versions.create` themselves |
+| Automatic Hub -> ChatGPT-account or Hub -> OpenAI-API-project sync | NOT IMPLEMENTED and NOT CLAIMED. Any upload into a specific account/project is always a manual, human-initiated action; nothing in this repo performs it, and it requires no credential this repo would ever hold |
+
+Do not read "Standalone Skills... Codex CLI" as claiming this repo produces
+a ChatGPT-plugin package — it does not. The only ChatGPT/OpenAI-facing
+artifact this repo builds today is the OpenAI API project-Skills ZIP.
