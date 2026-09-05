@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "generated_by": "manual",
+  "skills": [
+    {
+      "skill_id": "ush-repo-evidence-plan",
+      "path": "skills/global/ush-repo-evidence-plan",
+      "version": "1.0.0",
+      "scope": "global",
+      "risk": "L0",
+      "status": "EXPERIMENTAL",
+      "platforms": ["codex", "claude-code", "claude-ai", "chatgpt", "cursor", "opencode"],
+      "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
+      "source_path": ".codex/skills/repo-task-plan/SKILL.md",
+      "source_commit": "983005fc41b22cb0efc76fb4b529df8ef6c6d6d8",
+      "content_sha256": "352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "notes": "Platform capability requirements per skill. A platform not listed as supporting a required capability makes the skill BLOCK on that platform's adapter render, per Test G in evals/safety.",
+  "skills": {
+    "ush-repo-evidence-plan": {
+      "requires": ["read_files", "search_symbols"],
+      "requires_not": ["network_write", "shell_exec"],
+      "platform_overrides": {}
+    }
+  }
+}

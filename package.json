@@ -1,0 +1,14 @@
+{
+  "name": "universal-skill-hub",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Central registry of canonical, cross-platform Agent Skills with routing, safety, and drift verification.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test scripts/__tests__/",
+    "validate": "node scripts/validate-hub.mjs",
+    "render-adapters": "node scripts/render-adapters.mjs",
+    "check-drift": "node scripts/check-drift.mjs"
+  },
+  "license": "MIT"
+}

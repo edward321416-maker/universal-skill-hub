@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "notes": "Pairs of skill ids that must not both be USE for the same task. Empty until a second canonical skill is migrated.",
+  "conflicts": []
+}
