@@ -18,6 +18,7 @@
     "bundle:openai": "node scripts/bundle-openai.mjs",
     "installer-dry-run-smoke": "node scripts/install-skills.mjs --platform claude-code --scope project --project-root . && node scripts/install-skills.mjs --platform codex --scope project --project-root .",
     "routing-eval": "node scripts/routing-eval.mjs",
+    "routing-eval:cursor": "node scripts/cursor-routing-eval.mjs",
     "verify": "npm test && npm run validate && npm run registry-consistency && npm run render-adapters && git diff --exit-code -- adapters/codex adapters/claude-code adapters/cursor adapters/opencode && npm run check-drift && npm run bundle:claude-ai && npm run bundle:openai && npm run installer-dry-run-smoke"
   },
   "license": "MIT",

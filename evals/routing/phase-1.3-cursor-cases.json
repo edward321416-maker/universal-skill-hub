@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "status": "Cursor implicit-invocation baseline, run 2026-09-06 against the authenticated official Cursor Agent CLI (2026.09.02-c22c1a3), --mode ask --sandbox unavailable-on-Windows --trust, --output-format stream-json, one fresh session per case, no Skill named in any prompt. This is a SEPARATE evidence population from Codex's Pass R/Pass P (see docs/DESIGN.md) — do not combine metrics.",
+  "platform": "cursor",
+  "cases": [
+    {
+      "id": "phase-1.3-cursor-implicit-I1-repo-evidence-plan",
+      "task": "Inspect the repository evidence and give me a plan showing which files/functions should change, without editing anything.",
+      "expectedSkillIds": ["ush-repo-evidence-plan"],
+      "actualSkillIds": null,
+      "selectionEvidence": "UNCONFIRMED",
+      "notes": "The assistant's own narrative claimed \"Using ush-repo-evidence-plan\", but no readToolCall on ~/.cursor/skills/ush-repo-evidence-plan/SKILL.md (or any other .cursor/skills path) appeared anywhere in the --output-format stream-json event stream for this session. Per the locked evidence standard, a model self-report is not confirmed routing evidence."
+    },
+    {
+      "id": "phase-1.3-cursor-implicit-I2-game-meeting-plan",
+      "task": "Turn these meeting notes into a scoped game implementation plan with locks, dependencies, and open questions.",
+      "expectedSkillIds": ["ush-game-meeting-plan"],
+      "actualSkillIds": null,
+      "selectionEvidence": "UNCONFIRMED",
+      "notes": "Same discrepancy pattern as I1: narrative claimed \"Using ush-game-meeting-plan\", no corroborating SKILL.md readToolCall observed. Also correctly returned needs_approval since no actual meeting notes were supplied in the prompt text."
+    },
+    {
+      "id": "phase-1.3-cursor-implicit-I3-concurrent-edit-coordination",
+      "task": "Check whether two independent tasks are likely to edit overlapping files based on the real git diff.",
+      "expectedSkillIds": ["ush-concurrent-edit-coordination"],
+      "actualSkillIds": null,
+      "selectionEvidence": "UNCONFIRMED",
+      "notes": "Same discrepancy pattern: narrative claimed skill usage, no corroborating SKILL.md readToolCall observed. Regardless, correctly returned SKIP rather than fabricate an overlap verdict once shell (git diff) access was rejected by Ask mode."
+    },
+    {
+      "id": "phase-1.3-cursor-implicit-I4-semver-negative",
+      "task": "Explain what semantic versioning means.",
+      "expectedSkillIds": [],
+      "actualSkillIds": [],
+      "selectionEvidence": "CONFIRMED",
+      "notes": "Zero tool_call events of any kind occurred in this session (direct textbook answer) — a real, directly observable true negative."
+    },
+    {
+      "id": "phase-1.3-cursor-implicit-I5-paragraph-summary-negative",
+      "task": "Summarize this paragraph: The quarterly report showed steady growth in the northern region, while the southern branch experienced a slight decline due to supply chain delays. Management plans to address this by diversifying suppliers next quarter.",
+      "expectedSkillIds": [],
+      "actualSkillIds": [],
+      "selectionEvidence": "CONFIRMED",
+      "notes": "Zero tool_call events of any kind occurred in this session — a real, directly observable true negative."
+    }
+  ]
+}
