@@ -1,11 +1,3 @@
-<!--
-GENERATED — DO NOT EDIT
-Rendered from canonical skill "ush-github-task-flow" for platform "codex".
-canonical_content_sha256: d781c4d4c3a4ab78e83976a4ed07c76c4375284542760aafd31ce89a5d89a9f4
-source_commit: 4b8cf8b0faa7e1d7dc195984dcb66fc468b3157f
-Edit the canonical SKILL.md under skills/ and re-run scripts/render-adapters.mjs instead.
--->
-
 ---
 name: ush-github-task-flow
 description: Carry a bounded implementation task through a GitHub issue, an isolated branch, validated changes, and an open pull request, using GitHub as the source-of-truth history for the work. By default this delivers an open, validated PR — it does not merge unless merging is separately and explicitly requested. Use when asked to implement an issue and open a PR, carry a repository task through branch/test/PR, or prepare a safe GitHub task workflow for existing work. Do not use for pure git-concept questions ("what is git rebase?"), for inspecting a commit without changing anything, or for reviewing a PR without also being asked to change it.
@@ -18,6 +10,14 @@ metadata:
   source_path: .codex/skills/github-task-flow/SKILL.md
   source_commit: 4b8cf8b0faa7e1d7dc195984dcb66fc468b3157f
 ---
+
+<!--
+GENERATED — DO NOT EDIT
+Rendered from canonical skill "ush-github-task-flow" for platform "codex".
+canonical_content_sha256: d781c4d4c3a4ab78e83976a4ed07c76c4375284542760aafd31ce89a5d89a9f4
+source_commit: 4b8cf8b0faa7e1d7dc195984dcb66fc468b3157f
+Edit the canonical SKILL.md under skills/ and re-run scripts/render-adapters.mjs instead.
+-->
 
 # GitHub Task Flow
 

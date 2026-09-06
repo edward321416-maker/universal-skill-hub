@@ -57,11 +57,23 @@ export function renderAdapter({ skillId, canonicalBody, platform, capabilities, 
     '-->',
   ].filter(Boolean).join('\n');
 
+  // The marker must NOT precede the frontmatter delimiter: a real live
+  // Codex session (Phase 1.3) proved Codex's own skill loader requires the
+  // file to start with "---" as its literal first bytes, rejecting every
+  // Hub skill with "missing YAML frontmatter delimited by ---" when the
+  // marker (an HTML comment) came first. Insert the marker immediately
+  // after the closing "---" of the frontmatter block instead, so `---` is
+  // always byte 0 regardless of platform.
+  const frontmatterMatch = canonicalBody.match(/^(---\r?\n[\s\S]*?\r?\n---\r?\n)([\s\S]*)$/);
+  const content = frontmatterMatch
+    ? `${frontmatterMatch[1]}\n${marker}\n${frontmatterMatch[2]}`
+    : `${marker}\n\n${canonicalBody}`; // no frontmatter found — fall back to the old shape rather than corrupt the file
+
   return {
     blocked: false,
     targetPath,
     contentHash,
-    content: `${marker}\n\n${canonicalBody}`,
+    content,
   };
 }
 

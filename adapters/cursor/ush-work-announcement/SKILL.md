@@ -1,11 +1,3 @@
-<!--
-GENERATED — DO NOT EDIT
-Rendered from canonical skill "ush-work-announcement" for platform "cursor".
-canonical_content_sha256: 20d3266b52477c344cc07a1b1586a0e6820b4b3cd2629652d00fe46f4d1c6a12
-source_commit: a8bc0493355b82582e98ec4ffc8064506f8f422a
-Edit the canonical SKILL.md under skills/ and re-run scripts/render-adapters.mjs instead.
--->
-
 ---
 name: ush-work-announcement
 description: Build a concise development announcement from actual repository history for a selected period, domain, and contributor, and only publish the exact approved text after explicit user approval. Use to draft a whole-project or filtered (e.g. one contributor's or one domain's) development update backed by merged Git work. Do not use for speculative plans, work that isn't yet reflected in the repository, or to publish anything the user hasn't seen and approved in its final form.
@@ -18,6 +10,14 @@ metadata:
   source_path: .codex/skills/work-announcement/SKILL.md
   source_commit: a8bc0493355b82582e98ec4ffc8064506f8f422a
 ---
+
+<!--
+GENERATED — DO NOT EDIT
+Rendered from canonical skill "ush-work-announcement" for platform "cursor".
+canonical_content_sha256: 20d3266b52477c344cc07a1b1586a0e6820b4b3cd2629652d00fe46f4d1c6a12
+source_commit: a8bc0493355b82582e98ec4ffc8064506f8f422a
+Edit the canonical SKILL.md under skills/ and re-run scripts/render-adapters.mjs instead.
+-->
 
 # Work Announcement
 
