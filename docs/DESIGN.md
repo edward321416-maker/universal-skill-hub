@@ -202,38 +202,170 @@ ownership:
   `metadata.version`/`metadata.scope`/`metadata.risk`/`metadata.status`.
 - **Derived** (must equal a fresh computation, owned by neither side):
   `content_sha256` <- SHA-256 of the canonical `SKILL.md`'s exact bytes.
-- **Registry-owned** (no canonical-source equivalent): `path`, `platforms`,
-  `bundle_targets`, `source_repo`, `source_path`, `source_commit`.
+- **Registry-owned** (no canonical-source equivalent): `path`, `source_repo`,
+  `source_path`, `source_commit`.
+  - `runtime_support` is registry-owned and **authoritative** for runtime
+    compatibility (see below).
+  - `platforms` is registry-owned but only as a **backward-compatible
+    mirror** of `runtime_support` — `scripts/registry-consistency.mjs`
+    fails if the two sets ever diverge (order-independent set equality).
+  - `runtime_exclusions` is registry-owned, sparse, evidence-backed
+    negative/unverified runtime metadata.
+  - `bundle_targets` remains registry-owned distribution/packaging
+    metadata, independent of `runtime_support` (see below).
+  - The central runtime-requirements vocabulary
+    (`registry/runtime-requirements.json`) is authoritative for every
+    capability/permission/tool identifier referenced anywhere in the
+    registry.
 
-## `platforms` vs. `bundle_targets` (two different dimensions)
+## Runtime compatibility model (Phase 1.2 review round 4)
 
-These are easy to conflate — a real Phase 1.2 bug did exactly that
-(`bundle-openai.mjs` used to key off the `"chatgpt"` `platforms` entry to
-decide OpenAI API bundle eligibility, a completely unrelated surface). The
-definitions, settled in Phase 1.2 review round 3:
+Round 3 settled `platforms` vs. `bundle_targets` as two independent
+dimensions. Round 4 makes runtime compatibility itself evidence-backed
+instead of an unexplained array of strings, and formally separates three
+questions that used to be conflated in a single `platforms` array:
 
-- **`platforms`** = the native runtime host surfaces on which the
-  deterministic eligibility router (`scripts/eligibility.mjs`) may
-  evaluate and execute the skill as a live task — i.e., values that can
-  legitimately appear as `task.platform`. This includes the four
-  filesystem-adapter CLI/IDE agents (`codex`, `claude-code`, `cursor`,
-  `opencode`) **and** any other surface a skill is actually routable on as
-  a live task — `ush-repo-evidence-plan` legitimately lists `claude-ai` and
-  `chatgpt` here because it is a pure read-only reasoning skill with no
-  host-specific requirement, expected to be invoked as a live task on
-  those surfaces too, not merely packaged for them.
-- **`bundle_targets`** = artifact/package distribution surfaces: can this
-  skill be packaged as a portable bundle for that surface *at all*
-  (`claude-ai`, `openai-api` — see `scripts/bundle-targets.mjs` for the
-  authoritative key list). A skill being bundle-eligible for a surface
-  does **not** imply it is (yet) a `platforms` entry — packaging and live
-  task-routing are different integration milestones. Conversely, a skill
-  can be `platforms`-eligible without ever being bundled anywhere (e.g. a
-  skill installed only via `scripts/install-skills.mjs`, never uploaded as
-  a ZIP).
+1. **Can this skill execute as a live routed task on this runtime?**
+   -> `runtime_support` (authoritative) / `runtime_exclusions` (sparse,
+   negative or unverified)
+2. **Can a portable Skill artifact be produced for this packaging
+   surface?** -> `bundle_targets` (unchanged from round 3)
+3. **Does a filesystem adapter get generated for this runtime?** ->
+   `scripts/render-adapters.mjs`'s `ADAPTER_TARGETS` (unchanged; a
+   mechanical detail of *how* a supported runtime receives the file, not
+   a fourth compatibility question)
 
-Neither list is inferred from the other. A skill must declare both
-explicitly and independently in `registry/skills-index.json`.
+None of the three is inferred from either of the others. A skill declares
+each independently.
+
+### `runtime_support` (authoritative) and `platforms` (mirror)
+
+`runtime_support` is a map of runtime key -> `{ status, reason, evidence,
+requires_at_runtime? }`:
+
+- **`status`** is one of `SUPPORTED` or `SUPPORTED_WITH_RESTRICTIONS` only.
+  Presence in `runtime_support` means the skill *can* execute on that
+  runtime, possibly subject to conditions — it never means "assume those
+  conditions hold." `UNSUPPORTED`/`UNVERIFIED` are not valid here; a
+  negative or unresolved assessment belongs in `runtime_exclusions`
+  instead (`scripts/registry-consistency.mjs` rejects them if misplaced).
+- **`reason`** (required, non-empty) explains the conclusion.
+- **`evidence`** (required, non-empty array of `{source_type, source,
+  verified_on}`) explains *why* the conclusion is justified and lets
+  someone re-check it later — see "Provenance" below.
+- **`requires_at_runtime`** (optional; typed `{kind, id}` entries, see
+  below) lists what a `SUPPORTED_WITH_RESTRICTIONS` runtime still needs at
+  invocation time. It is documentation for that judgment, not an
+  enforcement mechanism — the actual fail-closed enforcement is still
+  `scripts/eligibility.mjs`'s `required_capabilities`/
+  `required_permissions`/`required_tools`/`operationGates` checks, which
+  run identically regardless of what `runtime_support` says. A runtime
+  being `SUPPORTED_WITH_RESTRICTIONS` never bypasses those checks.
+
+`platforms` remains for backward compatibility — existing code may keep
+using `skill.platforms.includes(task.platform)` — but it is now **only** a
+mirror of `runtime_support`'s keys. `scripts/registry-consistency.mjs`
+enforces `set(platforms) === set(Object.keys(runtime_support))`
+(order-independent) whenever a skill declares `runtime_support` at all.
+A future implementation may derive `platforms` automatically from
+`runtime_support` instead of storing both; Round 4 deliberately keeps both
+fields to avoid a larger migration than this review asked for.
+
+### `runtime_exclusions` (sparse, evidence-backed)
+
+`runtime_exclusions` is a map of runtime key -> `{ status, reason,
+evidence }` for a runtime surface that was **actually assessed** but did
+not qualify for `runtime_support`:
+
+- **`UNSUPPORTED`** = an authoritative assessment found the skill cannot
+  currently execute on this runtime.
+- **`UNVERIFIED`** = the runtime was investigated, but sufficient evidence
+  for execution support could not be established.
+- `SUPPORTED`/`SUPPORTED_WITH_RESTRICTIONS` are not valid here — a positive
+  assessment belongs in `runtime_support`.
+
+`runtime_exclusions` is **sparse by design**: only runtimes actually
+reviewed appear here. A runtime absent from *both* `runtime_support` and
+`runtime_exclusions` means **its compatibility has not been assessed at
+all** — this is a distinct, third state, never conflated with `UNVERIFIED`
+(which means "assessed, no evidence found") or `UNSUPPORTED` ("assessed,
+found incompatible"). `scripts/registry-consistency.mjs` rejects any
+overlap between the two maps' keys — a runtime cannot be simultaneously
+supported and excluded.
+
+All six current skills exclude `chatgpt` this way: `learn.chatgpt.com/docs/build-skills`
+confirms the ChatGPT desktop app's Standalone Skills feature is real, but
+the Hub implements no adapter or bundle target for that specific surface
+(only the separate `openai-api` project-Skills surface, which does have an
+implemented bundler) — so this repo cannot establish that a skill actually
+executes there, hence `UNVERIFIED`, not silently omitted and not claimed
+`SUPPORTED`.
+
+### Central runtime-requirements vocabulary
+
+`registry/runtime-requirements.json` is the single source of truth for
+every capability/permission/tool identifier used anywhere in the registry,
+namespaced by kind:
+
+```
+{ "capabilities": { "<id>": { "description": "..." } },
+  "permissions":   { "<id>": { "description": "..." } },
+  "tools":         { "<id>": { "description": "..." } } }
+```
+
+The same logical name can legitimately exist in more than one namespace
+with different meaning — e.g. `capability:github_write` ("the provider
+*can* write to GitHub") vs. `permission:github_write` ("the user/task
+*authorized* a GitHub write"). The Hub never infers one from the other;
+this is the same provider-capability-vs-UI-permission distinction that
+`scripts/eligibility.mjs`'s `MISSING_CAPABILITY` vs. `MISSING_PERMISSION`
+checks have enforced since Phase 1.2 (see the "host says allow all but the
+provider is read-only" regression test in
+`scripts/__tests__/migration-skills.test.mjs`).
+
+`scripts/registry-consistency.mjs` validates every reference into this
+vocabulary and fails on an unknown identifier — a typo like
+`github-write`, `github_write_access`, or `git_diff_reader` is caught, not
+silently accepted — across: `required_capabilities`/`required_permissions`/
+`required_tools`, `operationGates[*].requiredCapabilities`/
+`requiredPermissions`, and every `requires_at_runtime` entry (in both
+`runtime_support` and `bundle_targets`). The vocabulary intentionally
+covers only identifiers the Hub actually uses today (`github_write`,
+`github_merge`, `message_publish`, `discord_send`, `network_access`,
+`repository_evidence` as capabilities/permissions; `git_diff_read` as a
+tool) — see `scripts/runtime-vocabulary.mjs`.
+
+### Typed `requires_at_runtime`
+
+Each `requires_at_runtime` entry is `{ kind: "capability"|"permission"|"tool",
+id: "<vocabulary id>" }`, not a bare string. `scripts/registry-consistency.mjs`
+rejects an unknown `kind`, an `id` not present in that kind's vocabulary
+namespace (including a name registered under the *wrong* namespace, e.g.
+`{kind: "capability", id: "github_merge"}` — `github_merge` is a
+permission), and a duplicate `{kind, id}` pair within one entry's array.
+
+### Provenance
+
+Every `runtime_support`/`runtime_exclusions` entry requires an `evidence`
+array of `{ source_type, source, verified_on }`, so a compatibility
+judgment can be re-checked later instead of taken on faith:
+
+- **`source_type`** is one of `official_docs` (a primary-source
+  documentation page), `official_runtime_test` (a test run against the
+  vendor's own hosted service), or `local_runtime_test` (a real install/
+  invocation performed on this machine, e.g.
+  `scripts/install-skills.mjs --apply` plus a confirmed Skill-tool
+  discovery). Only these three are used today — the enum is deliberately
+  small and grows only when a new kind of evidence is actually gathered.
+- **`source`** names the actual document or test consulted — never a
+  fabricated URL.
+- **`verified_on`** is `YYYY-MM-DD`, the date that evidence was actually
+  checked.
+
+This preserves the CONFIRMED-vs-UNVERIFIED-vs-NOT-IMPLEMENTED discipline
+used throughout this repo: a runtime is never marked `SUPPORTED` on the
+strength of a doc page alone if what was actually verified was only a live
+test, or vice versa — `source_type` records which one it was.
 
 ## Distribution: user-level install
 
@@ -297,6 +429,22 @@ came from.
   ZIP upload with the skill folder as the archive's root (not a
   subfolder), Settings > Features, Pro/Max/Team/Enterprise with code
   execution enabled. `scripts/bundle-claude-ai.mjs` implements this shape.
+- **Cursor skill directory convention**: VERIFIED against official Cursor
+  documentation on 2026-09-06 (`cursor.com/docs/skills`), which states
+  skills are "automatically loaded from these locations": project-level
+  `.agents/skills/` and `.cursor/skills/`; user-level `~/.agents/skills/`
+  and `~/.cursor/skills/`; Cursor also reads `.claude/skills/` and
+  `.codex/skills/` as compatibility paths. This was previously an
+  unverified assumption baked into `ADAPTER_TARGETS` since Phase 1.1 —
+  Phase 1.2 review round 4 checked it against the primary source for the
+  first time and confirmed it.
+- **OpenCode skill directory convention**: VERIFIED against official
+  OpenCode documentation on 2026-09-06 (`opencode.ai/docs/skills/`),
+  which lists the search locations: project `.opencode/skills/<name>/SKILL.md`,
+  global `~/.config/opencode/skills/<name>/SKILL.md`, plus Claude- and
+  agent-compatible paths (`.claude/skills/`, `~/.claude/skills/`,
+  `.agents/skills/`, `~/.agents/skills/`). Same round-4 first-verification
+  as Cursor above.
 - **ChatGPT/Codex skill surfaces**: VERIFIED directly against
   `learn.chatgpt.com/docs/build-skills` on 2026-09-05, which distinguishes
   exactly two distribution surfaces in its own words: "Standalone skills are

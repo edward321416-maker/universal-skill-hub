@@ -253,7 +253,7 @@ migration did exactly that overbroad exclusion; corrected here):
 | Skill | `claude-ai` | `openai-api` | Why |
 |---|---|---|---|
 | `ush-repo-evidence-plan` | SUPPORTED | SUPPORTED | Pure read-only reasoning over supplied evidence; no live-network/connector need |
-| `ush-github-task-flow` | SUPPORTED_WITH_RESTRICTIONS | UNSUPPORTED | claude.ai's network access varies by user/admin setting (Anthropic docs) — GitHub write depends on that being enabled; no verified GitHub-write/network capability was found in the OpenAI API project-Skills docs consulted |
+| `ush-github-task-flow` | SUPPORTED_WITH_RESTRICTIONS | SUPPORTED_WITH_RESTRICTIONS | claude.ai's network access varies by user/admin setting (Anthropic docs) — GitHub write depends on that being enabled; the OpenAI Responses API supports function tools and remote MCP servers alongside Skills, so a caller *can* supply an authenticated GitHub-write tool, though OpenAI provides none built in (corrected in review round 2 — this cell previously read UNSUPPORTED, which predated that check) |
 | `ush-concurrent-edit-coordination` | SUPPORTED_WITH_RESTRICTIONS | SUPPORTED_WITH_RESTRICTIONS | Packaging is fine; the deterministic `required_tools: git_diff_read` gate already BLOCKs at runtime if the deployment can't actually supply diff evidence — packaging and runtime-tool-availability are different questions |
 | `ush-game-meeting-plan` | SUPPORTED | SUPPORTED | L0 read-only planning over supplied bounded evidence; repository cross-check is explicitly optional/conditional (see the skill body's step 5) |
 | `ush-discord-repo-cross-reference` | SUPPORTED_WITH_RESTRICTIONS | SUPPORTED_WITH_RESTRICTIONS | Analyzing already-supplied Discord evidence needs no live connector; only the separately-gated `send` operation needs `discord_send`, already enforced by `operationGates.send` at runtime |
@@ -262,6 +262,40 @@ migration did exactly that overbroad exclusion; corrected here):
 Every `UNSUPPORTED` and `SUPPORTED_WITH_RESTRICTIONS` entry carries a
 machine-readable `reason` in `registry/skills-index.json`, enforced by
 `scripts/registry-consistency.mjs`'s enum + non-empty-reason check.
+
+### Runtime support matrix (per-skill, per-runtime — Phase 1.2 review round 4)
+
+`runtime_support`/`runtime_exclusions` answer a different question than
+the bundle matrix above: not "can this be packaged," but "can this
+actually execute as a live routed task on this runtime" — see
+`docs/DESIGN.md`'s "Runtime compatibility model" section. All six skills
+share the same runtime shape, since none has a host-specific requirement
+beyond its own declared capabilities/permissions/tools:
+
+| Runtime | Status (all 6 skills) | Evidence |
+|---|---|---|
+| `codex` | SUPPORTED (SUPPORTED_WITH_RESTRICTIONS for skills needing a runtime capability, e.g. `ush-github-task-flow`'s `github_write`) | official_docs: `developers.openai.com/codex/skills`, 2026-09-05; local_runtime_test: real `--apply` install, byte-identical |
+| `claude-code` | same pattern | local_runtime_test: real `--apply` install; Skill tool listing confirmed discovery within this session |
+| `cursor` | same pattern | official_docs: `cursor.com/docs/skills`, 2026-09-06 — confirms `.cursor/skills/` and `.agents/skills/` (project + user level) |
+| `opencode` | same pattern | official_docs: `opencode.ai/docs/skills/`, 2026-09-06 — confirms `.opencode/skills/` (project) and `~/.config/opencode/skills/` (global) |
+| `claude-ai` | same pattern | official_docs: `support.claude.com`/`platform.claude.com`, 2026-09-05 |
+| `openai-api` | same pattern | official_docs: `developers.openai.com/api/docs/guides/tools-skills`, 2026-09-05 |
+| `chatgpt` | **excluded**, UNVERIFIED (all 6 skills) | official_docs: `learn.chatgpt.com/docs/build-skills` confirms the ChatGPT desktop app's Standalone Skills feature is real, but the Hub implements no adapter or bundle target for that specific surface — execution there cannot be established from this repo |
+
+**Materially changed from round 3:** `ush-repo-evidence-plan`'s `platforms`
+previously listed `chatgpt` (not `openai-api`) as a live-routable surface —
+an unexamined carry-over from before `runtime_support`/`runtime_exclusions`
+existed. Round 4 corrected this: `chatgpt` moved to `runtime_exclusions`
+(`UNVERIFIED`, per the table above) and `openai-api` was added to both
+`runtime_support` and `platforms`, matching its already-`SUPPORTED` bundle
+status and the actual OpenAI API Skills mechanism this repo implements.
+`cursor` and `opencode` gained explicit `runtime_support` entries (with
+real official-docs evidence gathered in round 4, not merely assumed) for
+all six skills; `claude-ai`/`openai-api` were likewise added to `platforms`
+for the five skills that previously omitted them, mirroring their
+already-`SUPPORTED`/`SUPPORTED_WITH_RESTRICTIONS` `bundle_targets` status.
+No skill's `bundle_targets` values changed in this round (item 13:
+`runtime_support` and `bundle_targets` remain independently assessed).
 
 ### Conflicts considered and rejected
 

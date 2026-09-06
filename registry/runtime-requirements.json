@@ -1,0 +1,38 @@
+{
+  "capabilities": {
+    "github_write": {
+      "description": "The actual runtime/provider can perform GitHub write operations (branch, commit, PR)."
+    },
+    "message_publish": {
+      "description": "The runtime can publish an externally visible message to a destination-agnostic channel."
+    },
+    "discord_send": {
+      "description": "The runtime can send a message to Discord specifically."
+    },
+    "network_access": {
+      "description": "The runtime permits the outbound network access a skill's operation requires."
+    },
+    "repository_evidence": {
+      "description": "The runtime can access supplied or live repository evidence (history, diffs, files) to draft from."
+    }
+  },
+  "permissions": {
+    "github_write": {
+      "description": "The user/task has authorized GitHub write operations."
+    },
+    "github_merge": {
+      "description": "The user/task has specifically authorized PR merge, separate from authorizing PR delivery."
+    },
+    "message_publish": {
+      "description": "The user/task has authorized message publication."
+    },
+    "discord_send": {
+      "description": "The user/task has authorized sending a message to Discord specifically."
+    }
+  },
+  "tools": {
+    "git_diff_read": {
+      "description": "The runtime can inspect real repository diffs via a callable tool."
+    }
+  }
+}
