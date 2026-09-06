@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateSkillDir, validateAllSkills } from '../validate-hub.mjs';
+import { validateSkillDir, validateAllSkills, isValidSemVer } from '../validate-hub.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES = path.join(__dirname, 'fixtures');
@@ -100,6 +100,21 @@ test('a metadata.version that is not valid SemVer is rejected', () => {
   assert.ok(result.errors.some((e) => e.toLowerCase().includes('semver') || e.toLowerCase().includes('version')), `expected a version error, got: ${JSON.stringify(result.errors)}`);
 });
 
+// --- strict SemVer 2.0 compliance (the official semver.org regex), not an
+// approximate hand-rolled pattern ---
+
+test('isValidSemVer accepts every valid SemVer 2.0 example from the spec', () => {
+  for (const v of ['0.1.0', '1.0.0', '1.2.3-alpha', '1.2.3-alpha.1', '1.2.3+build.5', '1.2.3-alpha.1+build.5']) {
+    assert.ok(isValidSemVer(v), `expected "${v}" to be accepted as valid SemVer`);
+  }
+});
+
+test('isValidSemVer rejects every invalid example (leading zeros, empty identifiers, trailing +)', () => {
+  for (const v of ['01.2.3', '1.02.3', '1.2.03', '1.0.0-alpha..1', '1.0.0-01', '1.0.0+']) {
+    assert.equal(isValidSemVer(v), false, `expected "${v}" to be rejected as invalid SemVer`);
+  }
+});
+
 test('a metadata.scope value outside the hub\'s supported scopes is rejected', () => {
   const result = validateSkillDir(path.join(FIXTURES, 'invalid-scope', 'ush-bad-scope'));
   assert.equal(result.valid, false);
@@ -150,4 +165,23 @@ test('a metadata value that is a number (not a string) is rejected', () => {
   const result = validateSkillDir(path.join(FIXTURES, 'invalid-metadata-numeric', 'ush-bad-metadata-numeric'));
   assert.equal(result.valid, false);
   assert.ok(result.errors.some((e) => e.toLowerCase().includes('metadata') && e.toLowerCase().includes('string')), `expected a metadata-must-be-string-values error, got: ${JSON.stringify(result.errors)}`);
+});
+
+// --- remaining Agent Skills optional-field type gaps (final micro-fix round) ---
+
+test('a description value that is a number (not a string) is rejected, even though String(...) would coerce it to a length-valid value', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'invalid-description-type', 'ush-bad-desc-type'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.toLowerCase().includes('description') && e.toLowerCase().includes('string')), `expected a description-must-be-a-string error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('allowed-tools given as a YAML list instead of a space-separated string is rejected', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'invalid-allowed-tools-list', 'ush-bad-tools-list'));
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.toLowerCase().includes('allowed-tools')), `expected an allowed-tools error, got: ${JSON.stringify(result.errors)}`);
+});
+
+test('a spec-compliant space-separated allowed-tools string is accepted', () => {
+  const result = validateSkillDir(path.join(FIXTURES, 'valid-allowed-tools-string', 'ush-good-tools-string'));
+  assert.equal(result.valid, true, `expected valid, got errors: ${JSON.stringify(result.errors)}`);
 });

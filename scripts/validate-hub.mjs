@@ -20,7 +20,17 @@ const NAME_PATTERN = /^ush-[a-z0-9]+(-[a-z0-9]+)*$/; // ush- namespace, see docs
 const VALID_STATUSES = ['EXPERIMENTAL', 'VALIDATED', 'DEPRECATED', 'QUARANTINED']; // registry/lifecycle.json
 const VALID_RISKS = ['L0', 'L1', 'L2', 'L3', 'L4']; // docs/DESIGN.md risk model
 const VALID_SCOPES = ['global', 'domain', 'project']; // skills/{global,git,game,discord,domain}/ + project-bound
-const SEMVER_PATTERN = /^\d+\.\d+\.\d+(-[0-9A-Za-z-.]+)?(\+[0-9A-Za-z-.]+)?$/;
+
+// The official SemVer 2.0.0 regex, verbatim from semver.org's own FAQ —
+// not an approximate hand-rolled pattern. Rejects leading zeros in any
+// numeric component, empty pre-release/build identifiers, and a trailing
+// separator with no identifier after it (e.g. "1.0.0+").
+const SEMVER_PATTERN =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+
+export function isValidSemVer(version) {
+  return typeof version === 'string' && SEMVER_PATTERN.test(version);
+}
 
 /**
  * Parses SKILL.md frontmatter with a real YAML parser (js-yaml), so
@@ -69,9 +79,13 @@ export function validateSkillDir(dirPath) {
     errors.push(`frontmatter name "${name}" does not match directory name "${dirName}" — directory and name must match`);
   }
 
-  if (!frontmatter.description || String(frontmatter.description).trim() === '') {
+  if (frontmatter.description === undefined || frontmatter.description === null) {
     errors.push('missing required "description" field');
-  } else if (String(frontmatter.description).length > DESCRIPTION_MAX_LENGTH) {
+  } else if (typeof frontmatter.description !== 'string') {
+    errors.push(`"description" must be a string, got ${typeof frontmatter.description}`);
+  } else if (frontmatter.description.trim() === '') {
+    errors.push('missing required "description" field');
+  } else if (frontmatter.description.length > DESCRIPTION_MAX_LENGTH) {
     errors.push(`description is ${frontmatter.description.length} characters — must be at most ${DESCRIPTION_MAX_LENGTH}`);
   }
 
@@ -90,8 +104,8 @@ export function validateSkillDir(dirPath) {
     errors.push(`invalid metadata.scope "${metadata.scope}" — must be one of ${VALID_SCOPES.join('|')}`);
   }
 
-  if (metadata.version !== undefined && !SEMVER_PATTERN.test(String(metadata.version))) {
-    errors.push(`invalid metadata.version "${metadata.version}" — must be valid SemVer (e.g. 1.2.3)`);
+  if (metadata.version !== undefined && !isValidSemVer(metadata.version)) {
+    errors.push(`invalid metadata.version "${metadata.version}" — must be valid SemVer 2.0 (e.g. 1.2.3, 1.2.3-alpha.1+build.5)`);
   }
 
   if (metadata.scope === 'global' && metadata.project) {
@@ -111,6 +125,16 @@ export function validateSkillDir(dirPath) {
     if (typeof value !== 'string') {
       errors.push(`metadata.${key} must be a string (per the Agent Skills spec, metadata is a flat string-to-string map), got ${typeof value}`);
     }
+  }
+
+  const allowedTools = frontmatter['allowed-tools'];
+  if (allowedTools !== undefined && typeof allowedTools !== 'string') {
+    errors.push(`frontmatter "allowed-tools" must be a space-separated string (per the Agent Skills spec), got ${typeof allowedTools}`);
+  }
+
+  const license = frontmatter.license;
+  if (license !== undefined && typeof license !== 'string') {
+    errors.push(`frontmatter "license" must be a string, got ${typeof license}`);
   }
 
   return { valid: errors.length === 0, errors };

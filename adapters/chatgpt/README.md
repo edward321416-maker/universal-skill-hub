@@ -24,10 +24,12 @@ hold up against the primary source, so it has been removed):
 | Surface | Status in this repo |
 |---|---|
 | Standalone Skills (ChatGPT desktop app, Codex CLI, Codex IDE extension) | Codex CLI: filesystem distribution IMPLEMENTED (`scripts/install-skills.mjs`, verified against a real local install — see `docs/DESIGN.md`). ChatGPT desktop app / Codex IDE extension: capability VERIFIED to exist per the quote above; no distribution mechanism implemented in this repo for either |
-| Skills bundled in plugins (Chat/Work, ChatGPT web/desktop/mobile) | NOT IMPLEMENTED in Phase 1.1. No plugin-packaging format was found in the documentation consulted beyond what's quoted above; expanding into it is deferred rather than guessed at |
+| Skills bundled in plugins (Chat/Work, ChatGPT web/desktop/mobile) | Plugin packaging format: **VERIFIED** — `developers.openai.com/codex/plugins/build/` (checked 2026-09-05) shows the minimum skill-only plugin layout: a `.codex-plugin/plugin.json` manifest plus a `skills/<name>/SKILL.md` directory, and states "Public plugins are published once to the universal plugin directory shared by ChatGPT and Codex." Plugin packaging implementation in this hub: **NOT IMPLEMENTED / DEFERRED** — no `bundle:chatgpt-plugin`-style generator exists yet; this PR does not expand into it, per explicit scope instruction. ChatGPT/Work plugin distribution (an actual install/activation through the plugin directory): **NOT TESTED** |
 | OpenAI API project Skills | IMPLEMENTED: `scripts/bundle-openai.mjs` builds a deterministic ZIP matching this resource's documented upload shape and size/file-count limits. No API key is used and no upload is performed — a human would call `skills.versions.create` themselves |
-| Automatic Hub -> ChatGPT-account or Hub -> OpenAI-API-project sync | NOT IMPLEMENTED and NOT CLAIMED. Any upload into a specific account/project is always a manual, human-initiated action; nothing in this repo performs it, and it requires no credential this repo would ever hold |
+| Automatic Hub -> ChatGPT-account, Hub -> OpenAI-API-project, or Hub -> plugin-directory sync | **NOT IMPLEMENTED and NOT CLAIMED.** Any publish/upload into a specific account, project, or plugin marketplace is always a manual, human-initiated action; nothing in this repo performs it, and it requires no credential this repo would ever hold |
 
 Do not read "Standalone Skills... Codex CLI" as claiming this repo produces
-a ChatGPT-plugin package — it does not. The only ChatGPT/OpenAI-facing
-artifact this repo builds today is the OpenAI API project-Skills ZIP.
+a ChatGPT-plugin package — it does not, even though the format for one is
+now documented above (verified, not implemented). The only ChatGPT/
+OpenAI-facing artifact this repo actually builds today is the OpenAI API
+project-Skills ZIP.
