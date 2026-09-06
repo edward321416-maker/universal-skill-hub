@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "status": "PASS R — REAL ENVIRONMENT. Interprets deployment reachability / real environment behavior, not pure Hub routing quality (see docs/DESIGN.md). Positive cases are modelVisible=false: a live Codex session (codex exec) followed by a quota-free `codex debug prompt-input` diagnostic CONFIRMED all six Hub skills are structurally unreachable in this machine's real, unmodified environment — crowded out of the model-visible skill list by ~330 unrelated third-party skills sharing the same user-level skill root (~/.agents/skills). This is a REACHABILITY FAILURE, not a semantic false negative, and is excluded from precision/recall by scripts/routing-eval.mjs. Negative cases remain actualSkillIds: null (not yet observed) pending quota availability.",
+  "status": "PASS R — REAL ENVIRONMENT. Interprets deployment reachability / real environment behavior, not pure Hub routing quality (see docs/DESIGN.md). Positive cases are modelVisible=false: a live Codex session (codex exec) followed by a quota-free `codex debug prompt-input` diagnostic CONFIRMED all six Hub skills are structurally unreachable in this machine's real, unmodified environment — crowded out of the model-visible skill list by ~330 unrelated third-party skills sharing the same user-level skill root (~/.agents/skills). This is a REACHABILITY FAILURE, not a semantic false negative, and is excluded from precision/recall by scripts/routing-eval.mjs. Negative cases R1/R2 completed live 2026-09-06 (codex exec -s read-only --json, real account, no bypass) and are CONFIRMED true negatives (zero tool calls occurred in either session). A third live case, an explicit-name reachability probe for ush-repo-evidence-plan, was attempted but the account hit its usage limit mid-turn (reset stated as 'Sep 7th, 2026 1:07 AM') before it could complete — that result is not recorded; it was not fabricated.",
   "platform": "codex",
   "environment": "real (unmodified user Codex environment: all installed marketplaces, all third-party skills present)",
   "cases": [
@@ -32,15 +32,15 @@
       "id": "phase-1.3-real-negative-1-semver-explanation",
       "task": "Explain what semantic versioning means.",
       "expectedSkillIds": [],
-      "actualSkillIds": null,
-      "notes": "No Hub skill should be required for a general knowledge question. Negative cases are unaffected by the model-visibility issue (there's no expected skill whose reachability matters) and remain independently observable once quota is available."
+      "actualSkillIds": [],
+      "notes": "CONFIRMED true negative — live codex exec session (2026-09-06, -s read-only --json, real account) completed with zero tool-call events of any kind; the model answered directly with no Hub skill involvement. No filesystem/git mutation."
     },
     {
       "id": "phase-1.3-real-negative-2-summarize-paragraph",
-      "task": "Summarize this paragraph.",
+      "task": "Summarize this paragraph: The quarterly report showed steady growth in the northern region, while the southern branch experienced a slight decline due to supply chain delays. Management plans to address this by diversifying suppliers next quarter.",
       "expectedSkillIds": [],
-      "actualSkillIds": null,
-      "notes": "No Hub skill should be required for generic summarization."
+      "actualSkillIds": [],
+      "notes": "CONFIRMED true negative — live codex exec session (2026-09-06, -s read-only --json, real account) completed with zero tool-call events of any kind. No filesystem/git mutation."
     }
   ]
 }
