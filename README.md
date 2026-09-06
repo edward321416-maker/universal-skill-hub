@@ -35,8 +35,10 @@ adapters/    generated, per-platform renders of canonical skills.
              `npm run render-adapters`.
 evals/       routing / compatibility / safety / regression fixtures
 scripts/     validate-hub.mjs, render-adapters.mjs, check-drift.mjs,
-             eligibility.mjs
+             eligibility.mjs, registry-consistency.mjs, install-skills.mjs,
+             hook-safety.mjs, load-compatibility.mjs
 docs/        design notes, migration mapping, superpowers plans
+.github/workflows/ci.yml   verify/validate/render/drift on every PR and push to main
 ```
 
 See [docs/DESIGN.md](docs/DESIGN.md) for the full rationale and
@@ -54,12 +56,13 @@ Every canonical skill carries a `metadata.status` of `EXPERIMENTAL`,
 
 | Platform | Strategy |
 |---|---|
-| Codex | native skill directory (`.agents/skills/`), generated adapter |
-| Claude Code | native skill directory (`.claude/skills/`), generated adapter |
+| Codex | native skill directory — project: `.agents/skills/` (scanned from cwd up to repo root); user: `$HOME/.agents/skills/`; admin: `/etc/codex/skills/` (VERIFIED against official OpenAI Codex docs, 2026-09-05). Generated adapter; real filesystem install smoke-tested (`scripts/install-skills.mjs`), byte-identical to expected render. Live discovery NOT TESTED (no safe read-only diagnostic; an actual check would require a live `codex` session contacting OpenAI's backend) |
+| Claude Code | native skill directory `.claude/skills/` (project) / `~/.claude/skills/` (user). Generated adapter; real install + **live discovery confirmed** — this session's own harness listed and loaded the installed skill after `--apply` |
 | Cursor | native skill directory (`.cursor/skills/`), generated adapter |
 | OpenCode | native skill directory (`.opencode/skills/`), generated adapter |
-| ChatGPT / Work | instruction-export bundle (not yet implemented) |
-| claude.ai Projects | Project Knowledge export bundle (not yet implemented) |
+| ChatGPT / Work | See `adapters/chatgpt/README.md` for the full A/B/C breakdown (Standalone Skills / plugin-bundled Skills / OpenAI API project Skills) — only the third is implemented here, via `npm run bundle:openai`; no automatic account sync exists or is planned |
+| OpenAI API (project Skills) | Deterministic ZIP bundle generator (`npm run bundle:openai`), documented size/file-count limits enforced at build time; no API key used, no upload performed |
+| claude.ai Projects | Deterministic ZIP bundle generator (`npm run bundle:claude-ai`), verified shape (skill folder at ZIP root); no upload performed. claude.ai Projects still does not share local Claude Code repository state |
 
 Claude Code is treated as first-class, not an afterthought: every canonical
 skill is expected to work with no Claude-specific capability required, with
@@ -69,10 +72,17 @@ kept in adapter-side overrides rather than the canonical body.
 ## Quick start
 
 ```bash
-npm test               # run all unit tests (validator, adapters, drift, eligibility)
-npm run validate       # validate every skill under skills/
-npm run render-adapters  # regenerate adapters/<platform>/<skill>/SKILL.md from canonical sources
-npm run check-drift    # detect hand-edited or stale generated adapter files
+npm test                    # run all unit tests (validator, adapters, drift, eligibility, installer, ...)
+npm run validate            # validate every skill under skills/
+npm run registry-consistency  # check registry/skills-index.json against each skill's canonical source
+npm run render-adapters      # regenerate adapters/<platform>/<skill>/SKILL.md from canonical sources
+npm run check-drift          # full-render comparison: detect hand-edited or stale generated adapter files
+npm run install-skills -- --platform claude-code --scope user   # dry-run by default; add --apply to write
+npm run bundle:claude-ai      # deterministic ZIP for claude.ai custom Skills (no upload)
+npm run bundle:openai         # deterministic ZIP for the OpenAI API "project Skills" resource (no upload)
+npm run verify                # the full release gate: test + validate + registry-consistency +
+                               # render-adapters + `git diff --exit-code -- adapters` + check-drift +
+                               # both bundle generators + an installer dry-run smoke test
 ```
 
 ## Security model
@@ -98,6 +108,34 @@ Direct User Instruction
 A project-specific rule (a frozen validator SHA, an exact benchmark
 threshold, a gameplay constant) is never promoted into a global skill — see
 `policies/projects/README.md`.
+
+## Eligibility gates (risk tiers L0-L4)
+
+`scripts/eligibility.mjs` enforces, in order: QUARANTINED always BLOCKs;
+Project Policy can explicitly BLOCK a skill (Project Policy outranks Global
+Skill); declared skill conflicts (`registry/conflicts.json`) BLOCK; platform
+compatibility BLOCKs; a task that would actually use one of a skill's
+`forbidden_capabilities` BLOCKs; L4 BLOCKs on auto-invoke and requires
+explicit informed confirmation otherwise; L3 requires explicit user intent
+and permission, and an EXPERIMENTAL L3 skill BLOCKs on auto-invoke
+regardless; DEPRECATED SKIPs by default. Every decision carries a
+machine-readable `reasonCode`.
+
+## Configuration safety invariant
+
+**User/global Claude configuration MUST NOT reference a project-specific
+absolute checkout path for a required hook.** A hook pointing at
+`D:/Users/.../some-project/.claude/hooks/guard.py` breaks every tool call on
+every project the moment that one project's checkout is deleted or moved —
+this happened during this hub's own development (see
+`docs/DESIGN.md`'s Phase 1.1 notes) and blocked Bash/PowerShell entirely
+until repaired. Safe patterns: a stable home-relative dotfile path
+(`~/.claude/...`, or a `%USERPROFILE%`/`$env:USERPROFILE` expansion into one)
+or a path the harness resolves relative to the current project itself.
+`scripts/hook-safety.mjs` lints a `settings.json` for exactly this class of
+mistake (`node scripts/hook-safety.mjs <path-to-settings.json>`) and
+`scripts/__tests__/hook-safety.test.mjs` carries a regression test built
+from the actual incident.
 
 ## Generated adapter warning
 

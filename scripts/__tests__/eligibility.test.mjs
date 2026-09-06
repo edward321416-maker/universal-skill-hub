@@ -18,10 +18,10 @@ test('Test H: an L4 skill requested for automatic invocation is BLOCKed', () => 
   assert.ok(result.reasons.some((r) => r.includes('L4')));
 });
 
-test('an L4 skill explicitly confirmed by a human (not auto-invoked) is not BLOCKed by the L4 rule', () => {
+test('an L4 skill explicitly confirmed by a human (not auto-invoked, informed confirmation given) is not BLOCKed by the L4 rule', () => {
   const result = evaluateEligibility({
     skill: { ...baseSkill, risk: 'L4' },
-    task: { platform: 'codex', autoInvoke: false },
+    task: { platform: 'codex', autoInvoke: false, informedConfirmation: true },
   });
   assert.notEqual(result.decision, 'BLOCK');
 });
@@ -55,6 +55,206 @@ test('an eligible L0/VALIDATED skill on a supported platform is USE', () => {
   const result = evaluateEligibility({
     skill: baseSkill,
     task: { platform: 'codex', autoInvoke: true },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('an L3 skill invoked without explicit intent is BLOCKed', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, risk: 'L3' },
+    task: { platform: 'codex', autoInvoke: false, explicitIntent: false, hasPermission: true },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'L3_NO_EXPLICIT_INTENT');
+});
+
+test('an L3 skill invoked without permission is BLOCKed', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, risk: 'L3' },
+    task: { platform: 'codex', autoInvoke: false, explicitIntent: true, hasPermission: false },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'L3_NO_PERMISSION');
+});
+
+test('an EXPERIMENTAL L3 skill auto-invoked is BLOCKed even with intent and permission', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, risk: 'L3', status: 'EXPERIMENTAL' },
+    task: { platform: 'codex', autoInvoke: true, explicitIntent: true, hasPermission: true },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'EXPERIMENTAL_L3_AUTO');
+});
+
+test('a VALIDATED L3 skill with explicit intent and permission, not auto-invoked, is USE', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, risk: 'L3', status: 'VALIDATED' },
+    task: { platform: 'codex', autoInvoke: false, explicitIntent: true, hasPermission: true },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('an L4 skill invoked without informed confirmation is BLOCKed even when not auto-invoked', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, risk: 'L4' },
+    task: { platform: 'codex', autoInvoke: false, informedConfirmation: false },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'L4_NO_INFORMED_CONFIRMATION');
+});
+
+test('an L4 skill with informed confirmation and not auto-invoked is USE', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, risk: 'L4' },
+    task: { platform: 'codex', autoInvoke: false, informedConfirmation: true },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('a skill that would use a forbidden capability is BLOCKed', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, forbidden_capabilities: ['network_write'] },
+    task: { platform: 'codex', autoInvoke: false, capabilitiesUsed: ['network_write'] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'FORBIDDEN_CAPABILITY');
+});
+
+test('a skill with a forbidden capability declared, but not actually used by the task, is not BLOCKed for that reason', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, forbidden_capabilities: ['network_write'] },
+    task: { platform: 'codex', autoInvoke: false, capabilitiesUsed: ['read_files'] },
+  });
+  assert.notEqual(result.reasonCode, 'FORBIDDEN_CAPABILITY');
+});
+
+test('two skills declared conflicting in the registry cannot both be selected for the same task', () => {
+  const conflicts = [['ush-example-skill', 'ush-other-skill']];
+  const result = evaluateEligibility({
+    skill: baseSkill,
+    task: { platform: 'codex', autoInvoke: false, selectedSkillIds: ['ush-other-skill'] },
+    conflicts,
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'CONFLICTING_SKILL');
+});
+
+test('project policy explicitly blocking a skill overrides an otherwise-eligible global skill', () => {
+  const result = evaluateEligibility({
+    skill: baseSkill,
+    task: { platform: 'codex', autoInvoke: false },
+    projectPolicy: { blockedSkillIds: ['ush-example-skill'], reason: 'FINAL CHECK frozen validator policy' },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'PROJECT_POLICY');
+  assert.ok(result.reasons.some((r) => r.includes('FINAL CHECK')));
+});
+
+// --- Phase 1.1 review fixes: required input/tool/capability/permission, project scope, resource/operation-aware project policy ---
+
+test('a skill requiring an input the task does not have available is BLOCKed with MISSING_INPUT', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, required_inputs: ['repo_path'] },
+    task: { platform: 'codex', autoInvoke: false, availableInputs: [] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'MISSING_INPUT');
+});
+
+test('a skill requiring an input is USE when the task declares that input available', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, required_inputs: ['repo_path'] },
+    task: { platform: 'codex', autoInvoke: false, availableInputs: ['repo_path'] },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('a skill with a required input is BLOCKed (fail-closed) when the task does not even state availableInputs', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, required_inputs: ['repo_path'] },
+    task: { platform: 'codex', autoInvoke: false },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'MISSING_INPUT');
+});
+
+test('a skill requiring a tool the task does not have available is BLOCKed with MISSING_TOOL', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, required_tools: ['grep'] },
+    task: { platform: 'codex', autoInvoke: false, availableTools: ['read'] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'MISSING_TOOL');
+});
+
+test('a skill requiring a host capability the task does not have available is BLOCKed with MISSING_CAPABILITY', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, required_capabilities: ['network_read'] },
+    task: { platform: 'codex', autoInvoke: false, availableCapabilities: [] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'MISSING_CAPABILITY');
+});
+
+test('a skill requiring a permission the task was not granted is BLOCKed with MISSING_PERMISSION', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, required_permissions: ['write_files'] },
+    task: { platform: 'codex', autoInvoke: false, grantedPermissions: [] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'MISSING_PERMISSION');
+});
+
+test('a project-scoped skill is SKIPped (not BLOCKed) for a task in a different project', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, project_scope: 'one-rope' },
+    task: { platform: 'codex', autoInvoke: false, project: 'decode' },
+  });
+  assert.equal(result.decision, 'SKIP');
+  assert.equal(result.reasonCode, 'PROJECT_SCOPE_MISMATCH');
+});
+
+test('a project-scoped skill is USE for a task in the matching project', () => {
+  const result = evaluateEligibility({
+    skill: { ...baseSkill, project_scope: 'one-rope' },
+    task: { platform: 'codex', autoInvoke: false, project: 'one-rope' },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('a global skill with no project_scope is USE regardless of task.project', () => {
+  const result = evaluateEligibility({
+    skill: baseSkill,
+    task: { platform: 'codex', autoInvoke: false, project: 'anything' },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('project policy: a read-only operation on a protected resource is not blocked when only "modify" is denied', () => {
+  const result = evaluateEligibility({
+    skill: baseSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['read'], targetResources: ['validator'] },
+    projectPolicy: { deniedOperations: ['modify'], protectedResources: ['validator'], reason: 'FINAL CHECK frozen validator' },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('project policy: a denied operation against a protected resource is BLOCKed even though the skill itself is not on any blockedSkillIds list', () => {
+  const result = evaluateEligibility({
+    skill: baseSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['modify'], targetResources: ['validator'] },
+    projectPolicy: { deniedOperations: ['modify'], protectedResources: ['validator'], reason: 'FINAL CHECK frozen validator' },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'PROJECT_POLICY');
+  assert.ok(result.reasons.some((r) => r.includes('FINAL CHECK')));
+});
+
+test('project policy: a denied operation against a resource that is NOT protected is not blocked by that policy', () => {
+  const result = evaluateEligibility({
+    skill: baseSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['modify'], targetResources: ['unrelated-file'] },
+    projectPolicy: { deniedOperations: ['modify'], protectedResources: ['validator'] },
   });
   assert.equal(result.decision, 'USE');
 });
