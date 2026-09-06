@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
-import { collectSkillFiles } from './bundle-skill.mjs';
+import { collectSkillFiles, partitionBundleEligibility } from './bundle-skill.mjs';
 import { buildZip } from './zip-writer.mjs';
 
 /**
@@ -47,7 +47,12 @@ function runCli() {
   fs.mkdirSync(outDir, { recursive: true });
   let failed = 0;
 
-  for (const skill of registry.skills) {
+  const { eligible, ineligible } = partitionBundleEligibility(registry, 'chatgpt');
+  for (const skill of ineligible) {
+    console.log(`SKIP (not eligible for the OpenAI API project-Skills surface): ${skill.skill_id}`);
+  }
+
+  for (const skill of eligible) {
     const result = buildOpenAiBundle({ skillDir: skill.path, skillId: skill.skill_id });
     if (!result.valid) {
       console.error(`FAIL: ${skill.skill_id}: ${result.errors.join('; ')}`);

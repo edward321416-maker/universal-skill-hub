@@ -17,11 +17,16 @@
  *   6. Missing required input/tool/capability/permission — fail-closed: an
  *      unstated availability list is treated as "nothing available", not as
  *      "assume it's fine"
- *   7. Forbidden capability actually used by the task (not merely declared)
- *   8. L4 risk tier (no auto-invoke; requires informed confirmation)
- *   9. L3 risk tier (requires explicit intent + permission; never auto for
+ *   7. Per-operation gates (skill.operationGates) for any operation actually
+ *      present in task.requestedOperations — independent of the skill's
+ *      overall risk tier, so an L0 skill's risky operation (e.g. "send",
+ *      "publish") can require intent/permission/capability without gating
+ *      the skill's default read-only/drafting behavior
+ *   8. Forbidden capability actually used by the task (not merely declared)
+ *   9. L4 risk tier (no auto-invoke; requires informed confirmation)
+ *   10. L3 risk tier (requires explicit intent + permission; never auto for
  *      an EXPERIMENTAL skill)
- *   10. DEPRECATED lifecycle             — SKIP, not BLOCK
+ *   11. DEPRECATED lifecycle             — SKIP, not BLOCK
  *
  * Every BLOCK/SKIP carries a `reasonCode` so callers can act on the decision
  * programmatically instead of string-matching `reasons`.
@@ -112,6 +117,39 @@ export function evaluateEligibility({ skill, task, conflicts = [], projectPolicy
     missingFrom(skill.required_permissions, task.grantedPermissions, 'permission', 'MISSING_PERMISSION'),
   ].filter(Boolean);
   if (requiredChecks.length > 0) return requiredChecks[0];
+
+  // Per-operation gates: an otherwise low-risk skill (read-only analysis,
+  // drafting) can still have one specific operation (e.g. "send",
+  // "publish") that must independently require explicit intent,
+  // permission, and capability — without forcing every invocation of the
+  // skill through L3-style checks just because ONE of its operations is
+  // risky. Only triggers for operations actually present in
+  // task.requestedOperations; the skill's default behavior is unaffected.
+  const requestedOps = (task && task.requestedOperations) || [];
+  const operationGates = skill.operationGates || {};
+  for (const op of requestedOps) {
+    const gate = operationGates[op];
+    if (!gate) continue;
+    if (gate.requiresExplicitIntent && !task.explicitIntent) {
+      return {
+        decision: 'BLOCK',
+        reasonCode: 'OPERATION_NO_EXPLICIT_INTENT',
+        reasons: [`skill "${skill.skill_id}" operation "${op}" requires explicit user intent`],
+      };
+    }
+    if (gate.requiresPermission && !task.hasPermission) {
+      return {
+        decision: 'BLOCK',
+        reasonCode: 'OPERATION_NO_PERMISSION',
+        reasons: [`skill "${skill.skill_id}" operation "${op}" requires explicit permission`],
+      };
+    }
+    const missingCap = missingFrom(gate.requiredCapabilities, task.availableCapabilities, 'capability', 'OPERATION_MISSING_CAPABILITY');
+    if (missingCap) {
+      missingCap.reasons = [`skill "${skill.skill_id}" operation "${op}" requires capability not available/granted to this task`];
+      return missingCap;
+    }
+  }
 
   const capabilitiesUsed = (task && task.capabilitiesUsed) || [];
   const forbidden = skill.forbidden_capabilities || [];

@@ -26,6 +26,18 @@ test('Test G: adapter render for a supported platform embeds a DO NOT EDIT marke
   assert.equal(rendered.targetPath, ADAPTER_TARGETS.codex('ush-example-skill'));
 });
 
+test('Phase 1.2: codex/claude-code/cursor/opencode all declare shell_exec by default — a skill that needs shell access (e.g. running git/gh) is not blocked on any of them', () => {
+  for (const platform of ['codex', 'claude-code', 'cursor', 'opencode']) {
+    const rendered = renderAdapter({
+      skillId: 'ush-example-skill',
+      canonicalBody: CANONICAL,
+      platform,
+      capabilities: { requires: ['shell_exec'] },
+    });
+    assert.equal(rendered.blocked, false, `expected ${platform} to support shell_exec, got blocked: ${rendered.reason}`);
+  }
+});
+
 test('Test G: adapter render BLOCKs when the skill requires a capability the platform cannot support', () => {
   const rendered = renderAdapter({
     skillId: 'ush-example-skill',

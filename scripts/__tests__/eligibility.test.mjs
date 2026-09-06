@@ -258,3 +258,62 @@ test('project policy: a denied operation against a resource that is NOT protecte
   });
   assert.equal(result.decision, 'USE');
 });
+
+// --- Phase 1.2: per-operation gates. Some L0 skills are read-only by
+// default but have one specific operation (e.g. "send", "publish") that
+// must be gated independently of the skill's overall risk tier — an L0
+// analysis/drafting skill should not have to satisfy L3-style intent and
+// permission checks just to do its default read-only job. ---
+
+const gatedSkill = {
+  skill_id: 'ush-gated-example',
+  status: 'VALIDATED',
+  risk: 'L0',
+  platforms: ['codex', 'claude-code'],
+  operationGates: {
+    send: { requiredCapabilities: ['chat_send'], requiresExplicitIntent: true, requiresPermission: true },
+  },
+};
+
+test('a gated skill performing only its default (ungated) operation is USE even without intent/permission/capability', () => {
+  const result = evaluateEligibility({
+    skill: gatedSkill,
+    task: { platform: 'codex', autoInvoke: true, requestedOperations: ['read'] },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('a gated operation requested without explicit intent is BLOCKed', () => {
+  const result = evaluateEligibility({
+    skill: gatedSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: false, hasPermission: true, availableCapabilities: ['chat_send'] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_NO_EXPLICIT_INTENT');
+});
+
+test('a gated operation requested without permission is BLOCKed', () => {
+  const result = evaluateEligibility({
+    skill: gatedSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: true, hasPermission: false, availableCapabilities: ['chat_send'] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_NO_PERMISSION');
+});
+
+test('a gated operation requested without the required capability is BLOCKed (fail-closed on unstated capabilities)', () => {
+  const result = evaluateEligibility({
+    skill: gatedSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: true, hasPermission: true },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_MISSING_CAPABILITY');
+});
+
+test('a gated operation with explicit intent, permission, and the required capability is USE', () => {
+  const result = evaluateEligibility({
+    skill: gatedSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: true, hasPermission: true, availableCapabilities: ['chat_send'] },
+  });
+  assert.equal(result.decision, 'USE');
+});

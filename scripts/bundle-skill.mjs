@@ -35,3 +35,22 @@ export function buildSkillBundle({ skillDir, skillId, fs = realFs }) {
   const files = collectSkillFiles({ skillDir, skillId, fs });
   return buildZip(files);
 }
+
+/**
+ * Splits a registry's skills into those eligible for a bundle-target
+ * platform (it lists that platform in skill.platforms) and those that
+ * aren't — so a bundler can report the ineligible ones explicitly instead
+ * of silently omitting them from its output.
+ */
+export function partitionBundleEligibility(registry, platformKey) {
+  const eligible = [];
+  const ineligible = [];
+  for (const skill of registry.skills) {
+    if ((skill.platforms || []).includes(platformKey)) {
+      eligible.push(skill);
+    } else {
+      ineligible.push(skill);
+    }
+  }
+  return { eligible, ineligible };
+}

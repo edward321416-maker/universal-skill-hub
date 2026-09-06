@@ -42,8 +42,22 @@ docs/        design notes, migration mapping, superpowers plans
 ```
 
 See [docs/DESIGN.md](docs/DESIGN.md) for the full rationale and
-[docs/MIGRATION_MAP.md](docs/MIGRATION_MAP.md) for how the first migrated
-skill maps back to its source.
+[docs/MIGRATION_MAP.md](docs/MIGRATION_MAP.md) for how each migrated skill
+maps back to its source.
+
+## Canonical skills
+
+| Skill | Scope | Risk | Origin |
+|---|---|---|---|
+| `ush-repo-evidence-plan` | global | L0 | `openbaeseongjin/baeseongjin` |
+| `ush-github-task-flow` | global | L3 | `openbaeseongjin/baeseongjin` |
+| `ush-concurrent-edit-coordination` | global | L0 | `openbaeseongjin/baeseongjin` |
+| `ush-game-meeting-plan` | domain (game) | L0 | `openbaeseongjin/baeseongjin` |
+| `ush-discord-repo-cross-reference` | domain (discord) | L0 (send op gated) | `openbaeseongjin/baeseongjin` |
+| `ush-work-announcement` | domain (discord) | L0 (publish op gated) | `openbaeseongjin/baeseongjin` |
+
+All six remain `EXPERIMENTAL` — see [docs/MIGRATION_MAP.md](docs/MIGRATION_MAP.md)
+for the equivalence check behind each one.
 
 ## Skill lifecycle
 

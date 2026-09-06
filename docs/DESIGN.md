@@ -59,6 +59,26 @@ informed-confirmation rule, and the L3-requires-explicit-intent-and-
 permission rules (including the EXPERIMENTAL-L3-never-auto rule) as hard
 `BLOCK`s, not soft warnings.
 
+### Per-operation gates (Phase 1.2)
+
+Some skills are read-only/drafting by default (risk L0) but have exactly
+one operation that should be gated independently of that overall risk tier
+— e.g. `ush-discord-repo-cross-reference`'s `send` operation, or
+`ush-work-announcement`'s `publish` operation. Forcing the whole skill to
+L3 would make its *default* behavior (analysis, drafting) require explicit
+intent and permission it doesn't need. Instead, a skill entry can declare
+`operationGates: { <operation>: { requiredCapabilities, requiresExplicitIntent, requiresPermission } }`;
+`evaluateEligibility` checks these only for operations actually present in
+`task.requestedOperations`, independent of `skill.risk`. See
+`scripts/eligibility.mjs`'s docstring for the full check order.
+
+`ush-work-announcement` additionally uses `scripts/approval-gate.mjs`'s
+`isApprovalValid()` — a caller compares a content hash of the
+user-approved text against the text about to be published; any material
+edit after approval invalidates it. This lives outside the deterministic
+eligibility engine because "was this exact text approved" is caller-tracked
+conversational state, not a fact `evaluateEligibility` can check on its own.
+
 ## Canonical skill format
 
 No new skill language. A canonical skill is `SKILL.md` (YAML frontmatter +

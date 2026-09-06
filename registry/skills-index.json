@@ -14,6 +14,88 @@
       "source_path": ".codex/skills/repo-task-plan/SKILL.md",
       "source_commit": "983005fc41b22cb0efc76fb4b529df8ef6c6d6d8",
       "content_sha256": "352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688"
+    },
+    {
+      "skill_id": "ush-github-task-flow",
+      "path": "skills/git/ush-github-task-flow",
+      "version": "1.0.0",
+      "scope": "global",
+      "risk": "L3",
+      "status": "EXPERIMENTAL",
+      "platforms": ["codex", "claude-code", "cursor", "opencode"],
+      "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
+      "source_path": ".codex/skills/github-task-flow/SKILL.md",
+      "source_commit": "4b8cf8b0faa7e1d7dc195984dcb66fc468b3157f",
+      "content_sha256": "6d4f9f7b65750459961f2d41ccb78f415ff301c503a96fd32818de2e4e95d3f9",
+      "required_capabilities": ["github_write"],
+      "required_permissions": ["github_write"]
+    },
+    {
+      "skill_id": "ush-concurrent-edit-coordination",
+      "path": "skills/git/ush-concurrent-edit-coordination",
+      "version": "1.0.0",
+      "scope": "global",
+      "risk": "L0",
+      "status": "EXPERIMENTAL",
+      "platforms": ["codex", "claude-code", "cursor", "opencode"],
+      "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
+      "source_path": ".codex/skills/coordinate-github-tasks/SKILL.md",
+      "source_commit": "4b8cf8b0faa7e1d7dc195984dcb66fc468b3157f",
+      "content_sha256": "a8b83254c1eaffb35c15222ec1bb5227f0c00725111ea44a76e364f1bb2d3728",
+      "required_tools": ["git_diff_read"]
+    },
+    {
+      "skill_id": "ush-game-meeting-plan",
+      "path": "skills/game/ush-game-meeting-plan",
+      "version": "1.0.0",
+      "scope": "domain",
+      "risk": "L0",
+      "status": "EXPERIMENTAL",
+      "platforms": ["codex", "claude-code", "cursor", "opencode"],
+      "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
+      "source_path": ".codex/skills/meeting-to-game-plan/SKILL.md",
+      "source_commit": "983005fc41b22cb0efc76fb4b529df8ef6c6d6d8",
+      "content_sha256": "228f9b8bb16e5f74a49f829a60c748d80e9071ceff9be8e82b5596f00d1fbe70"
+    },
+    {
+      "skill_id": "ush-discord-repo-cross-reference",
+      "path": "skills/discord/ush-discord-repo-cross-reference",
+      "version": "1.0.0",
+      "scope": "domain",
+      "risk": "L0",
+      "status": "EXPERIMENTAL",
+      "platforms": ["codex", "claude-code", "cursor", "opencode"],
+      "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
+      "source_path": ".codex/skills/discord-repo-cross-reference/SKILL.md",
+      "source_commit": "983005fc41b22cb0efc76fb4b529df8ef6c6d6d8",
+      "content_sha256": "9fea22eca989a8548c5c19387d7bdc27b0c0db3d97b6a65d5b23932a4696bfda",
+      "operationGates": {
+        "send": {
+          "requiredCapabilities": ["discord_send"],
+          "requiresExplicitIntent": true,
+          "requiresPermission": true
+        }
+      }
+    },
+    {
+      "skill_id": "ush-work-announcement",
+      "path": "skills/discord/ush-work-announcement",
+      "version": "1.0.0",
+      "scope": "domain",
+      "risk": "L0",
+      "status": "EXPERIMENTAL",
+      "platforms": ["codex", "claude-code", "cursor", "opencode"],
+      "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
+      "source_path": ".codex/skills/work-announcement/SKILL.md",
+      "source_commit": "a8bc0493355b82582e98ec4ffc8064506f8f422a",
+      "content_sha256": "91934dc020c85f5ee65095fb89a82c5f5d8d74ed0f144c80e980ea53103419f3",
+      "operationGates": {
+        "publish": {
+          "requiredCapabilities": ["discord_send"],
+          "requiresExplicitIntent": true,
+          "requiresPermission": true
+        }
+      }
     }
   ]
 }
