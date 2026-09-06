@@ -90,25 +90,57 @@ informed-confirmation rule, and the L3-requires-explicit-intent-and-
 permission rules (including the EXPERIMENTAL-L3-never-auto rule) as hard
 `BLOCK`s, not soft warnings.
 
-### Per-operation gates (Phase 1.2)
+### Per-operation gates (Phase 1.2, schema finalized in review round 2)
 
 Some skills are read-only/drafting by default (risk L0) but have exactly
 one operation that should be gated independently of that overall risk tier
-— e.g. `ush-discord-repo-cross-reference`'s `send` operation, or
-`ush-work-announcement`'s `publish` operation. Forcing the whole skill to
-L3 would make its *default* behavior (analysis, drafting) require explicit
-intent and permission it doesn't need. Instead, a skill entry can declare
-`operationGates: { <operation>: { requiredCapabilities, requiresExplicitIntent, requiresPermission } }`;
-`evaluateEligibility` checks these only for operations actually present in
-`task.requestedOperations`, independent of `skill.risk`. See
-`scripts/eligibility.mjs`'s docstring for the full check order.
+— e.g. `ush-discord-repo-cross-reference`'s `send` operation,
+`ush-work-announcement`'s `publish` operation, or
+`ush-github-task-flow`'s `merge` operation. Forcing the whole skill to L3
+would make its *default* behavior (analysis, drafting, PR delivery)
+require checks it doesn't need for that default path. Instead, a skill
+entry can declare, per operation:
 
-`ush-work-announcement` additionally uses `scripts/approval-gate.mjs`'s
-`isApprovalValid()` — a caller compares a content hash of the
-user-approved text against the text about to be published; any material
-edit after approval invalidates it. This lives outside the deterministic
-eligibility engine because "was this exact text approved" is caller-tracked
-conversational state, not a fact `evaluateEligibility` can check on its own.
+```
+operationGates: {
+  <operation>: {
+    requiredCapabilities: [...],          // fail-closed vs. task.availableCapabilities
+    requiredPermissions: [...],           // fail-closed vs. task.grantedPermissions
+    requiresExplicitIntent: true|false,   // checks task.explicitIntent
+    requiresApprovedContentMatch: true|false, // see below
+  }
+}
+```
+
+`evaluateEligibility` checks a gate only for operations actually present in
+`task.requestedOperations`, independent of `skill.risk`. Within one gate,
+the checks run: explicit intent, then named permissions, then
+capabilities, then content-approval match (see
+`scripts/eligibility.mjs`'s docstring for the exact order and the full
+eligibility check sequence).
+
+**`requiredPermissions`** is checked against `task.grantedPermissions`,
+fail-closed (an unstated `grantedPermissions` list means "nothing
+granted", not "assume it's fine"). Once a gate declares
+`requiredPermissions`, a generic `task.hasPermission: true` is **not**
+sufficient on its own to satisfy that gate — an unrelated permission grant
+must never authorize a specific gated operation like `send` or `merge`.
+The generic `requiresPermission`/`task.hasPermission` boolean check only
+runs as a legacy fallback when a gate declares no named permissions at
+all.
+
+**`requiresApprovedContentMatch`** (used by `ush-work-announcement`'s
+`publish` gate) is checked **inside `evaluateEligibility` itself** — it is
+not caller-tracked state left outside the engine. The gate compares
+`task.approvedContentHash` against `task.currentContentHash` via
+`scripts/approval-gate.mjs`'s `isApprovalValid()`: no approved hash at all
+BLOCKs with `OPERATION_NO_APPROVED_CONTENT`; a hash that no longer matches
+the current content (a material edit after approval) BLOCKs with
+`OPERATION_APPROVAL_STALE`; an exact match lets the gate proceed to
+whatever check comes next. The caller's only remaining job is to compute
+and pass both hashes correctly — the invalidation logic itself is
+deterministic and engine-enforced, not a documented convention the caller
+has to remember to apply.
 
 ## Canonical skill format
 
@@ -171,7 +203,37 @@ ownership:
 - **Derived** (must equal a fresh computation, owned by neither side):
   `content_sha256` <- SHA-256 of the canonical `SKILL.md`'s exact bytes.
 - **Registry-owned** (no canonical-source equivalent): `path`, `platforms`,
-  `source_repo`, `source_path`, `source_commit`.
+  `bundle_targets`, `source_repo`, `source_path`, `source_commit`.
+
+## `platforms` vs. `bundle_targets` (two different dimensions)
+
+These are easy to conflate — a real Phase 1.2 bug did exactly that
+(`bundle-openai.mjs` used to key off the `"chatgpt"` `platforms` entry to
+decide OpenAI API bundle eligibility, a completely unrelated surface). The
+definitions, settled in Phase 1.2 review round 3:
+
+- **`platforms`** = the native runtime host surfaces on which the
+  deterministic eligibility router (`scripts/eligibility.mjs`) may
+  evaluate and execute the skill as a live task — i.e., values that can
+  legitimately appear as `task.platform`. This includes the four
+  filesystem-adapter CLI/IDE agents (`codex`, `claude-code`, `cursor`,
+  `opencode`) **and** any other surface a skill is actually routable on as
+  a live task — `ush-repo-evidence-plan` legitimately lists `claude-ai` and
+  `chatgpt` here because it is a pure read-only reasoning skill with no
+  host-specific requirement, expected to be invoked as a live task on
+  those surfaces too, not merely packaged for them.
+- **`bundle_targets`** = artifact/package distribution surfaces: can this
+  skill be packaged as a portable bundle for that surface *at all*
+  (`claude-ai`, `openai-api` — see `scripts/bundle-targets.mjs` for the
+  authoritative key list). A skill being bundle-eligible for a surface
+  does **not** imply it is (yet) a `platforms` entry — packaging and live
+  task-routing are different integration milestones. Conversely, a skill
+  can be `platforms`-eligible without ever being bundled anywhere (e.g. a
+  skill installed only via `scripts/install-skills.mjs`, never uploaded as
+  a ZIP).
+
+Neither list is inferred from the other. A skill must declare both
+explicitly and independently in `registry/skills-index.json`.
 
 ## Distribution: user-level install
 

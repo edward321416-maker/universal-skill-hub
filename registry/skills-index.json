@@ -47,8 +47,9 @@
           "requires_at_runtime": ["network_access", "github_write"]
         },
         "openai-api": {
-          "status": "UNSUPPORTED",
-          "reason": "no verified GitHub-write or live outbound network capability was found in the OpenAI API project-Skills documentation consulted as of 2026-09-06; treated as unconfirmed rather than assumed present."
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "The Skill bundle itself is portable, but execution requires a caller-supplied authenticated GitHub write capability and permission (e.g. via a function tool or remote MCP server alongside the Responses API's Skills support, per developers.openai.com/api/docs/guides/tools and .../tools-connectors-mcp, checked 2026-09-06); the Hub never assumes those are present, and the existing L3/required_capabilities/required_permissions gates remain fail-closed at runtime regardless of this bundle status.",
+          "requires_at_runtime": ["github_write"]
         }
       }
     },

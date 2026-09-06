@@ -60,9 +60,15 @@ test('a bundle_targets status outside SUPPORTED|SUPPORTED_WITH_RESTRICTIONS|UNSU
   assert.ok(result.errors.some((e) => e.includes('bundle_targets') && e.includes('claude-ai')));
 });
 
-test('a bundle_targets entry with a valid status enum value and a reason is consistent', () => {
+test('a bundle_targets object declaring every known target with a valid status enum value and a reason is consistent', () => {
   const result = checkConsistency({
-    registryEntry: { ...goodRegistryEntry, bundle_targets: { 'claude-ai': { status: 'SUPPORTED', reason: 'x' } } },
+    registryEntry: {
+      ...goodRegistryEntry,
+      bundle_targets: {
+        'claude-ai': { status: 'SUPPORTED', reason: 'x' },
+        'openai-api': { status: 'SUPPORTED', reason: 'x' },
+      },
+    },
     canonicalContent,
   });
   assert.equal(result.consistent, true, `expected consistent, got errors: ${JSON.stringify(result.errors)}`);
@@ -70,9 +76,60 @@ test('a bundle_targets entry with a valid status enum value and a reason is cons
 
 test('a bundle_targets entry with no reason is FAIL — a support/restriction/unsupported claim must be machine-readable AND explained', () => {
   const result = checkConsistency({
-    registryEntry: { ...goodRegistryEntry, bundle_targets: { 'claude-ai': { status: 'UNSUPPORTED' } } },
+    registryEntry: {
+      ...goodRegistryEntry,
+      bundle_targets: { 'claude-ai': { status: 'UNSUPPORTED' }, 'openai-api': { status: 'SUPPORTED', reason: 'x' } },
+    },
     canonicalContent,
   });
   assert.equal(result.consistent, false);
   assert.ok(result.errors.some((e) => e.includes('reason')));
+});
+
+// --- Phase 1.2 review round 3: bundle target key enum + completeness ---
+
+test('an unknown bundle_targets key (typo, or a superseded/wrong surface name) is FAIL, not silently ignored', () => {
+  for (const badKey of ['claud-ai', 'openai-ap1', 'chatgpt']) {
+    const result = checkConsistency({
+      registryEntry: {
+        ...goodRegistryEntry,
+        bundle_targets: {
+          [badKey]: { status: 'SUPPORTED', reason: 'x' },
+          'claude-ai': { status: 'SUPPORTED', reason: 'x' },
+          'openai-api': { status: 'SUPPORTED', reason: 'x' },
+        },
+      },
+      canonicalContent,
+    });
+    assert.equal(result.consistent, false, `expected "${badKey}" to be rejected as an unknown bundle target`);
+    assert.ok(result.errors.some((e) => e.includes(badKey)), `expected an error mentioning "${badKey}", got: ${JSON.stringify(result.errors)}`);
+  }
+});
+
+test('both known bundle targets (claude-ai, openai-api) are accepted as valid keys', () => {
+  const result = checkConsistency({
+    registryEntry: {
+      ...goodRegistryEntry,
+      bundle_targets: {
+        'claude-ai': { status: 'SUPPORTED', reason: 'x' },
+        'openai-api': { status: 'SUPPORTED', reason: 'x' },
+      },
+    },
+    canonicalContent,
+  });
+  assert.equal(result.consistent, true, `expected consistent, got errors: ${JSON.stringify(result.errors)}`);
+});
+
+test('declaring bundle_targets for only ONE of the two known targets is FAIL — a skill that opts into the bundle_targets model must declare every known target explicitly, so a target is never silently forgotten', () => {
+  const result = checkConsistency({
+    registryEntry: { ...goodRegistryEntry, bundle_targets: { 'claude-ai': { status: 'SUPPORTED', reason: 'x' } } },
+    canonicalContent,
+  });
+  assert.equal(result.consistent, false);
+  assert.ok(result.errors.some((e) => e.includes('openai-api')));
+});
+
+test('a registry entry with no bundle_targets at all is still consistent — declaring bundle_targets is optional; completeness is only required once a skill opts in', () => {
+  const result = checkConsistency({ registryEntry: goodRegistryEntry, canonicalContent });
+  assert.equal(result.consistent, true, `expected consistent, got errors: ${JSON.stringify(result.errors)}`);
 });

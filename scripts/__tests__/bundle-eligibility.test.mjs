@@ -72,12 +72,22 @@ test('partitionBundleEligibility: runtime `platforms` (codex/claude-code/...) ha
 
 const realRegistry = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'registry', 'skills-index.json'), 'utf8'));
 
-test('the real OpenAI bundle target is keyed as "openai-api", not "chatgpt" — ush-github-task-flow (UNSUPPORTED for openai-api) proves this: if the bundler were still keyed off "chatgpt" (a platform value this skill never lists), it would silently pass through', () => {
-  const { eligible, ineligible } = partitionBundleEligibility(realRegistry, 'openai-api');
-  assert.ok(!eligible.some((s) => s.skill_id === 'ush-github-task-flow'), 'ush-github-task-flow must be excluded under the openai-api target');
-  const entry = ineligible.find((e) => e.skill_id === 'ush-github-task-flow');
-  assert.ok(entry, 'ush-github-task-flow must appear in the ineligible list with a reason');
-  assert.ok(entry.reason.length > 0);
+test('the real OpenAI bundle target is keyed as "openai-api", not "chatgpt" — a synthetic skill that only lists "chatgpt" as a platform (never as a bundle_targets key) must be excluded under the "openai-api" bundle target', () => {
+  const syntheticRegistry = {
+    skills: [
+      { skill_id: 'ush-chatgpt-platform-only', platforms: ['chatgpt'] /* no bundle_targets at all */ },
+    ],
+  };
+  const { eligible, ineligible } = partitionBundleEligibility(syntheticRegistry, 'openai-api');
+  assert.ok(!eligible.some((s) => s.skill_id === 'ush-chatgpt-platform-only'), 'listing "chatgpt" as a platform must not make a skill eligible for the "openai-api" bundle target — that would be the old chatgpt-keying bug');
+  assert.ok(ineligible.some((s) => s.skill_id === 'ush-chatgpt-platform-only'));
+});
+
+test('ush-github-task-flow is bundle-eligible for openai-api as SUPPORTED_WITH_RESTRICTIONS — the bundle can exist even though runtime execution still requires a caller-supplied github_write capability and permission (fail-closed, unchanged)', () => {
+  const { eligible } = partitionBundleEligibility(realRegistry, 'openai-api');
+  const entry = eligible.find((s) => s.skill_id === 'ush-github-task-flow');
+  assert.ok(entry, 'ush-github-task-flow should now be bundle-eligible for openai-api');
+  assert.equal(realRegistry.skills.find((s) => s.skill_id === 'ush-github-task-flow').bundle_targets['openai-api'].status, 'SUPPORTED_WITH_RESTRICTIONS');
 });
 
 test('ush-game-meeting-plan is bundle-eligible for claude-ai (re-evaluated per-skill, not blanket-excluded)', () => {

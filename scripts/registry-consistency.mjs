@@ -3,6 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import url from 'node:url';
 import { load as loadYaml } from 'js-yaml';
+import { VALID_BUNDLE_TARGETS } from './bundle-targets.mjs';
 
 /**
  * Field ownership (see docs/DESIGN.md "Registry <-> canonical consistency"):
@@ -50,12 +51,28 @@ export function checkConsistency({ registryEntry, canonicalContent }) {
   }
 
   const VALID_BUNDLE_STATUSES = ['SUPPORTED', 'SUPPORTED_WITH_RESTRICTIONS', 'UNSUPPORTED'];
-  for (const [target, entry] of Object.entries(registryEntry.bundle_targets || {})) {
-    if (!VALID_BUNDLE_STATUSES.includes(entry.status)) {
-      errors.push(`bundle_targets["${target}"].status "${entry.status}" is not one of ${VALID_BUNDLE_STATUSES.join('|')}`);
+  const bundleTargets = registryEntry.bundle_targets;
+  if (bundleTargets) {
+    for (const [target, entry] of Object.entries(bundleTargets)) {
+      if (!VALID_BUNDLE_TARGETS.includes(target)) {
+        errors.push(`bundle_targets key "${target}" is not a known bundle target — must be one of ${VALID_BUNDLE_TARGETS.join('|')}`);
+      }
+      if (!VALID_BUNDLE_STATUSES.includes(entry.status)) {
+        errors.push(`bundle_targets["${target}"].status "${entry.status}" is not one of ${VALID_BUNDLE_STATUSES.join('|')}`);
+      }
+      if (!entry.reason || String(entry.reason).trim() === '') {
+        errors.push(`bundle_targets["${target}"] is missing a "reason" — a support/restriction/unsupported claim must be explained, not just asserted`);
+      }
     }
-    if (!entry.reason || String(entry.reason).trim() === '') {
-      errors.push(`bundle_targets["${target}"] is missing a "reason" — a support/restriction/unsupported claim must be explained, not just asserted`);
+
+    // Completeness: a skill that opts into declaring bundle_targets at all
+    // must declare every known target explicitly (even if UNSUPPORTED) —
+    // so a target is never silently forgotten. bundle_targets itself
+    // remains optional; this only fires once a skill has at least one entry.
+    for (const knownTarget of VALID_BUNDLE_TARGETS) {
+      if (!(knownTarget in bundleTargets)) {
+        errors.push(`bundle_targets is missing an entry for known target "${knownTarget}" — a skill that declares bundle_targets must declare all of ${VALID_BUNDLE_TARGETS.join('|')}, even if UNSUPPORTED`);
+      }
     }
   }
 
