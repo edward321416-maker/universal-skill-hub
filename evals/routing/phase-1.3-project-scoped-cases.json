@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "status": "PASS P — PROJECT-SCOPED HUB-VISIBLE ENVIRONMENT. This is NOT a Hub-only clean room: unrelated global/user-level skills remain present (no working mechanism was found to exclude them — see docs/DESIGN.md). It is the real environment PLUS a scratch project directory whose `.agents/skills/` contains the six Hub skills, using Codex's own documented project-level skill-discovery convention. A quota-free `codex debug prompt-input` investigation already confirmed this setup makes all six Hub skills model-visible (verified 2026-09-06 against a throwaway scratch copy). `modelVisible` is left null here pending a fresh, official reconfirmation immediately before spending live-test quota (per the locked methodology: confirm 6/6 model-visible right before testing, not merely at fixture-authoring time) — do not treat null as a prediction of failure, only as 'not yet (re-)confirmed for this run'.",
+  "platform": "codex",
+  "environment": "project-scoped: a scratch git-initialized directory outside this repo, containing only `.agents/skills/<six ush-* skills>/SKILL.md` (byte-identical copies of adapters/codex/*/SKILL.md); real user-level/marketplace skills remain present alongside (additive, not exclusive)",
+  "cases": [
+    {
+      "id": "phase-1.3-project-implicit-1-repo-evidence-plan",
+      "task": "Inspect the repository evidence and give me a plan showing which files/functions should change, without editing anything.",
+      "expectedSkillIds": ["ush-repo-evidence-plan"],
+      "actualSkillIds": null,
+      "modelVisible": null,
+      "notes": "Same task text as phase-1.3-real-implicit-1-repo-evidence-plan, for direct Pass R vs. Pass P comparison."
+    },
+    {
+      "id": "phase-1.3-project-implicit-2-game-meeting-plan",
+      "task": "Turn these meeting notes into a scoped game implementation plan with locks, dependencies, and open questions.",
+      "expectedSkillIds": ["ush-game-meeting-plan"],
+      "actualSkillIds": null,
+      "modelVisible": null,
+      "notes": "Same task text as phase-1.3-real-implicit-2-game-meeting-plan."
+    },
+    {
+      "id": "phase-1.3-project-implicit-3-concurrent-edit-coordination",
+      "task": "Check whether two independent tasks are likely to edit overlapping files based on the real git diff.",
+      "expectedSkillIds": ["ush-concurrent-edit-coordination"],
+      "actualSkillIds": null,
+      "modelVisible": null,
+      "notes": "Same task text as phase-1.3-real-implicit-3-concurrent-edit-coordination. Expected candidate only when real diff-inspection evidence is available in the scratch project; otherwise the deterministic eligibility filter should BLOCK (MISSING_TOOL)."
+    },
+    {
+      "id": "phase-1.3-project-negative-1-semver-explanation",
+      "task": "Explain what semantic versioning means.",
+      "expectedSkillIds": [],
+      "actualSkillIds": null,
+      "notes": "Same task text as phase-1.3-real-negative-1-semver-explanation, for direct comparison."
+    },
+    {
+      "id": "phase-1.3-project-negative-2-summarize-paragraph",
+      "task": "Summarize this paragraph.",
+      "expectedSkillIds": [],
+      "actualSkillIds": null,
+      "notes": "Same task text as phase-1.3-real-negative-2-summarize-paragraph."
+    }
+  ]
+}
