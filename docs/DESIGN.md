@@ -12,30 +12,61 @@ Task
 
 The deterministic filter checks only machine-checkable facts and never makes
 a "does this skill fit" judgment call. Checks run in a fixed order (each
-returns immediately on match) — see the docstring in `scripts/eligibility.mjs`
-for the exact sequence and rationale:
+returns immediately on match). **The docstring at the top of
+`scripts/eligibility.mjs` is the single source of truth for this order** —
+the list below is a restatement of it, kept in sync by
+`scripts/__tests__/design-doc-alignment.test.mjs`, which fails if a
+`reasonCode` the engine can emit isn't mentioned here (so this list cannot
+silently go stale the way it did once already in Phase 1.2 — it used to
+omit project scope, required-field, and per-operation-gate checks entirely):
 
-1. QUARANTINED lifecycle (host/system safety, always wins)
-2. Project Policy explicit block (`projectPolicy.blockedSkillIds`) — Project
-   Policy outranks Global Skill
-3. Declared skill conflicts (`registry/conflicts.json`, via `task.selectedSkillIds`)
-4. Platform compatibility (`skill.platforms` vs. task platform)
-5. Forbidden capability *actually used* by the task
+1. **QUARANTINED** lifecycle (host/system safety, always wins)
+2. **Project Policy**: explicit block (`projectPolicy.blockedSkillIds`), or a
+   denied operation against a protected resource
+   (`projectPolicy.deniedOperations`/`protectedResources`) — Project Policy
+   outranks Global Skill (`reasonCode: PROJECT_POLICY`)
+3. Declared skill **conflicts** (`registry/conflicts.json`, via
+   `task.selectedSkillIds`) (`CONFLICTING_SKILL`)
+4. **Platform compatibility** (`skill.platforms` vs. task platform)
+   (`PLATFORM_UNSUPPORTED`)
+5. **Project scope mismatch** — SKIP, not BLOCK, when `skill.project_scope`
+   doesn't match `task.project` (`PROJECT_SCOPE_MISMATCH`)
+6. **Missing required input/tool/capability/permission** — fail-closed: an
+   unstated availability list means "nothing available", not "assume it's
+   fine" (`MISSING_INPUT`/`MISSING_TOOL`/`MISSING_CAPABILITY`/`MISSING_PERMISSION`)
+7. **Per-operation gates** (`skill.operationGates`) for any operation
+   actually present in `task.requestedOperations`, independent of the
+   skill's overall risk tier: explicit intent
+   (`OPERATION_NO_EXPLICIT_INTENT`), then named `requiredPermissions`
+   checked against `task.grantedPermissions` — fail-closed, and NOT
+   satisfiable by a generic `task.hasPermission: true` once
+   `requiredPermissions` is declared (`OPERATION_MISSING_PERMISSION`; the
+   legacy generic `requiresPermission`/`hasPermission` boolean,
+   `OPERATION_NO_PERMISSION`, is only used when a gate declares no named
+   permissions), then `requiredCapabilities`
+   (`OPERATION_MISSING_CAPABILITY`), then — if the gate declares
+   `requiresApprovedContentMatch` — that the exact approved text still
+   matches what's about to be sent (`OPERATION_NO_APPROVED_CONTENT` if
+   nothing was approved, `OPERATION_APPROVAL_STALE` if the content changed
+   since approval)
+8. **Forbidden capability** *actually used* by the task
    (`task.capabilitiesUsed` intersecting `skill.forbidden_capabilities` —
    note this is deliberately NOT "the host has the capability available";
    the host having a capability and the skill/task using it are different
-   things, see Phase 1.1 notes below)
-6. L4 risk tier: BLOCK on auto-invoke; BLOCK without
+   things) (`FORBIDDEN_CAPABILITY`)
+9. **L4** risk tier: BLOCK on auto-invoke (`L4_AUTO`); BLOCK without
    `task.informedConfirmation` even when not auto-invoked
-7. L3 risk tier: BLOCK without `task.explicitIntent`; BLOCK without
-   `task.hasPermission`; an EXPERIMENTAL L3 skill BLOCKs on auto-invoke
-   regardless of intent/permission
-8. DEPRECATED lifecycle — SKIP, not BLOCK
+   (`L4_NO_INFORMED_CONFIRMATION`)
+10. **L3** risk tier: an EXPERIMENTAL L3 skill BLOCKs on auto-invoke
+    regardless of intent/permission (`EXPERIMENTAL_L3_AUTO`); BLOCK without
+    `task.explicitIntent` (`L3_NO_EXPLICIT_INTENT`); BLOCK without
+    `task.hasPermission` (`L3_NO_PERMISSION`)
+11. **DEPRECATED** lifecycle — SKIP, not BLOCK (`DEPRECATED`)
 
-Decisions are `USE`, `SKIP`, or `BLOCK`, each with a machine-readable
-`reasonCode` (e.g. `L3_NO_EXPLICIT_INTENT`, `FORBIDDEN_CAPABILITY`,
-`CONFLICTING_SKILL`, `PROJECT_POLICY`) plus a human-readable `reasons` array
-— see `scripts/eligibility.mjs` and its tests.
+Anything that reaches the end without matching any of the above is `USE`
+(`reasonCode: ELIGIBLE`). Decisions are always `USE`, `SKIP`, or `BLOCK`,
+each with a machine-readable `reasonCode` plus a human-readable `reasons`
+array — see `scripts/eligibility.mjs` and its tests.
 
 Semantic matching — whether a task actually calls for, say,
 `systematic-debugging` versus `brainstorming` — is left to the calling agent
@@ -58,6 +89,58 @@ L4 = destructive/high-consequence        -> explicit informed confirmation manda
 informed-confirmation rule, and the L3-requires-explicit-intent-and-
 permission rules (including the EXPERIMENTAL-L3-never-auto rule) as hard
 `BLOCK`s, not soft warnings.
+
+### Per-operation gates (Phase 1.2, schema finalized in review round 2)
+
+Some skills are read-only/drafting by default (risk L0) but have exactly
+one operation that should be gated independently of that overall risk tier
+— e.g. `ush-discord-repo-cross-reference`'s `send` operation,
+`ush-work-announcement`'s `publish` operation, or
+`ush-github-task-flow`'s `merge` operation. Forcing the whole skill to L3
+would make its *default* behavior (analysis, drafting, PR delivery)
+require checks it doesn't need for that default path. Instead, a skill
+entry can declare, per operation:
+
+```
+operationGates: {
+  <operation>: {
+    requiredCapabilities: [...],          // fail-closed vs. task.availableCapabilities
+    requiredPermissions: [...],           // fail-closed vs. task.grantedPermissions
+    requiresExplicitIntent: true|false,   // checks task.explicitIntent
+    requiresApprovedContentMatch: true|false, // see below
+  }
+}
+```
+
+`evaluateEligibility` checks a gate only for operations actually present in
+`task.requestedOperations`, independent of `skill.risk`. Within one gate,
+the checks run: explicit intent, then named permissions, then
+capabilities, then content-approval match (see
+`scripts/eligibility.mjs`'s docstring for the exact order and the full
+eligibility check sequence).
+
+**`requiredPermissions`** is checked against `task.grantedPermissions`,
+fail-closed (an unstated `grantedPermissions` list means "nothing
+granted", not "assume it's fine"). Once a gate declares
+`requiredPermissions`, a generic `task.hasPermission: true` is **not**
+sufficient on its own to satisfy that gate — an unrelated permission grant
+must never authorize a specific gated operation like `send` or `merge`.
+The generic `requiresPermission`/`task.hasPermission` boolean check only
+runs as a legacy fallback when a gate declares no named permissions at
+all.
+
+**`requiresApprovedContentMatch`** (used by `ush-work-announcement`'s
+`publish` gate) is checked **inside `evaluateEligibility` itself** — it is
+not caller-tracked state left outside the engine. The gate compares
+`task.approvedContentHash` against `task.currentContentHash` via
+`scripts/approval-gate.mjs`'s `isApprovalValid()`: no approved hash at all
+BLOCKs with `OPERATION_NO_APPROVED_CONTENT`; a hash that no longer matches
+the current content (a material edit after approval) BLOCKs with
+`OPERATION_APPROVAL_STALE`; an exact match lets the gate proceed to
+whatever check comes next. The caller's only remaining job is to compute
+and pass both hashes correctly — the invalidation logic itself is
+deterministic and engine-enforced, not a documented convention the caller
+has to remember to apply.
 
 ## Canonical skill format
 
@@ -119,8 +202,202 @@ ownership:
   `metadata.version`/`metadata.scope`/`metadata.risk`/`metadata.status`.
 - **Derived** (must equal a fresh computation, owned by neither side):
   `content_sha256` <- SHA-256 of the canonical `SKILL.md`'s exact bytes.
-- **Registry-owned** (no canonical-source equivalent): `path`, `platforms`,
-  `source_repo`, `source_path`, `source_commit`.
+- **Registry-owned** (no canonical-source equivalent): `path`, `source_repo`,
+  `source_path`, `source_commit`.
+  - `runtime_support` is registry-owned, **authoritative** for runtime
+    compatibility, and **mandatory** — `scripts/registry-consistency.mjs`
+    fails a registry entry outright if `runtime_support` is absent
+    (Phase 1.2 review round 4, final patch: this is enforced by
+    `checkConsistency` itself, not merely by a repo-level test enumerating
+    today's entries).
+  - `platforms` is registry-owned, likewise **mandatory**, but only as a
+    **backward-compatible mirror** of `runtime_support` —
+    `scripts/registry-consistency.mjs` fails if either field is missing,
+    or if the two sets ever diverge (order-independent set equality).
+  - `runtime_exclusions` is registry-owned, sparse, evidence-backed
+    negative/unverified runtime metadata.
+  - `bundle_targets` remains registry-owned distribution/packaging
+    metadata, independent of `runtime_support` (see below).
+  - The central runtime-requirements vocabulary
+    (`registry/runtime-requirements.json`) is authoritative for every
+    capability/permission/tool identifier referenced anywhere in the
+    registry.
+
+## Runtime compatibility model (Phase 1.2 review round 4)
+
+Round 3 settled `platforms` vs. `bundle_targets` as two independent
+dimensions. Round 4 makes runtime compatibility itself evidence-backed
+instead of an unexplained array of strings, and formally separates three
+questions that used to be conflated in a single `platforms` array:
+
+1. **Can this skill execute as a live routed task on this runtime?**
+   -> `runtime_support` (authoritative) / `runtime_exclusions` (sparse,
+   negative or unverified)
+2. **Can a portable Skill artifact be produced for this packaging
+   surface?** -> `bundle_targets` (unchanged from round 3)
+3. **Does a filesystem adapter get generated for this runtime?** ->
+   `scripts/render-adapters.mjs`'s `ADAPTER_TARGETS` (unchanged; a
+   mechanical detail of *how* a supported runtime receives the file, not
+   a fourth compatibility question)
+
+None of the three is inferred from either of the others. A skill declares
+each independently.
+
+### `runtime_support` (authoritative) and `platforms` (mirror)
+
+`runtime_support` is a map of runtime key -> `{ status, reason, evidence,
+requires_at_runtime? }`:
+
+- **`status`** is one of `SUPPORTED` or `SUPPORTED_WITH_RESTRICTIONS` only.
+  Presence in `runtime_support` means the skill *can* execute on that
+  runtime, possibly subject to conditions — it never means "assume those
+  conditions hold." `UNSUPPORTED`/`UNVERIFIED` are not valid here; a
+  negative or unresolved assessment belongs in `runtime_exclusions`
+  instead (`scripts/registry-consistency.mjs` rejects them if misplaced).
+- **`reason`** (required, non-empty) explains the conclusion.
+- **`evidence`** (required, non-empty array of `{source_type, source,
+  verified_on}`) explains *why* the conclusion is justified and lets
+  someone re-check it later — see "Provenance" below.
+- **`requires_at_runtime`** (optional; typed `{kind, id}` entries, see
+  below) lists what a `SUPPORTED_WITH_RESTRICTIONS` runtime still needs at
+  invocation time. It is documentation for that judgment, not an
+  enforcement mechanism — the actual fail-closed enforcement is still
+  `scripts/eligibility.mjs`'s `required_capabilities`/
+  `required_permissions`/`required_tools`/`operationGates` checks, which
+  run identically regardless of what `runtime_support` says. A runtime
+  being `SUPPORTED_WITH_RESTRICTIONS` never bypasses those checks.
+
+`platforms` remains for backward compatibility — existing code may keep
+using `skill.platforms.includes(task.platform)` — but it is now **only** a
+mirror of `runtime_support`'s keys. `scripts/registry-consistency.mjs`
+enforces `set(platforms) === set(Object.keys(runtime_support))`
+(order-independent) whenever a skill declares `runtime_support` at all.
+A future implementation may derive `platforms` automatically from
+`runtime_support` instead of storing both; Round 4 deliberately keeps both
+fields to avoid a larger migration than this review asked for.
+
+### `runtime_exclusions` (sparse, evidence-backed)
+
+`runtime_exclusions` is a map of runtime key -> `{ status, reason,
+evidence }` for a runtime surface that was **actually assessed** but did
+not qualify for `runtime_support`:
+
+- **`UNSUPPORTED`** = an authoritative assessment found the skill cannot
+  currently execute on this runtime.
+- **`UNVERIFIED`** = the runtime was investigated, but sufficient evidence
+  for execution support could not be established.
+- `SUPPORTED`/`SUPPORTED_WITH_RESTRICTIONS` are not valid here — a positive
+  assessment belongs in `runtime_support`.
+
+`runtime_exclusions` is **sparse by design**: only runtimes actually
+reviewed appear here. A runtime absent from *both* `runtime_support` and
+`runtime_exclusions` means **its compatibility has not been assessed at
+all** — this is a distinct, third state, never conflated with `UNVERIFIED`
+(which means "assessed, no evidence found") or `UNSUPPORTED` ("assessed,
+found incompatible"). `scripts/registry-consistency.mjs` rejects any
+overlap between the two maps' keys — a runtime cannot be simultaneously
+supported and excluded.
+
+All six current skills exclude `chatgpt` this way: `learn.chatgpt.com/docs/build-skills`
+confirms the ChatGPT desktop app's Standalone Skills feature is real, but
+the Hub implements no adapter or bundle target for that specific surface
+(only the separate `openai-api` project-Skills surface, which does have an
+implemented bundler) — so this repo cannot establish that a skill actually
+executes there, hence `UNVERIFIED`, not silently omitted and not claimed
+`SUPPORTED`.
+
+### Central runtime-requirements vocabulary
+
+`registry/runtime-requirements.json` is the single source of truth for
+every capability/permission/tool identifier used anywhere in the registry,
+namespaced by kind:
+
+```
+{ "capabilities": { "<id>": { "description": "..." } },
+  "permissions":   { "<id>": { "description": "..." } },
+  "tools":         { "<id>": { "description": "..." } } }
+```
+
+The same logical name can legitimately exist in more than one namespace
+with different meaning — e.g. `capability:github_write` ("the provider
+*can* write to GitHub") vs. `permission:github_write` ("the user/task
+*authorized* a GitHub write"). The Hub never infers one from the other;
+this is the same provider-capability-vs-UI-permission distinction that
+`scripts/eligibility.mjs`'s `MISSING_CAPABILITY` vs. `MISSING_PERMISSION`
+checks have enforced since Phase 1.2 (see the "host says allow all but the
+provider is read-only" regression test in
+`scripts/__tests__/migration-skills.test.mjs`).
+
+`scripts/registry-consistency.mjs` validates every reference into this
+vocabulary and fails on an unknown identifier — a typo like
+`github-write`, `github_write_access`, or `git_diff_reader` is caught, not
+silently accepted — across: `required_capabilities`/`required_permissions`/
+`required_tools`, `operationGates[*].requiredCapabilities`/
+`requiredPermissions`, and every `requires_at_runtime` entry (in both
+`runtime_support` and `bundle_targets`). The vocabulary intentionally
+covers only identifiers the Hub actually uses today (`github_write`,
+`github_merge`, `message_publish`, `discord_send`, `network_access`,
+`repository_evidence` as capabilities/permissions; `git_diff_read` as a
+tool) — see `scripts/runtime-vocabulary.mjs`.
+
+### Typed `requires_at_runtime`
+
+Each `requires_at_runtime` entry is `{ kind: "capability"|"permission"|"tool",
+id: "<vocabulary id>" }`, not a bare string — **strictly**: a raw string
+item is rejected outright, not silently skipped as a legacy form.
+`scripts/registry-consistency.mjs`'s `validateRequiresAtRuntime` helper is
+the single implementation for this check, shared identically by both
+`runtime_support[*].requires_at_runtime` and
+`bundle_targets[*].requires_at_runtime` — there is deliberately no second,
+subtly-different validator for the bundle_targets case. It rejects an
+unknown `kind`, an `id` not present in that kind's vocabulary namespace
+(including a name registered under the *wrong* namespace, e.g.
+`{kind: "capability", id: "github_merge"}` — `github_merge` is a
+permission), and a duplicate `{kind, id}` pair within one entry's array.
+
+**`requires_at_runtime` scope — general requirements only, never
+operation-specific ones (Phase 1.2 review round 4, final patch):**
+`requires_at_runtime` lists what a runtime needs for the skill *generally*
+— i.e., for its default, ungated behavior. A requirement that applies only
+to one specific gated operation (an `operationGates` entry, e.g. `send` or
+`publish`) belongs *solely* in that operation's `requiredCapabilities`/
+`requiredPermissions` — it must never also be duplicated into
+`requires_at_runtime`. For example, `ush-discord-repo-cross-reference`'s
+default `analyze` operation needs nothing, so its `runtime_support`
+entries carry no `requires_at_runtime` at all; `discord_send` lives only
+in `operationGates.send`. `ush-work-announcement`'s default `draft`
+operation genuinely needs `repository_evidence` generally, so that one
+stays in `requires_at_runtime` — but `message_publish` is `publish`-only
+and lives solely in `operationGates.publish`. A skill's `runtime_support`
+status may still be `SUPPORTED_WITH_RESTRICTIONS` purely because it has an
+optional gated operation, provided its `reason` says so explicitly instead
+of implying a general restriction that doesn't exist. This is
+documentation discipline only — `requires_at_runtime`'s presence or
+absence never changes what `scripts/eligibility.mjs` actually enforces at
+invocation time; `operationGates` checks run identically regardless.
+
+### Provenance
+
+Every `runtime_support`/`runtime_exclusions` entry requires an `evidence`
+array of `{ source_type, source, verified_on }`, so a compatibility
+judgment can be re-checked later instead of taken on faith:
+
+- **`source_type`** is one of `official_docs` (a primary-source
+  documentation page), `official_runtime_test` (a test run against the
+  vendor's own hosted service), or `local_runtime_test` (a real install/
+  invocation performed on this machine, e.g.
+  `scripts/install-skills.mjs --apply` plus a confirmed Skill-tool
+  discovery). Only these three are used today — the enum is deliberately
+  small and grows only when a new kind of evidence is actually gathered.
+- **`source`** names the actual document or test consulted — never a
+  fabricated URL.
+- **`verified_on`** is `YYYY-MM-DD`, the date that evidence was actually
+  checked.
+
+This preserves the CONFIRMED-vs-UNVERIFIED-vs-NOT-IMPLEMENTED discipline
+used throughout this repo: a runtime is never marked `SUPPORTED` on the
+strength of a doc page alone if what was actually verified was only a live
+test, or vice versa — `source_type` records which one it was.
 
 ## Distribution: user-level install
 
@@ -184,6 +461,22 @@ came from.
   ZIP upload with the skill folder as the archive's root (not a
   subfolder), Settings > Features, Pro/Max/Team/Enterprise with code
   execution enabled. `scripts/bundle-claude-ai.mjs` implements this shape.
+- **Cursor skill directory convention**: VERIFIED against official Cursor
+  documentation on 2026-09-06 (`cursor.com/docs/skills`), which states
+  skills are "automatically loaded from these locations": project-level
+  `.agents/skills/` and `.cursor/skills/`; user-level `~/.agents/skills/`
+  and `~/.cursor/skills/`; Cursor also reads `.claude/skills/` and
+  `.codex/skills/` as compatibility paths. This was previously an
+  unverified assumption baked into `ADAPTER_TARGETS` since Phase 1.1 —
+  Phase 1.2 review round 4 checked it against the primary source for the
+  first time and confirmed it.
+- **OpenCode skill directory convention**: VERIFIED against official
+  OpenCode documentation on 2026-09-06 (`opencode.ai/docs/skills/`),
+  which lists the search locations: project `.opencode/skills/<name>/SKILL.md`,
+  global `~/.config/opencode/skills/<name>/SKILL.md`, plus Claude- and
+  agent-compatible paths (`.claude/skills/`, `~/.claude/skills/`,
+  `.agents/skills/`, `~/.agents/skills/`). Same round-4 first-verification
+  as Cursor above.
 - **ChatGPT/Codex skill surfaces**: VERIFIED directly against
   `learn.chatgpt.com/docs/build-skills` on 2026-09-05, which distinguishes
   exactly two distribution surfaces in its own words: "Standalone skills are

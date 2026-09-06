@@ -6,6 +6,11 @@
       "requires": ["read_files", "search_symbols"],
       "forbidden_capabilities": ["network_write", "shell_exec"],
       "platform_overrides": {}
+    },
+    "ush-github-task-flow": {
+      "requires": ["read_files", "search_symbols", "shell_exec"],
+      "forbidden_capabilities": [],
+      "platform_overrides": {}
     }
   }
 }

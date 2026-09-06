@@ -9,11 +9,517 @@
       "scope": "global",
       "risk": "L0",
       "status": "EXPERIMENTAL",
-      "platforms": ["codex", "claude-code", "claude-ai", "chatgpt", "cursor", "opencode"],
+      "platforms": ["codex", "claude-code", "cursor", "opencode", "claude-ai", "openai-api"],
       "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
       "source_path": ".codex/skills/repo-task-plan/SKILL.md",
       "source_commit": "983005fc41b22cb0efc76fb4b529df8ef6c6d6d8",
-      "content_sha256": "352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688"
+      "content_sha256": "352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688",
+      "runtime_support": {
+        "codex": {
+          "status": "SUPPORTED",
+          "reason": "Pure read-only reasoning over supplied evidence; requires only read_files, a static capability Codex's filesystem skill convention already provides.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills (redirects to learn.chatgpt.com/docs/build-skills) — Codex reads skills from .agents/skills at repo/user/admin scope", "verified_on": "2026-09-05" },
+            { "source_type": "local_runtime_test", "source": "scripts/install-skills.mjs --apply installed this skill to ~/.agents/skills; installed file verified byte-identical to a fresh renderAdapter render", "verified_on": "2026-09-05" }
+          ]
+        },
+        "claude-code": {
+          "status": "SUPPORTED",
+          "reason": "Pure read-only reasoning over supplied evidence; requires only read_files, a static capability Claude Code already provides.",
+          "evidence": [
+            { "source_type": "local_runtime_test", "source": "scripts/install-skills.mjs --apply installed this skill to ~/.claude/skills; Claude Code's own Skill tool listing surfaced it and loaded the installed file's exact content within the same session", "verified_on": "2026-09-05" }
+          ]
+        },
+        "cursor": {
+          "status": "SUPPORTED",
+          "reason": "Pure read-only reasoning over supplied evidence; requires only read_files, a static capability Cursor already provides.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "cursor.com/docs/skills — \"Skills are automatically loaded from these locations\": project .cursor/skills/ and .agents/skills/, user-level ~/.cursor/skills/ and ~/.agents/skills/ (plus .claude/skills/ and .codex/skills/ compatibility paths)", "verified_on": "2026-09-06" }
+          ]
+        },
+        "opencode": {
+          "status": "SUPPORTED",
+          "reason": "Pure read-only reasoning over supplied evidence; requires only read_files, a static capability OpenCode already provides.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "opencode.ai/docs/skills/ — \"OpenCode searches these locations\": project .opencode/skills/<name>/SKILL.md, global ~/.config/opencode/skills/<name>/SKILL.md, plus Claude-compatible and agent-compatible paths", "verified_on": "2026-09-06" }
+          ]
+        },
+        "claude-ai": {
+          "status": "SUPPORTED",
+          "reason": "Pure read-only planning skill operating on supplied repository evidence; no live-network or connector capability needed once uploaded as a custom Skill.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "support.claude.com / platform.claude.com — claude.ai custom Skills: ZIP upload with the skill folder as the archive root, enabled under Settings > Features on Pro/Max/Team/Enterprise with code execution enabled", "verified_on": "2026-09-05" }
+          ]
+        },
+        "openai-api": {
+          "status": "SUPPORTED",
+          "reason": "Same reasoning as claude-ai — pure read-only reasoning over supplied evidence, no connector capability needed once uploaded as a project Skill.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "developers.openai.com/api/docs/guides/tools-skills — OpenAI API project Skills: directory-multipart or single-ZIP upload, immutable versions, documented size/file-count limits", "verified_on": "2026-09-05" }
+          ]
+        }
+      },
+      "runtime_exclusions": {
+        "chatgpt": {
+          "status": "UNVERIFIED",
+          "reason": "learn.chatgpt.com/docs/build-skills confirms Standalone skills are a real ChatGPT desktop app feature, but the Hub implements no adapter or bundle target for that surface specifically (only the separate openai-api project-Skills surface) — there is no implemented path from this repo to place a skill there, so live execution cannot be established.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "learn.chatgpt.com/docs/build-skills — \"Standalone skills are available in the ChatGPT desktop app, Codex CLI, and IDE extension\"", "verified_on": "2026-09-05" }
+          ]
+        }
+      },
+      "bundle_targets": {
+        "claude-ai": { "status": "SUPPORTED", "reason": "pure read-only planning skill operating on supplied repository evidence; no live-network or connector capability needed" },
+        "openai-api": { "status": "SUPPORTED", "reason": "same — pure read-only reasoning over supplied evidence" }
+      }
+    },
+    {
+      "skill_id": "ush-github-task-flow",
+      "path": "skills/git/ush-github-task-flow",
+      "version": "1.1.0",
+      "scope": "global",
+      "risk": "L3",
+      "status": "EXPERIMENTAL",
+      "platforms": ["codex", "claude-code", "cursor", "opencode", "claude-ai", "openai-api"],
+      "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
+      "source_path": ".codex/skills/github-task-flow/SKILL.md",
+      "source_commit": "4b8cf8b0faa7e1d7dc195984dcb66fc468b3157f",
+      "content_sha256": "d781c4d4c3a4ab78e83976a4ed07c76c4375284542760aafd31ce89a5d89a9f4",
+      "required_capabilities": ["github_write"],
+      "required_permissions": ["github_write"],
+      "operationGates": {
+        "merge": {
+          "requiredCapabilities": ["github_write"],
+          "requiredPermissions": ["github_merge"],
+          "requiresExplicitIntent": true
+        }
+      },
+      "runtime_support": {
+        "codex": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Codex is an agentic CLI with real shell access (gh CLI), so github_write is plausible, but it must actually be available/granted per task — scripts/eligibility.mjs's required_capabilities/required_permissions checks remain fail-closed regardless of platform.",
+          "requires_at_runtime": [
+            { "kind": "capability", "id": "github_write" },
+            { "kind": "permission", "id": "github_write" }
+          ],
+          "evidence": [
+            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills (redirects to learn.chatgpt.com/docs/build-skills) — Codex reads skills from .agents/skills; Codex CLI has real shell/gh access by design", "verified_on": "2026-09-05" }
+          ]
+        },
+        "claude-code": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Claude Code is an agentic CLI with real shell access (gh CLI), so github_write is plausible, but it must actually be available/granted per task — the same fail-closed gates apply regardless of platform.",
+          "requires_at_runtime": [
+            { "kind": "capability", "id": "github_write" },
+            { "kind": "permission", "id": "github_write" }
+          ],
+          "evidence": [
+            { "source_type": "local_runtime_test", "source": "scripts/install-skills.mjs --apply installed this skill to ~/.claude/skills; Claude Code's own Skill tool listing confirmed discovery of hub skills installed this way in this same session", "verified_on": "2026-09-05" }
+          ]
+        },
+        "cursor": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Cursor's Agent has real shell access (gh CLI), so github_write is plausible, but it must actually be available/granted per task.",
+          "requires_at_runtime": [
+            { "kind": "capability", "id": "github_write" },
+            { "kind": "permission", "id": "github_write" }
+          ],
+          "evidence": [
+            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/ (project and user-level)", "verified_on": "2026-09-06" }
+          ]
+        },
+        "opencode": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "OpenCode's agent has real shell access (gh CLI), so github_write is plausible, but it must actually be available/granted per task.",
+          "requires_at_runtime": [
+            { "kind": "capability", "id": "github_write" },
+            { "kind": "permission", "id": "github_write" }
+          ],
+          "evidence": [
+            { "source_type": "official_docs", "source": "opencode.ai/docs/skills/ — OpenCode searches .opencode/skills/<name>/SKILL.md (project) and ~/.config/opencode/skills/<name>/SKILL.md (global)", "verified_on": "2026-09-06" }
+          ]
+        },
+        "claude-ai": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "claude.ai custom Skills have varying network access depending on user/admin settings (Anthropic docs: 'Depending on user/admin settings, Skills may have full, partial, or no network access') — GitHub write depends on that being enabled for this deployment.",
+          "requires_at_runtime": [
+            { "kind": "capability", "id": "network_access" },
+            { "kind": "capability", "id": "github_write" },
+            { "kind": "permission", "id": "github_write" }
+          ],
+          "evidence": [
+            { "source_type": "official_docs", "source": "support.claude.com / platform.claude.com — claude.ai custom Skills network access varies by user/admin settings (full, partial, or none)", "verified_on": "2026-09-05" }
+          ]
+        },
+        "openai-api": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "The Skill bundle itself is portable, but execution requires a caller-supplied authenticated GitHub write capability and permission (e.g. via a function tool or remote MCP server alongside the Responses API's Skills support); the Hub never assumes those are present, and the existing L3/required_capabilities/required_permissions gates remain fail-closed at runtime regardless of this status.",
+          "requires_at_runtime": [
+            { "kind": "capability", "id": "github_write" },
+            { "kind": "permission", "id": "github_write" }
+          ],
+          "evidence": [
+            { "source_type": "official_docs", "source": "developers.openai.com/api/docs/guides/tools-skills — OpenAI API project Skills upload shape", "verified_on": "2026-09-05" },
+            { "source_type": "official_docs", "source": "developers.openai.com/api/docs/guides/tools and .../tools-connectors-mcp — the Responses API supports function tools and remote MCP servers alongside Skills, so a caller can supply an authenticated GitHub-write tool; OpenAI does not provide one built in", "verified_on": "2026-09-06" }
+          ]
+        }
+      },
+      "runtime_exclusions": {
+        "chatgpt": {
+          "status": "UNVERIFIED",
+          "reason": "Same as every other skill: the ChatGPT desktop app's Standalone Skills feature is real per official docs, but the Hub has no implemented adapter or bundle target for that surface, so live execution there cannot be established from this repo.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "learn.chatgpt.com/docs/build-skills — \"Standalone skills are available in the ChatGPT desktop app, Codex CLI, and IDE extension\"", "verified_on": "2026-09-05" }
+          ]
+        }
+      },
+      "bundle_targets": {
+        "claude-ai": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "claude.ai custom Skills have varying network access depending on user/admin settings (Anthropic docs: 'Depending on user/admin settings, Skills may have full, partial, or no network access') — GitHub write depends on that being enabled for this deployment.",
+          "requires_at_runtime": [
+            { "kind": "capability", "id": "network_access" },
+            { "kind": "capability", "id": "github_write" }
+          ]
+        },
+        "openai-api": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "The Skill bundle itself is portable, but execution requires a caller-supplied authenticated GitHub write capability and permission (e.g. via a function tool or remote MCP server alongside the Responses API's Skills support, per developers.openai.com/api/docs/guides/tools and .../tools-connectors-mcp, checked 2026-09-06); the Hub never assumes those are present, and the existing L3/required_capabilities/required_permissions gates remain fail-closed at runtime regardless of this bundle status.",
+          "requires_at_runtime": [
+            { "kind": "capability", "id": "github_write" }
+          ]
+        }
+      }
+    },
+    {
+      "skill_id": "ush-concurrent-edit-coordination",
+      "path": "skills/git/ush-concurrent-edit-coordination",
+      "version": "1.0.0",
+      "scope": "global",
+      "risk": "L0",
+      "status": "EXPERIMENTAL",
+      "platforms": ["codex", "claude-code", "cursor", "opencode", "claude-ai", "openai-api"],
+      "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
+      "source_path": ".codex/skills/coordinate-github-tasks/SKILL.md",
+      "source_commit": "4b8cf8b0faa7e1d7dc195984dcb66fc468b3157f",
+      "content_sha256": "a8b83254c1eaffb35c15222ec1bb5227f0c00725111ea44a76e364f1bb2d3728",
+      "required_tools": ["git_diff_read"],
+      "runtime_support": {
+        "codex": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Codex's shell access makes real diff inspection possible, but git_diff_read must actually be available per task; scripts/eligibility.mjs's required_tools check remains fail-closed regardless of platform.",
+          "requires_at_runtime": [{ "kind": "tool", "id": "git_diff_read" }],
+          "evidence": [
+            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex CLI has real shell access by design", "verified_on": "2026-09-05" }
+          ]
+        },
+        "claude-code": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Claude Code's shell access makes real diff inspection possible, but git_diff_read must actually be available per task.",
+          "requires_at_runtime": [{ "kind": "tool", "id": "git_diff_read" }],
+          "evidence": [
+            { "source_type": "local_runtime_test", "source": "scripts/install-skills.mjs --apply installed this skill to ~/.claude/skills; the Skill tool's own listing surfaced it as an installed hub skill within this session", "verified_on": "2026-09-06" }
+          ]
+        },
+        "cursor": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Cursor's shell access makes real diff inspection possible, but git_diff_read must actually be available per task.",
+          "requires_at_runtime": [{ "kind": "tool", "id": "git_diff_read" }],
+          "evidence": [
+            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" }
+          ]
+        },
+        "opencode": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "OpenCode's shell access makes real diff inspection possible, but git_diff_read must actually be available per task.",
+          "requires_at_runtime": [{ "kind": "tool", "id": "git_diff_read" }],
+          "evidence": [
+            { "source_type": "official_docs", "source": "opencode.ai/docs/skills/ — OpenCode searches .opencode/skills/<name>/SKILL.md and ~/.config/opencode/skills/<name>/SKILL.md", "verified_on": "2026-09-06" }
+          ]
+        },
+        "claude-ai": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Packaging is fine; the deterministic eligibility gate (required_tools: git_diff_read) already BLOCKs at runtime when real diff-inspection tooling isn't actually available on this deployment — packaging a skill and guaranteeing every invocation has every tool are different questions.",
+          "requires_at_runtime": [{ "kind": "tool", "id": "git_diff_read" }],
+          "evidence": [
+            { "source_type": "official_docs", "source": "support.claude.com / platform.claude.com — claude.ai custom Skills upload shape", "verified_on": "2026-09-05" }
+          ]
+        },
+        "openai-api": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Same reasoning as claude-ai.",
+          "requires_at_runtime": [{ "kind": "tool", "id": "git_diff_read" }],
+          "evidence": [
+            { "source_type": "official_docs", "source": "developers.openai.com/api/docs/guides/tools-skills — OpenAI API project Skills upload shape", "verified_on": "2026-09-05" }
+          ]
+        }
+      },
+      "runtime_exclusions": {
+        "chatgpt": {
+          "status": "UNVERIFIED",
+          "reason": "The ChatGPT desktop app's Standalone Skills feature is real per official docs, but the Hub has no implemented adapter or bundle target for that surface.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "learn.chatgpt.com/docs/build-skills — \"Standalone skills are available in the ChatGPT desktop app, Codex CLI, and IDE extension\"", "verified_on": "2026-09-05" }
+          ]
+        }
+      },
+      "bundle_targets": {
+        "claude-ai": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "packaging is fine; the deterministic eligibility gate (required_tools: git_diff_read) already BLOCKs at runtime when real diff-inspection tooling isn't actually available on this deployment — packaging a skill and guaranteeing every invocation has every tool are different questions.",
+          "requires_at_runtime": [{ "kind": "tool", "id": "git_diff_read" }]
+        },
+        "openai-api": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "same reasoning as claude-ai",
+          "requires_at_runtime": [{ "kind": "tool", "id": "git_diff_read" }]
+        }
+      }
+    },
+    {
+      "skill_id": "ush-game-meeting-plan",
+      "path": "skills/game/ush-game-meeting-plan",
+      "version": "1.1.0",
+      "scope": "domain",
+      "risk": "L0",
+      "status": "EXPERIMENTAL",
+      "platforms": ["codex", "claude-code", "cursor", "opencode", "claude-ai", "openai-api"],
+      "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
+      "source_path": ".codex/skills/meeting-to-game-plan/SKILL.md",
+      "source_commit": "983005fc41b22cb0efc76fb4b529df8ef6c6d6d8",
+      "content_sha256": "8834cc8d711e89f14521d8e45b3735f17eeb75f8e7cddf1b0d9829e4d5a79e13",
+      "runtime_support": {
+        "codex": {
+          "status": "SUPPORTED",
+          "reason": "L0 read-only planning over supplied bounded evidence; repository cross-check is explicitly optional per this skill's own workflow, so no extra runtime capability is required.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex reads skills from .agents/skills at repo/user/admin scope", "verified_on": "2026-09-05" }
+          ]
+        },
+        "claude-code": {
+          "status": "SUPPORTED",
+          "reason": "Same reasoning as codex — read-only planning skill, repository cross-check optional.",
+          "evidence": [
+            { "source_type": "local_runtime_test", "source": "scripts/install-skills.mjs --apply installs hub skills to ~/.claude/skills; Claude Code's own Skill tool listing has confirmed discovery of skills installed this way in this session", "verified_on": "2026-09-06" }
+          ]
+        },
+        "cursor": {
+          "status": "SUPPORTED",
+          "reason": "Same reasoning as codex — read-only planning skill, repository cross-check optional.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" }
+          ]
+        },
+        "opencode": {
+          "status": "SUPPORTED",
+          "reason": "Same reasoning as codex — read-only planning skill, repository cross-check optional.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "opencode.ai/docs/skills/ — OpenCode searches .opencode/skills/<name>/SKILL.md and ~/.config/opencode/skills/<name>/SKILL.md", "verified_on": "2026-09-06" }
+          ]
+        },
+        "claude-ai": {
+          "status": "SUPPORTED",
+          "reason": "L0 read-only planning over supplied bounded evidence (meeting notes/chat/decision log); repository cross-check is explicitly optional/conditional per this skill's own workflow, not a hard requirement to run.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "support.claude.com / platform.claude.com — claude.ai custom Skills upload shape", "verified_on": "2026-09-05" }
+          ]
+        },
+        "openai-api": {
+          "status": "SUPPORTED",
+          "reason": "same reasoning as claude-ai",
+          "evidence": [
+            { "source_type": "official_docs", "source": "developers.openai.com/api/docs/guides/tools-skills — OpenAI API project Skills upload shape", "verified_on": "2026-09-05" }
+          ]
+        }
+      },
+      "runtime_exclusions": {
+        "chatgpt": {
+          "status": "UNVERIFIED",
+          "reason": "The ChatGPT desktop app's Standalone Skills feature is real per official docs, but the Hub has no implemented adapter or bundle target for that surface.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "learn.chatgpt.com/docs/build-skills — \"Standalone skills are available in the ChatGPT desktop app, Codex CLI, and IDE extension\"", "verified_on": "2026-09-05" }
+          ]
+        }
+      },
+      "bundle_targets": {
+        "claude-ai": { "status": "SUPPORTED", "reason": "L0 read-only planning over supplied bounded evidence (meeting notes/chat/decision log); repository cross-check is explicitly optional/conditional per this skill's own workflow, not a hard requirement to run" },
+        "openai-api": { "status": "SUPPORTED", "reason": "same reasoning as claude-ai" }
+      }
+    },
+    {
+      "skill_id": "ush-discord-repo-cross-reference",
+      "path": "skills/discord/ush-discord-repo-cross-reference",
+      "version": "1.0.0",
+      "scope": "domain",
+      "risk": "L0",
+      "status": "EXPERIMENTAL",
+      "platforms": ["codex", "claude-code", "cursor", "opencode", "claude-ai", "openai-api"],
+      "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
+      "source_path": ".codex/skills/discord-repo-cross-reference/SKILL.md",
+      "source_commit": "983005fc41b22cb0efc76fb4b529df8ef6c6d6d8",
+      "content_sha256": "9fea22eca989a8548c5c19387d7bdc27b0c0db3d97b6a65d5b23932a4696bfda",
+      "operationGates": {
+        "send": {
+          "requiredCapabilities": ["discord_send"],
+          "requiredPermissions": ["discord_send"],
+          "requiresExplicitIntent": true
+        }
+      },
+      "runtime_support": {
+        "codex": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "The default analyze operation over already-supplied Discord evidence needs nothing generally at runtime; discord_send is required only for the separately-gated send operation, tracked entirely by operationGates.send (not a general runtime requirement, so it is intentionally absent from requires_at_runtime here).",
+          "evidence": [
+            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex reads skills from .agents/skills at repo/user/admin scope", "verified_on": "2026-09-05" }
+          ]
+        },
+        "claude-code": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Same reasoning as codex.",
+          "evidence": [
+            { "source_type": "local_runtime_test", "source": "scripts/install-skills.mjs --apply installs hub skills to ~/.claude/skills; Claude Code's own Skill tool listing has confirmed discovery of skills installed this way in this session", "verified_on": "2026-09-06" }
+          ]
+        },
+        "cursor": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Same reasoning as codex.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" }
+          ]
+        },
+        "opencode": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Same reasoning as codex.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "opencode.ai/docs/skills/ — OpenCode searches .opencode/skills/<name>/SKILL.md and ~/.config/opencode/skills/<name>/SKILL.md", "verified_on": "2026-09-06" }
+          ]
+        },
+        "claude-ai": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Analyzing Discord evidence already supplied as input (pasted/attached) needs no live connector and nothing generally at runtime; discord_send is required only for the separately-gated send operation, which the deterministic operationGates.send check already enforces (not a general runtime requirement, so it is intentionally absent from requires_at_runtime here).",
+          "evidence": [
+            { "source_type": "official_docs", "source": "support.claude.com / platform.claude.com — claude.ai custom Skills upload shape", "verified_on": "2026-09-05" }
+          ]
+        },
+        "openai-api": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "same reasoning as claude-ai",
+          "evidence": [
+            { "source_type": "official_docs", "source": "developers.openai.com/api/docs/guides/tools-skills — OpenAI API project Skills upload shape", "verified_on": "2026-09-05" }
+          ]
+        }
+      },
+      "runtime_exclusions": {
+        "chatgpt": {
+          "status": "UNVERIFIED",
+          "reason": "The ChatGPT desktop app's Standalone Skills feature is real per official docs, but the Hub has no implemented adapter or bundle target for that surface.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "learn.chatgpt.com/docs/build-skills — \"Standalone skills are available in the ChatGPT desktop app, Codex CLI, and IDE extension\"", "verified_on": "2026-09-05" }
+          ]
+        }
+      },
+      "bundle_targets": {
+        "claude-ai": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "analyzing Discord evidence already supplied as input (pasted/attached) needs no live connector and nothing generally; only the separately-gated send operation needs discord_send, which the deterministic operationGates.send check already enforces at runtime (not a general packaging-time requirement)."
+        },
+        "openai-api": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "same reasoning as claude-ai"
+        }
+      }
+    },
+    {
+      "skill_id": "ush-work-announcement",
+      "path": "skills/discord/ush-work-announcement",
+      "version": "1.1.0",
+      "scope": "domain",
+      "risk": "L0",
+      "status": "EXPERIMENTAL",
+      "platforms": ["codex", "claude-code", "cursor", "opencode", "claude-ai", "openai-api"],
+      "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
+      "source_path": ".codex/skills/work-announcement/SKILL.md",
+      "source_commit": "a8bc0493355b82582e98ec4ffc8064506f8f422a",
+      "content_sha256": "20d3266b52477c344cc07a1b1586a0e6820b4b3cd2629652d00fe46f4d1c6a12",
+      "operationGates": {
+        "publish": {
+          "requiredCapabilities": ["message_publish"],
+          "requiredPermissions": ["message_publish"],
+          "requiresExplicitIntent": true,
+          "requiresApprovedContentMatch": true
+        }
+      },
+      "runtime_support": {
+        "codex": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Drafting from supplied/live repository evidence is a general runtime requirement (repository_evidence) for this skill's default draft operation. publish is a separate, operation-gated capability/permission (message_publish, tracked entirely by operationGates.publish) the deployment may or may not have configured — not a general runtime requirement, so it is intentionally absent from requires_at_runtime here.",
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
+          "evidence": [
+            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex reads skills from .agents/skills at repo/user/admin scope", "verified_on": "2026-09-05" }
+          ]
+        },
+        "claude-code": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Same reasoning as codex.",
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
+          "evidence": [
+            { "source_type": "local_runtime_test", "source": "scripts/install-skills.mjs --apply installs hub skills to ~/.claude/skills; Claude Code's own Skill tool listing has confirmed discovery of skills installed this way in this session", "verified_on": "2026-09-06" }
+          ]
+        },
+        "cursor": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Same reasoning as codex.",
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
+          "evidence": [
+            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" }
+          ]
+        },
+        "opencode": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Same reasoning as codex.",
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
+          "evidence": [
+            { "source_type": "official_docs", "source": "opencode.ai/docs/skills/ — OpenCode searches .opencode/skills/<name>/SKILL.md and ~/.config/opencode/skills/<name>/SKILL.md", "verified_on": "2026-09-06" }
+          ]
+        },
+        "claude-ai": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "Drafting from supplied/live repository history needs repository_evidence generally (the default draft operation). publish is a separate, operation-gated requirement (message_publish, tracked entirely by operationGates.publish) the deployment may or may not have configured — not a general runtime requirement, so it is intentionally absent from requires_at_runtime here.",
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
+          "evidence": [
+            { "source_type": "official_docs", "source": "support.claude.com / platform.claude.com — claude.ai custom Skills upload shape", "verified_on": "2026-09-05" }
+          ]
+        },
+        "openai-api": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "same reasoning as claude-ai",
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
+          "evidence": [
+            { "source_type": "official_docs", "source": "developers.openai.com/api/docs/guides/tools-skills — OpenAI API project Skills upload shape", "verified_on": "2026-09-05" }
+          ]
+        }
+      },
+      "runtime_exclusions": {
+        "chatgpt": {
+          "status": "UNVERIFIED",
+          "reason": "The ChatGPT desktop app's Standalone Skills feature is real per official docs, but the Hub has no implemented adapter or bundle target for that surface.",
+          "evidence": [
+            { "source_type": "official_docs", "source": "learn.chatgpt.com/docs/build-skills — \"Standalone skills are available in the ChatGPT desktop app, Codex CLI, and IDE extension\"", "verified_on": "2026-09-05" }
+          ]
+        }
+      },
+      "bundle_targets": {
+        "claude-ai": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "drafting from supplied/live repository history needs repository_evidence generally; publish is a separate, operation-gated requirement (message_publish, tracked by operationGates.publish) the deployment may or may not have configured — not a general packaging-time requirement.",
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }]
+        },
+        "openai-api": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "same reasoning as claude-ai",
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }]
+        }
+      }
     }
   ]
 }

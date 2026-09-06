@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
-import { buildSkillBundle } from './bundle-skill.mjs';
+import { buildSkillBundle, partitionBundleEligibility } from './bundle-skill.mjs';
 
 /**
  * Deterministic ZIP bundle generator for claude.ai custom Skills.
@@ -20,7 +20,11 @@ function runCli() {
   const outDir = path.join('dist', 'bundles', 'claude-ai');
   fs.mkdirSync(outDir, { recursive: true });
 
-  for (const skill of registry.skills) {
+  const { eligible, ineligible } = partitionBundleEligibility(registry, 'claude-ai');
+  for (const entry of ineligible) {
+    console.log(`SKIP (not eligible for claude-ai): ${entry.skill_id} — ${entry.reason}`);
+  }
+  for (const skill of eligible) {
     const zip = buildSkillBundle({ skillDir: skill.path, skillId: skill.skill_id });
     const outPath = path.join(outDir, `${skill.skill_id}.zip`);
     fs.writeFileSync(outPath, zip);

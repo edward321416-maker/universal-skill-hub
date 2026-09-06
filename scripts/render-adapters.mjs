@@ -17,10 +17,16 @@ export const ADAPTER_TARGETS = {
 export const FILESYSTEM_ADAPTER_PLATFORMS = Object.keys(ADAPTER_TARGETS);
 
 const DEFAULT_PLATFORM_CAPABILITIES = {
-  codex: ['native_skill_deployment', 'read_files', 'search_symbols'],
-  'claude-code': ['native_skill_deployment', 'read_files', 'search_symbols'],
-  cursor: ['native_skill_deployment', 'read_files', 'search_symbols'],
-  opencode: ['native_skill_deployment', 'read_files', 'search_symbols'],
+  // shell_exec: all four are agentic CLIs/IDE-integrated agents with real
+  // shell/bash tool access by design, so a skill needing to run git/gh
+  // commands is genuinely supported here — this is a static platform
+  // capability, distinct from a dynamic per-task capability like
+  // "github_write" (whether THIS run's provider is actually authenticated
+  // for writes), which eligibility.mjs checks per-task instead.
+  codex: ['native_skill_deployment', 'read_files', 'search_symbols', 'shell_exec'],
+  'claude-code': ['native_skill_deployment', 'read_files', 'search_symbols', 'shell_exec'],
+  cursor: ['native_skill_deployment', 'read_files', 'search_symbols', 'shell_exec'],
+  opencode: ['native_skill_deployment', 'read_files', 'search_symbols', 'shell_exec'],
   chatgpt: ['instruction_export', 'read_files'],
   'claude-ai': ['instruction_export', 'read_files'],
 };

@@ -258,3 +258,191 @@ test('project policy: a denied operation against a resource that is NOT protecte
   });
   assert.equal(result.decision, 'USE');
 });
+
+// --- Phase 1.2: per-operation gates. Some L0 skills are read-only by
+// default but have one specific operation (e.g. "send", "publish") that
+// must be gated independently of the skill's overall risk tier — an L0
+// analysis/drafting skill should not have to satisfy L3-style intent and
+// permission checks just to do its default read-only job. ---
+
+const gatedSkill = {
+  skill_id: 'ush-gated-example',
+  status: 'VALIDATED',
+  risk: 'L0',
+  platforms: ['codex', 'claude-code'],
+  operationGates: {
+    send: { requiredCapabilities: ['chat_send'], requiresExplicitIntent: true, requiresPermission: true },
+  },
+};
+
+test('a gated skill performing only its default (ungated) operation is USE even without intent/permission/capability', () => {
+  const result = evaluateEligibility({
+    skill: gatedSkill,
+    task: { platform: 'codex', autoInvoke: true, requestedOperations: ['read'] },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('a gated operation requested without explicit intent is BLOCKed', () => {
+  const result = evaluateEligibility({
+    skill: gatedSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: false, hasPermission: true, availableCapabilities: ['chat_send'] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_NO_EXPLICIT_INTENT');
+});
+
+test('a gated operation requested without permission is BLOCKed', () => {
+  const result = evaluateEligibility({
+    skill: gatedSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: true, hasPermission: false, availableCapabilities: ['chat_send'] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_NO_PERMISSION');
+});
+
+test('a gated operation requested without the required capability is BLOCKed (fail-closed on unstated capabilities)', () => {
+  const result = evaluateEligibility({
+    skill: gatedSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: true, hasPermission: true },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_MISSING_CAPABILITY');
+});
+
+test('a gated operation with explicit intent, permission, and the required capability is USE', () => {
+  const result = evaluateEligibility({
+    skill: gatedSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: true, hasPermission: true, availableCapabilities: ['chat_send'] },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+// --- Phase 1.2 review round 2: named per-operation permissions. A generic
+// hasPermission:true boolean must NOT be sufficient on its own once a gate
+// declares requiredPermissions — an unrelated permission grant must never
+// authorize a specific gated operation like "send" or "merge". ---
+
+const namedPermGatedSkill = {
+  skill_id: 'ush-named-perm-example',
+  status: 'VALIDATED',
+  risk: 'L0',
+  platforms: ['codex'],
+  operationGates: {
+    send: { requiredCapabilities: ['chat_send'], requiredPermissions: ['chat_send'], requiresExplicitIntent: true },
+  },
+};
+
+test('a gate declaring requiredPermissions BLOCKs when hasPermission is true but the named permission was not actually granted', () => {
+  const result = evaluateEligibility({
+    skill: namedPermGatedSkill,
+    task: {
+      platform: 'codex',
+      autoInvoke: false,
+      requestedOperations: ['send'],
+      explicitIntent: true,
+      hasPermission: true, // generic "yes" grant — must not be enough on its own
+      grantedPermissions: ['some_unrelated_permission'],
+      availableCapabilities: ['chat_send'],
+    },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_MISSING_PERMISSION');
+});
+
+test('a gate declaring requiredPermissions BLOCKs (fail-closed) when grantedPermissions is not even stated', () => {
+  const result = evaluateEligibility({
+    skill: namedPermGatedSkill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: true, hasPermission: true, availableCapabilities: ['chat_send'] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_MISSING_PERMISSION');
+});
+
+test('a gate declaring requiredPermissions is USE once the exact named permission is granted (alongside intent and capability)', () => {
+  const result = evaluateEligibility({
+    skill: namedPermGatedSkill,
+    task: {
+      platform: 'codex',
+      autoInvoke: false,
+      requestedOperations: ['send'],
+      explicitIntent: true,
+      grantedPermissions: ['chat_send'],
+      availableCapabilities: ['chat_send'],
+    },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+// --- Phase 1.2 review round 2: content-approval gate. A publish-style
+// operation can require that the exact approved text still matches the
+// text about to be sent — any edit after approval must BLOCK, not rely on
+// the caller remembering to translate that into a boolean. ---
+
+const approvalGatedSkill = {
+  skill_id: 'ush-approval-gated-example',
+  status: 'VALIDATED',
+  risk: 'L0',
+  platforms: ['codex'],
+  operationGates: {
+    publish: {
+      requiredCapabilities: ['chat_send'],
+      requiredPermissions: ['chat_send'],
+      requiresExplicitIntent: true,
+      requiresApprovedContentMatch: true,
+    },
+  },
+};
+
+test('a requiresApprovedContentMatch gate BLOCKs when no content has been approved at all', () => {
+  const result = evaluateEligibility({
+    skill: approvalGatedSkill,
+    task: {
+      platform: 'codex',
+      autoInvoke: false,
+      requestedOperations: ['publish'],
+      explicitIntent: true,
+      grantedPermissions: ['chat_send'],
+      availableCapabilities: ['chat_send'],
+      currentContentHash: 'abc123',
+      // approvedContentHash intentionally omitted
+    },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_NO_APPROVED_CONTENT');
+});
+
+test('a requiresApprovedContentMatch gate BLOCKs when the current content hash no longer matches the approved hash (stale approval after a material edit)', () => {
+  const result = evaluateEligibility({
+    skill: approvalGatedSkill,
+    task: {
+      platform: 'codex',
+      autoInvoke: false,
+      requestedOperations: ['publish'],
+      explicitIntent: true,
+      grantedPermissions: ['chat_send'],
+      availableCapabilities: ['chat_send'],
+      approvedContentHash: 'abc123',
+      currentContentHash: 'def456',
+    },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_APPROVAL_STALE');
+});
+
+test('a requiresApprovedContentMatch gate is USE when the approved hash exactly matches the current content hash and every other gate is satisfied', () => {
+  const result = evaluateEligibility({
+    skill: approvalGatedSkill,
+    task: {
+      platform: 'codex',
+      autoInvoke: false,
+      requestedOperations: ['publish'],
+      explicitIntent: true,
+      grantedPermissions: ['chat_send'],
+      availableCapabilities: ['chat_send'],
+      approvedContentHash: 'abc123',
+      currentContentHash: 'abc123',
+    },
+  });
+  assert.equal(result.decision, 'USE');
+});

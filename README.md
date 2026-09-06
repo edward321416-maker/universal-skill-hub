@@ -29,7 +29,9 @@ skills/      canonical SKILL.md + resources, one directory per skill,
 policies/    project-specific rules that must never be promoted to a
              global skill (see Project Policy Precedence below)
 registry/    machine-readable metadata only — index, compatibility,
-             conflicts, lifecycle. Never a copy of skill bodies.
+             conflicts, lifecycle, runtime-requirements (the central
+             capability/permission/tool vocabulary). Never a copy of
+             skill bodies.
 adapters/    generated, per-platform renders of canonical skills.
              Marked GENERATED — DO NOT EDIT. Regenerate with
              `npm run render-adapters`.
@@ -42,8 +44,22 @@ docs/        design notes, migration mapping, superpowers plans
 ```
 
 See [docs/DESIGN.md](docs/DESIGN.md) for the full rationale and
-[docs/MIGRATION_MAP.md](docs/MIGRATION_MAP.md) for how the first migrated
-skill maps back to its source.
+[docs/MIGRATION_MAP.md](docs/MIGRATION_MAP.md) for how each migrated skill
+maps back to its source.
+
+## Canonical skills
+
+| Skill | Scope | Risk | Origin |
+|---|---|---|---|
+| `ush-repo-evidence-plan` | global | L0 | `openbaeseongjin/baeseongjin` |
+| `ush-github-task-flow` | global | L3 | `openbaeseongjin/baeseongjin` |
+| `ush-concurrent-edit-coordination` | global | L0 | `openbaeseongjin/baeseongjin` |
+| `ush-game-meeting-plan` | domain (game) | L0 | `openbaeseongjin/baeseongjin` |
+| `ush-discord-repo-cross-reference` | domain (discord) | L0 (send op gated) | `openbaeseongjin/baeseongjin` |
+| `ush-work-announcement` | domain (discord) | L0 (publish op gated) | `openbaeseongjin/baeseongjin` |
+
+All six remain `EXPERIMENTAL` — see [docs/MIGRATION_MAP.md](docs/MIGRATION_MAP.md)
+for the equivalence check behind each one.
 
 ## Skill lifecycle
 
@@ -58,11 +74,17 @@ Every canonical skill carries a `metadata.status` of `EXPERIMENTAL`,
 |---|---|
 | Codex | native skill directory — project: `.agents/skills/` (scanned from cwd up to repo root); user: `$HOME/.agents/skills/`; admin: `/etc/codex/skills/` (VERIFIED against official OpenAI Codex docs, 2026-09-05). Generated adapter; real filesystem install smoke-tested (`scripts/install-skills.mjs`), byte-identical to expected render. Live discovery NOT TESTED (no safe read-only diagnostic; an actual check would require a live `codex` session contacting OpenAI's backend) |
 | Claude Code | native skill directory `.claude/skills/` (project) / `~/.claude/skills/` (user). Generated adapter; real install + **live discovery confirmed** — this session's own harness listed and loaded the installed skill after `--apply` |
-| Cursor | native skill directory (`.cursor/skills/`), generated adapter |
-| OpenCode | native skill directory (`.opencode/skills/`), generated adapter |
-| ChatGPT / Work | See `adapters/chatgpt/README.md` for the full A/B/C breakdown (Standalone Skills / plugin-bundled Skills / OpenAI API project Skills) — only the third is implemented here, via `npm run bundle:openai`; no automatic account sync exists or is planned |
-| OpenAI API (project Skills) | Deterministic ZIP bundle generator (`npm run bundle:openai`), documented size/file-count limits enforced at build time; no API key used, no upload performed |
-| claude.ai Projects | Deterministic ZIP bundle generator (`npm run bundle:claude-ai`), verified shape (skill folder at ZIP root); no upload performed. claude.ai Projects still does not share local Claude Code repository state |
+| Cursor | native skill directory (`.cursor/skills/` and `.agents/skills/`, project + user level — VERIFIED against `cursor.com/docs/skills`, 2026-09-06), generated adapter |
+| OpenCode | native skill directory (`.opencode/skills/` project, `~/.config/opencode/skills/` global — VERIFIED against `opencode.ai/docs/skills/`, 2026-09-06), generated adapter |
+| ChatGPT / Work | See `adapters/chatgpt/README.md` for the full A/B/C breakdown (Standalone Skills / plugin-bundled Skills / OpenAI API project Skills). The desktop app's Standalone Skills feature is real per docs, but the Hub implements no adapter or bundle target for it — `runtime_exclusions: UNVERIFIED` for every skill, not silently omitted and not claimed supported. No automatic account sync exists or is planned |
+| OpenAI API (project Skills) | Deterministic ZIP bundle generator (`npm run bundle:openai`), documented size/file-count limits enforced at build time; no API key used, no upload performed. Listed in `runtime_support` for all six skills (VERIFIED against `developers.openai.com/api/docs/guides/tools-skills`, 2026-09-05) |
+| claude.ai Projects | Deterministic ZIP bundle generator (`npm run bundle:claude-ai`), verified shape (skill folder at ZIP root); no upload performed. claude.ai Projects still does not share local Claude Code repository state. Listed in `runtime_support` for all six skills |
+
+Every platform above is one of a skill's `runtime_support` entries in
+`registry/skills-index.json` — see
+[docs/DESIGN.md](docs/DESIGN.md)'s "Runtime compatibility model" section
+for the authoritative `runtime_support`/`platforms`/`runtime_exclusions`
+definitions and the evidence-provenance requirements behind each status.
 
 Claude Code is treated as first-class, not an afterthought: every canonical
 skill is expected to work with no Claude-specific capability required, with

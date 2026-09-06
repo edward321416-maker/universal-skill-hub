@@ -60,6 +60,55 @@
         "ush-repo-evidence-plan": "USE",
         "note": "this is the cold-project reuse test — the only case runnable today against the actual registered skill"
       }
+    },
+    {
+      "id": "phase-1.2-case-a-implement-issue-and-pr",
+      "task": "Implement issue #42, test it, and open a PR.",
+      "expected": {
+        "ush-github-task-flow": "candidate USE",
+        "ush-repo-evidence-plan": "candidate USE",
+        "ush-game-meeting-plan": "SKIP"
+      }
+    },
+    {
+      "id": "phase-1.2-case-b-concurrent-edit-check",
+      "task": "Two agents are editing the same API contract. Check collision risk.",
+      "expected": {
+        "ush-concurrent-edit-coordination": "USE"
+      }
+    },
+    {
+      "id": "phase-1.2-case-c-meeting-notes-to-plan",
+      "task": "Turn these game design meeting notes into an implementation plan.",
+      "expected": {
+        "ush-game-meeting-plan": "USE"
+      }
+    },
+    {
+      "id": "phase-1.2-case-d-discord-claim-check",
+      "task": "Discord says the boss mechanic is done. Check whether the repository proves it.",
+      "expected": {
+        "ush-discord-repo-cross-reference": "USE"
+      }
+    },
+    {
+      "id": "phase-1.2-case-e-work-announcement-draft",
+      "task": "Draft this week's development announcement using merged Git work.",
+      "expected": {
+        "ush-work-announcement": "USE"
+      }
+    },
+    {
+      "id": "phase-1.2-negative-cases",
+      "task": "negative/should-not-trigger cases for the five Phase 1.2 skills",
+      "expected": {
+        "\"What is git?\"": "no Phase 1.2 skill should activate (pure concept question, no bounded task)",
+        "\"Summarize this article.\"": "no Phase 1.2 skill should activate",
+        "\"Explain Discord permissions.\"": "ush-discord-repo-cross-reference should NOT activate — no repository cross-reference is being requested",
+        "\"Fix a spelling typo.\"": "ush-github-task-flow should NOT activate on its own — a typo fix is not it deciding to open an issue/PR by itself",
+        "\"Review this PR without changing it.\"": "ush-github-task-flow should NOT activate — review-only, no branch/PR-flow requested",
+        "\"Show me this commit.\"": "ush-github-task-flow should NOT activate — inspection only"
+      }
     }
   ]
 }
