@@ -21,8 +21,8 @@ function runCli() {
   fs.mkdirSync(outDir, { recursive: true });
 
   const { eligible, ineligible } = partitionBundleEligibility(registry, 'claude-ai');
-  for (const skill of ineligible) {
-    console.log(`SKIP (not eligible for claude-ai): ${skill.skill_id}`);
+  for (const entry of ineligible) {
+    console.log(`SKIP (not eligible for claude-ai): ${entry.skill_id} — ${entry.reason}`);
   }
   for (const skill of eligible) {
     const zip = buildSkillBundle({ skillDir: skill.path, skillId: skill.skill_id });

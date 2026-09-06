@@ -1,7 +1,7 @@
 <!--
 GENERATED — DO NOT EDIT
 Rendered from canonical skill "ush-game-meeting-plan" for platform "cursor".
-canonical_content_sha256: 228f9b8bb16e5f74a49f829a60c748d80e9071ceff9be8e82b5596f00d1fbe70
+canonical_content_sha256: 8834cc8d711e89f14521d8e45b3735f17eeb75f8e7cddf1b0d9829e4d5a79e13
 source_commit: 983005fc41b22cb0efc76fb4b529df8ef6c6d6d8
 Edit the canonical SKILL.md under skills/ and re-run scripts/render-adapters.mjs instead.
 -->
@@ -13,7 +13,7 @@ metadata:
   scope: domain
   risk: L0
   status: EXPERIMENTAL
-  version: 1.0.0
+  version: 1.1.0
   source_repo: https://github.com/openbaeseongjin/baeseongjin
   source_path: .codex/skills/meeting-to-game-plan/SKILL.md
   source_commit: 983005fc41b22cb0efc76fb4b529df8ef6c6d6d8
@@ -43,7 +43,7 @@ Any bounded piece of collaboration evidence works: meeting minutes, a chat expor
    - Silence is not consensus. If nobody objected, that is not evidence of agreement — say so.
    - A rejected option stays rejected; it is never the basis for a plan unless the evidence shows it was reconsidered and approved.
    - A hypothesis is not a fact. State what would need to be verified before treating it as true.
-5. Inspect only the repository symbols, tests, and documents needed to connect the confirmed decisions and action items to the current codebase.
+5. **When repository access is available**, inspect only the symbols, tests, and documents needed to connect the confirmed decisions and action items to the current codebase. **When it isn't** — the caller supplied only meeting/chat evidence with no live repository to check against — produce the plan from that evidence alone and note the repository cross-check step as unavailable rather than skipping it silently or blocking on it. Repository access is a quality improvement to this skill's output, not a hard requirement to run it at all.
 6. Produce a small, ordered plan: concrete areas of the game/codebase affected, what to verify, and what risks or open questions remain.
 
 ## Safety Contract

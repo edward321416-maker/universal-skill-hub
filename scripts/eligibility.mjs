@@ -1,3 +1,5 @@
+import { isApprovalValid } from './approval-gate.mjs';
+
 /**
  * Deterministic eligibility filter — stage 1 of the two-stage router
  * (deterministic filter -> native semantic skill matching, see docs/DESIGN.md).
@@ -20,8 +22,15 @@
  *   7. Per-operation gates (skill.operationGates) for any operation actually
  *      present in task.requestedOperations — independent of the skill's
  *      overall risk tier, so an L0 skill's risky operation (e.g. "send",
- *      "publish") can require intent/permission/capability without gating
- *      the skill's default read-only/drafting behavior
+ *      "publish", "merge") can require intent/named-permission/capability/
+ *      approved-content-match without gating the skill's default read-only/
+ *      drafting behavior. Within a gate: explicit intent, then named
+ *      requiredPermissions (fail-closed; a generic hasPermission:true is
+ *      NOT sufficient once requiredPermissions is declared — only used as
+ *      a legacy fallback when a gate declares no named permissions),
+ *      then requiredCapabilities, then requiresApprovedContentMatch (the
+ *      exact approved text must still match what's about to be sent/
+ *      published/merged — see scripts/approval-gate.mjs).
  *   8. Forbidden capability actually used by the task (not merely declared)
  *   9. L4 risk tier (no auto-invoke; requires informed confirmation)
  *   10. L3 risk tier (requires explicit intent + permission; never auto for
@@ -137,17 +146,47 @@ export function evaluateEligibility({ skill, task, conflicts = [], projectPolicy
         reasons: [`skill "${skill.skill_id}" operation "${op}" requires explicit user intent`],
       };
     }
-    if (gate.requiresPermission && !task.hasPermission) {
+
+    // Named permissions take priority: once a gate declares
+    // requiredPermissions, a generic hasPermission:true grant is NOT
+    // sufficient on its own — an unrelated permission must never authorize
+    // this specific operation. Only fall back to the legacy generic
+    // boolean when the gate declares no named permissions at all.
+    if (gate.requiredPermissions && gate.requiredPermissions.length > 0) {
+      const missingPerm = missingFrom(gate.requiredPermissions, task.grantedPermissions, 'permission', 'OPERATION_MISSING_PERMISSION');
+      if (missingPerm) {
+        missingPerm.reasons = [`skill "${skill.skill_id}" operation "${op}" requires named permission(s) "${gate.requiredPermissions.join(', ')}" not granted to this task`];
+        return missingPerm;
+      }
+    } else if (gate.requiresPermission && !task.hasPermission) {
       return {
         decision: 'BLOCK',
         reasonCode: 'OPERATION_NO_PERMISSION',
         reasons: [`skill "${skill.skill_id}" operation "${op}" requires explicit permission`],
       };
     }
+
     const missingCap = missingFrom(gate.requiredCapabilities, task.availableCapabilities, 'capability', 'OPERATION_MISSING_CAPABILITY');
     if (missingCap) {
       missingCap.reasons = [`skill "${skill.skill_id}" operation "${op}" requires capability not available/granted to this task`];
       return missingCap;
+    }
+
+    if (gate.requiresApprovedContentMatch) {
+      if (!task.approvedContentHash) {
+        return {
+          decision: 'BLOCK',
+          reasonCode: 'OPERATION_NO_APPROVED_CONTENT',
+          reasons: [`skill "${skill.skill_id}" operation "${op}" requires the exact content to have been approved first`],
+        };
+      }
+      if (!isApprovalValid({ approvedContentHash: task.approvedContentHash, currentContentHash: task.currentContentHash })) {
+        return {
+          decision: 'BLOCK',
+          reasonCode: 'OPERATION_APPROVAL_STALE',
+          reasons: [`skill "${skill.skill_id}" operation "${op}": the content changed after approval — the prior approval no longer covers the current text`],
+        };
+      }
     }
   }
 

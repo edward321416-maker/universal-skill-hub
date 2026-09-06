@@ -37,19 +37,39 @@ export function buildSkillBundle({ skillDir, skillId, fs = realFs }) {
 }
 
 /**
- * Splits a registry's skills into those eligible for a bundle-target
- * platform (it lists that platform in skill.platforms) and those that
- * aren't — so a bundler can report the ineligible ones explicitly instead
- * of silently omitting them from its output.
+ * Splits a registry's skills into those eligible for a bundle target
+ * (claude-ai, openai-api, ...) and those that aren't — so a bundler can
+ * report the ineligible ones explicitly, with their reason, instead of
+ * silently omitting them from its output.
+ *
+ * IMPORTANT: this checks `skill.bundle_targets[target]`, a separate model
+ * from `skill.platforms` (which describes runtime CLI/IDE agent support —
+ * codex/claude-code/cursor/opencode). A skill's `platforms` list has no
+ * bearing on whether it can be packaged for a bundle-consuming surface;
+ * conflating the two was a Phase 1.2 bug (bundle-openai.mjs used to key
+ * off the "chatgpt" platform entry, which describes a completely different
+ * product surface than the OpenAI API's project-Skills resource).
+ *
+ * A skill with no `bundle_targets[target]` entry at all fails closed as
+ * ineligible — bundle eligibility is never assumed, only declared.
+ * SUPPORTED and SUPPORTED_WITH_RESTRICTIONS are both bundle-eligible:
+ * packaging a skill (a portable artifact) is a different question from
+ * whether every invocation of it will have every capability it might want
+ * at runtime — that's the deterministic eligibility filter's job, not the
+ * bundler's.
  */
-export function partitionBundleEligibility(registry, platformKey) {
+export function partitionBundleEligibility(registry, target) {
   const eligible = [];
   const ineligible = [];
   for (const skill of registry.skills) {
-    if ((skill.platforms || []).includes(platformKey)) {
+    const entry = skill.bundle_targets && skill.bundle_targets[target];
+    if (entry && entry.status !== 'UNSUPPORTED') {
       eligible.push(skill);
     } else {
-      ineligible.push(skill);
+      ineligible.push({
+        skill_id: skill.skill_id,
+        reason: entry ? entry.reason : `no bundle_targets["${target}"] entry declared for this skill`,
+      });
     }
   }
   return { eligible, ineligible };

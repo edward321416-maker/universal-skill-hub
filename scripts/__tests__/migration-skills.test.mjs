@@ -99,6 +99,76 @@ test('ush-github-task-flow: an unsupported platform (e.g. chatgpt, not a filesys
   assert.equal(result.reasonCode, 'PLATFORM_UNSUPPORTED');
 });
 
+// --- ush-github-task-flow: PR delivery does not imply merge (Phase 1.2 review round 2) ---
+
+test('ush-github-task-flow: "implement issue #42 and open a PR" (default deliver_pr path, no merge requested) is USE without any merge-specific authorization', () => {
+  const skill = getSkill('ush-github-task-flow');
+  const result = evaluateEligibility({
+    skill,
+    task: {
+      platform: 'codex',
+      autoInvoke: false,
+      requestedOperations: ['deliver_pr'],
+      explicitIntent: true,
+      hasPermission: true,
+      grantedPermissions: ['github_write'],
+      availableCapabilities: ['github_write'],
+    },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
+test('ush-github-task-flow: requesting "merge" without explicit merge intent is BLOCKed even with github_write present', () => {
+  const skill = getSkill('ush-github-task-flow');
+  const result = evaluateEligibility({
+    skill,
+    task: {
+      platform: 'codex',
+      autoInvoke: false,
+      requestedOperations: ['merge'],
+      explicitIntent: false,
+      grantedPermissions: ['github_write', 'github_merge'],
+      availableCapabilities: ['github_write'],
+    },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_NO_EXPLICIT_INTENT');
+});
+
+test('ush-github-task-flow: requesting "merge" with explicit intent but without the named github_merge permission is BLOCKed — github_write alone does not authorize merging', () => {
+  const skill = getSkill('ush-github-task-flow');
+  const result = evaluateEligibility({
+    skill,
+    task: {
+      platform: 'codex',
+      autoInvoke: false,
+      requestedOperations: ['merge'],
+      explicitIntent: true,
+      grantedPermissions: ['github_write'], // no github_merge
+      availableCapabilities: ['github_write'],
+    },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_MISSING_PERMISSION');
+});
+
+test('ush-github-task-flow: requesting "merge" with explicit intent, named github_merge permission, write capability, and the baseline L3 permission grant is USE', () => {
+  const skill = getSkill('ush-github-task-flow');
+  const result = evaluateEligibility({
+    skill,
+    task: {
+      platform: 'codex',
+      autoInvoke: false,
+      requestedOperations: ['merge'],
+      explicitIntent: true,
+      hasPermission: true, // baseline L3 gate for this skill overall
+      grantedPermissions: ['github_write', 'github_merge'],
+      availableCapabilities: ['github_write'],
+    },
+  });
+  assert.equal(result.decision, 'USE');
+});
+
 // --- ush-concurrent-edit-coordination (Phase 1.2 migration) ---
 
 test('ush-concurrent-edit-coordination: eligible on a supported platform with real diff-inspection evidence available', () => {
@@ -173,27 +243,37 @@ test('ush-discord-repo-cross-reference: a send request without explicit intent i
   const skill = getSkill('ush-discord-repo-cross-reference');
   const result = evaluateEligibility({
     skill,
-    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: false, hasPermission: true, availableCapabilities: ['discord_send'] },
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: false, grantedPermissions: ['discord_send'], availableCapabilities: ['discord_send'] },
   });
   assert.equal(result.decision, 'BLOCK');
   assert.equal(result.reasonCode, 'OPERATION_NO_EXPLICIT_INTENT');
+});
+
+test('ush-discord-repo-cross-reference: a send request without the named discord_send permission is BLOCKed (fail-closed) — a generic permission grant is not enough', () => {
+  const skill = getSkill('ush-discord-repo-cross-reference');
+  const result = evaluateEligibility({
+    skill,
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: true, grantedPermissions: ['some_unrelated_permission'], availableCapabilities: ['discord_send'] },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_MISSING_PERMISSION');
 });
 
 test('ush-discord-repo-cross-reference: a send request without the discord_send capability is BLOCKed (fail-closed)', () => {
   const skill = getSkill('ush-discord-repo-cross-reference');
   const result = evaluateEligibility({
     skill,
-    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: true, hasPermission: true },
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: true, grantedPermissions: ['discord_send'] },
   });
   assert.equal(result.decision, 'BLOCK');
   assert.equal(result.reasonCode, 'OPERATION_MISSING_CAPABILITY');
 });
 
-test('ush-discord-repo-cross-reference: a send request with prepared intent, permission, and capability is USE', () => {
+test('ush-discord-repo-cross-reference: a send request with prepared intent, named permission, and capability is USE', () => {
   const skill = getSkill('ush-discord-repo-cross-reference');
   const result = evaluateEligibility({
     skill,
-    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: true, hasPermission: true, availableCapabilities: ['discord_send'] },
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['send'], explicitIntent: true, grantedPermissions: ['discord_send'], availableCapabilities: ['discord_send'] },
   });
   assert.equal(result.decision, 'USE');
 });
@@ -213,33 +293,90 @@ test('ush-work-announcement: a publish request without explicit approval intent 
   const skill = getSkill('ush-work-announcement');
   const result = evaluateEligibility({
     skill,
-    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['publish'], explicitIntent: false, hasPermission: true, availableCapabilities: ['discord_send'] },
+    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['publish'], explicitIntent: false, grantedPermissions: ['message_publish'], availableCapabilities: ['message_publish'] },
   });
   assert.equal(result.decision, 'BLOCK');
   assert.equal(result.reasonCode, 'OPERATION_NO_EXPLICIT_INTENT');
 });
 
-test('ush-work-announcement: material edit after approval invalidates approval — the caller must not present a stale approval as covering new text', () => {
-  const approvedText = 'This week: shipped multiplayer sync fix.';
-  const approvedHash = hashOf(approvedText);
-
-  // Approval still matches: publishing the exact approved text is fine.
-  const editedInPlace = approvedText;
-  assert.equal(isApprovalValid({ approvedContentHash: approvedHash, currentContentHash: hashOf(editedInPlace) }), true);
-
-  // A material edit after approval (even a small wording change) must
-  // invalidate the prior approval — the caller is expected to check this
-  // before treating requestedOperations: ['publish'] + hasPermission: true
-  // as still authorized.
-  const materiallyEdited = 'This week: shipped multiplayer sync fix and the boss encounter.';
-  assert.equal(isApprovalValid({ approvedContentHash: approvedHash, currentContentHash: hashOf(materiallyEdited) }), false);
-});
-
-test('ush-work-announcement: a publish request with prepared intent, permission, and capability is USE (approval-hash matching is the caller\'s responsibility before setting hasPermission)', () => {
+test('ush-work-announcement: the publish gate uses a generic message_publish capability/permission, NOT discord_send — a non-Discord destination with the generic capability/permission is not blocked merely for lacking discord_send', () => {
   const skill = getSkill('ush-work-announcement');
   const result = evaluateEligibility({
     skill,
-    task: { platform: 'codex', autoInvoke: false, requestedOperations: ['publish'], explicitIntent: true, hasPermission: true, availableCapabilities: ['discord_send'] },
+    task: {
+      platform: 'codex',
+      autoInvoke: false,
+      requestedOperations: ['publish'],
+      explicitIntent: true,
+      grantedPermissions: ['message_publish'], // e.g. Slack/Teams/email, not Discord
+      availableCapabilities: ['message_publish'],
+      approvedContentHash: 'abc123',
+      currentContentHash: 'abc123',
+    },
+  });
+  assert.notEqual(result.reasonCode, 'OPERATION_MISSING_CAPABILITY');
+  assert.notEqual(result.reasonCode, 'OPERATION_MISSING_PERMISSION');
+  assert.equal(result.decision, 'USE');
+});
+
+test('ush-work-announcement: publish is BLOCKed when no content has been approved at all — the deterministic gate enforces this itself, not just the caller', () => {
+  const skill = getSkill('ush-work-announcement');
+  const result = evaluateEligibility({
+    skill,
+    task: {
+      platform: 'codex',
+      autoInvoke: false,
+      requestedOperations: ['publish'],
+      explicitIntent: true,
+      grantedPermissions: ['message_publish'],
+      availableCapabilities: ['message_publish'],
+      currentContentHash: 'abc123',
+      // approvedContentHash intentionally omitted
+    },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_NO_APPROVED_CONTENT');
+});
+
+test('ush-work-announcement: material edit after approval invalidates approval — evaluateEligibility itself BLOCKs a stale approval, not merely a caller convention', () => {
+  const approvedText = 'This week: shipped multiplayer sync fix.';
+  const approvedHash = hashOf(approvedText);
+  const materiallyEdited = 'This week: shipped multiplayer sync fix and the boss encounter.';
+
+  const skill = getSkill('ush-work-announcement');
+  const result = evaluateEligibility({
+    skill,
+    task: {
+      platform: 'codex',
+      autoInvoke: false,
+      requestedOperations: ['publish'],
+      explicitIntent: true,
+      grantedPermissions: ['message_publish'],
+      availableCapabilities: ['message_publish'],
+      approvedContentHash: approvedHash,
+      currentContentHash: hashOf(materiallyEdited),
+    },
+  });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'OPERATION_APPROVAL_STALE');
+});
+
+test('ush-work-announcement: a publish request with prepared intent, named permission, capability, and a matching approval hash is USE', () => {
+  const skill = getSkill('ush-work-announcement');
+  const approvedText = 'This week: shipped multiplayer sync fix.';
+  const hash = hashOf(approvedText);
+  const result = evaluateEligibility({
+    skill,
+    task: {
+      platform: 'codex',
+      autoInvoke: false,
+      requestedOperations: ['publish'],
+      explicitIntent: true,
+      grantedPermissions: ['message_publish'],
+      availableCapabilities: ['message_publish'],
+      approvedContentHash: hash,
+      currentContentHash: hash,
+    },
   });
   assert.equal(result.decision, 'USE');
 });

@@ -5,7 +5,7 @@ metadata:
   scope: domain
   risk: L0
   status: EXPERIMENTAL
-  version: 1.0.0
+  version: 1.1.0
   source_repo: https://github.com/openbaeseongjin/baeseongjin
   source_path: .codex/skills/work-announcement/SKILL.md
   source_commit: a8bc0493355b82582e98ec4ffc8064506f8f422a
@@ -18,7 +18,7 @@ Turn work already reflected in the repository into a concise, reviewable announc
 ## Operations
 
 - **`draft`** (default): build the announcement text from repository evidence and show it for review. Never sends anything.
-- **`publish`**: send the exact, already-approved text to a specific, already-identified destination. This is a separate, explicitly-gated operation — a draft request never authorizes publication on its own, and neither does a wording tweak, a scope adjustment, or a request to add timestamps. **Any material edit to the text after approval invalidates that approval** — a new approval is required before publishing the edited version.
+- **`publish`**: send the exact, already-approved text to a specific, already-identified destination — Discord, or any other message channel the host supports (Slack, Teams, email, etc.); this skill's publish path is destination-agnostic, requiring a generic message-sending capability rather than one tied to Discord specifically. This is a separate, explicitly-gated operation — a draft request never authorizes publication on its own, and neither does a wording tweak, a scope adjustment, or a request to add timestamps. **Any material edit to the text after approval invalidates that approval, enforced deterministically by comparing a hash of the approved text against the text about to be sent** — a new approval is required before publishing the edited version.
 
 ## Scope resolution
 
@@ -45,8 +45,8 @@ Lead with the resolved scope and the count of relevant merges/commits. Group by 
 ## Safety Contract
 
 - `draft` never performs an external write. Building or revising the draft text is always safe to do freely.
-- `publish` requires: the exact final text was shown to and explicitly approved by the user, the destination is unambiguous, and actual send capability and permission are present for this task — not merely a host-level "go ahead."
-- Any material change to the announcement text after approval resets that approval; publish the previously-approved text only, or get a fresh approval for the edited version.
+- `publish` requires: the exact final text was shown to and explicitly approved by the user, the destination is unambiguous, and an actual generic message-send capability and a specifically-granted send permission are present for this task — not merely a host-level "go ahead," and not merely a Discord-specific capability if this deployment publishes elsewhere.
+- Any material change to the announcement text after approval resets that approval; publish the previously-approved text only, or get a fresh approval for the edited version. This is enforced as part of the deterministic gate itself (a hash comparison), not left to the caller to remember.
 - Never fabricate accomplishments not backed by repository evidence.
 - Never expose author email addresses, private identifiers, tokens, or raw operational logs in the announcement or in this skill's own output.
 - Never edit, delete, moderate, or crosspost existing chat content — the only permitted write is sending the one approved announcement.

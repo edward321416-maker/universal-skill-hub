@@ -12,30 +12,61 @@ Task
 
 The deterministic filter checks only machine-checkable facts and never makes
 a "does this skill fit" judgment call. Checks run in a fixed order (each
-returns immediately on match) — see the docstring in `scripts/eligibility.mjs`
-for the exact sequence and rationale:
+returns immediately on match). **The docstring at the top of
+`scripts/eligibility.mjs` is the single source of truth for this order** —
+the list below is a restatement of it, kept in sync by
+`scripts/__tests__/design-doc-alignment.test.mjs`, which fails if a
+`reasonCode` the engine can emit isn't mentioned here (so this list cannot
+silently go stale the way it did once already in Phase 1.2 — it used to
+omit project scope, required-field, and per-operation-gate checks entirely):
 
-1. QUARANTINED lifecycle (host/system safety, always wins)
-2. Project Policy explicit block (`projectPolicy.blockedSkillIds`) — Project
-   Policy outranks Global Skill
-3. Declared skill conflicts (`registry/conflicts.json`, via `task.selectedSkillIds`)
-4. Platform compatibility (`skill.platforms` vs. task platform)
-5. Forbidden capability *actually used* by the task
+1. **QUARANTINED** lifecycle (host/system safety, always wins)
+2. **Project Policy**: explicit block (`projectPolicy.blockedSkillIds`), or a
+   denied operation against a protected resource
+   (`projectPolicy.deniedOperations`/`protectedResources`) — Project Policy
+   outranks Global Skill (`reasonCode: PROJECT_POLICY`)
+3. Declared skill **conflicts** (`registry/conflicts.json`, via
+   `task.selectedSkillIds`) (`CONFLICTING_SKILL`)
+4. **Platform compatibility** (`skill.platforms` vs. task platform)
+   (`PLATFORM_UNSUPPORTED`)
+5. **Project scope mismatch** — SKIP, not BLOCK, when `skill.project_scope`
+   doesn't match `task.project` (`PROJECT_SCOPE_MISMATCH`)
+6. **Missing required input/tool/capability/permission** — fail-closed: an
+   unstated availability list means "nothing available", not "assume it's
+   fine" (`MISSING_INPUT`/`MISSING_TOOL`/`MISSING_CAPABILITY`/`MISSING_PERMISSION`)
+7. **Per-operation gates** (`skill.operationGates`) for any operation
+   actually present in `task.requestedOperations`, independent of the
+   skill's overall risk tier: explicit intent
+   (`OPERATION_NO_EXPLICIT_INTENT`), then named `requiredPermissions`
+   checked against `task.grantedPermissions` — fail-closed, and NOT
+   satisfiable by a generic `task.hasPermission: true` once
+   `requiredPermissions` is declared (`OPERATION_MISSING_PERMISSION`; the
+   legacy generic `requiresPermission`/`hasPermission` boolean,
+   `OPERATION_NO_PERMISSION`, is only used when a gate declares no named
+   permissions), then `requiredCapabilities`
+   (`OPERATION_MISSING_CAPABILITY`), then — if the gate declares
+   `requiresApprovedContentMatch` — that the exact approved text still
+   matches what's about to be sent (`OPERATION_NO_APPROVED_CONTENT` if
+   nothing was approved, `OPERATION_APPROVAL_STALE` if the content changed
+   since approval)
+8. **Forbidden capability** *actually used* by the task
    (`task.capabilitiesUsed` intersecting `skill.forbidden_capabilities` —
    note this is deliberately NOT "the host has the capability available";
    the host having a capability and the skill/task using it are different
-   things, see Phase 1.1 notes below)
-6. L4 risk tier: BLOCK on auto-invoke; BLOCK without
+   things) (`FORBIDDEN_CAPABILITY`)
+9. **L4** risk tier: BLOCK on auto-invoke (`L4_AUTO`); BLOCK without
    `task.informedConfirmation` even when not auto-invoked
-7. L3 risk tier: BLOCK without `task.explicitIntent`; BLOCK without
-   `task.hasPermission`; an EXPERIMENTAL L3 skill BLOCKs on auto-invoke
-   regardless of intent/permission
-8. DEPRECATED lifecycle — SKIP, not BLOCK
+   (`L4_NO_INFORMED_CONFIRMATION`)
+10. **L3** risk tier: an EXPERIMENTAL L3 skill BLOCKs on auto-invoke
+    regardless of intent/permission (`EXPERIMENTAL_L3_AUTO`); BLOCK without
+    `task.explicitIntent` (`L3_NO_EXPLICIT_INTENT`); BLOCK without
+    `task.hasPermission` (`L3_NO_PERMISSION`)
+11. **DEPRECATED** lifecycle — SKIP, not BLOCK (`DEPRECATED`)
 
-Decisions are `USE`, `SKIP`, or `BLOCK`, each with a machine-readable
-`reasonCode` (e.g. `L3_NO_EXPLICIT_INTENT`, `FORBIDDEN_CAPABILITY`,
-`CONFLICTING_SKILL`, `PROJECT_POLICY`) plus a human-readable `reasons` array
-— see `scripts/eligibility.mjs` and its tests.
+Anything that reaches the end without matching any of the above is `USE`
+(`reasonCode: ELIGIBLE`). Decisions are always `USE`, `SKIP`, or `BLOCK`,
+each with a machine-readable `reasonCode` plus a human-readable `reasons`
+array — see `scripts/eligibility.mjs` and its tests.
 
 Semantic matching — whether a task actually calls for, say,
 `systematic-debugging` versus `brainstorming` — is left to the calling agent

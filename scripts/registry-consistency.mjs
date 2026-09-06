@@ -49,6 +49,16 @@ export function checkConsistency({ registryEntry, canonicalContent }) {
     errors.push(`registry content_sha256 "${registryEntry.content_sha256}" does not match the canonical file's actual hash "${actualHash}"`);
   }
 
+  const VALID_BUNDLE_STATUSES = ['SUPPORTED', 'SUPPORTED_WITH_RESTRICTIONS', 'UNSUPPORTED'];
+  for (const [target, entry] of Object.entries(registryEntry.bundle_targets || {})) {
+    if (!VALID_BUNDLE_STATUSES.includes(entry.status)) {
+      errors.push(`bundle_targets["${target}"].status "${entry.status}" is not one of ${VALID_BUNDLE_STATUSES.join('|')}`);
+    }
+    if (!entry.reason || String(entry.reason).trim() === '') {
+      errors.push(`bundle_targets["${target}"] is missing a "reason" — a support/restriction/unsupported claim must be explained, not just asserted`);
+    }
+  }
+
   return { consistent: errors.length === 0, errors };
 }
 

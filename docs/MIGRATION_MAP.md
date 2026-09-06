@@ -73,18 +73,36 @@ or replaced as part of this migration.
 ### `ush-github-task-flow` <- `.codex/skills/github-task-flow/SKILL.md`
 
 Source commit: `4b8cf8b0faa7e1d7dc195984dcb66fc468b3157f`. Canonical:
-`skills/git/ush-github-task-flow/SKILL.md`, risk L3.
+`skills/git/ush-github-task-flow/SKILL.md`, risk L3, v1.1.0.
 
-| Invariant | Source | Canonical | Result |
+**Important correction (Phase 1.2 review round 2):** the source skill's own
+invocation contract states that calling it with no further qualification
+means *"현재 작업을 GitHub 이력으로 만들고 병합해줘"* ("turn the current work
+into GitHub history and merge it") and its workflow proceeds through an
+actual merge (§8, "일반 merge commit으로 병합한다") without a separate
+merge-specific authorization step — that is a legitimate, explicit design
+choice *for that one project*, where the operator invoking the skill was
+understood to already mean "and merge it." Generalizing that same implicit
+authorization into a canonical Hub skill would be incorrect: a Hub caller
+saying "implement issue #42, test it, and open a PR" has not said "and
+merge it," and this hub cannot assume the equivalent of that project's
+specific invocation contract for every caller. The canonical skill
+therefore does **not** inherit automatic merging — v1.0.0 of this migration
+did so unintentionally (its default workflow proceeded through Step 8
+"merge using the repository's normal PR merge path" without a gate) and
+that was a real overclaim, corrected in v1.1.0 below.
+
+| Invariant | Source | Canonical v1.1.0 | Result |
 |---|---|---|---|
-| Issue created before branch/commit | Yes | Yes | PASS |
+| Issue/task identity resolved before new branch/commit | Yes (always creates a new issue) | Yes — generalized: reuse an already-supplied issue, create one only if none exists (never a duplicate) | PASS (generalized) |
 | Isolated branch per task, never implement on `main` | Yes | Yes | PASS |
 | Validate before opening PR | Yes | Yes | PASS |
-| Rebase onto latest `main` before merge, re-validate | Yes | Yes | PASS |
+| PR delivery does not imply merge | **No — source explicitly merges as part of one continuous authorized flow** | Yes — `deliver_pr` (default) ends at an open, validated PR; `merge` is a separate operation gated by `operationGates.merge` (explicit intent + named `github_merge` permission + `github_write` capability) | **Deliberate divergence, not a gap** — see correction above |
+| Merge preparation (rebase check, required-checks/review status) reported without merging | Partially (source's rebase-and-revalidate step is folded into its one authorized flow) | Yes — explicit `deliver_pr` step 7 | PASS (generalized into its own step) |
 | No plain `git push --force`; `--force-with-lease` only on an owned branch | Yes | Yes | PASS |
 | No history rewrite on `main` or shared branches | Yes | Yes | PASS |
 | No bypassing branch protection / required checks | Yes | Yes | PASS |
-| Evidence-based completion report | Yes | Yes | PASS |
+| Evidence-based completion report; PR-delivered vs. merged always distinguished | Yes (report distinguishes steps, though merge already happened by then) | Yes — Result Contract explicitly reports "delivered (open, not merged)" vs. "merged" as distinct states | PASS |
 | Coordinate only on genuine active-source overlap (not plans/backlog) | Yes (delegates to coordinate-github-tasks) | Yes (delegates to `ush-concurrent-edit-coordination`) | PASS |
 
 Deliberately dropped (project-specific): the mandatory Korean-language
@@ -93,11 +111,17 @@ GitHub CLI auto-install/auth bootstrap procedure (`winget`/`brew` commands,
 specific PowerShell); the exact `issue/<number>-<slug>` branch-naming
 enforcement tied to that repository's own convention (kept as an example,
 not a mandate); the requirement that every task collapse to exactly one
-commit; the `$coordinate-github-tasks` invocation-by-name syntax.
+commit; the `$coordinate-github-tasks` invocation-by-name syntax; **the
+implicit "deliver = merge" authorization contract** (this is the one
+genuinely intentional behavioral divergence in this migration, not an
+oversight — see the correction above).
 
-**Equivalence: PASS.** The safety-critical sequencing and force-push
-discipline survive; only repository-specific formatting and tooling
-bootstrap were dropped.
+**Equivalence: PASS**, with one deliberate, documented divergence (PR
+delivery no longer implies merge). The safety-critical sequencing and
+force-push discipline survive unchanged; the merge-authorization boundary
+was deliberately made stricter, not preserved as-is, because the source's
+implicit authorization was itself project-specific and not safe to
+generalize.
 
 ### `ush-concurrent-edit-coordination` <- `.codex/skills/coordinate-github-tasks/SKILL.md`
 
@@ -179,8 +203,30 @@ with a `publish` operation gate.
 | Period discipline (explicit dates, not vague ranges) | Yes | Yes | PASS |
 | Draft shown and approved before any publish | Yes | Yes | PASS |
 | Publication separately gated from drafting | Yes (implicit: "어떤 승인도 게시를 자동 허가하지 않는다") | Yes — made explicit and testable via `operationGates.publish` | PASS |
-| Material edit after approval invalidates that approval | Yes ("Any material edit after approval resets approval") | Yes — made explicit and testable via `scripts/approval-gate.mjs`'s `isApprovalValid()`, which a caller wires into `hasPermission` by comparing a content hash | PASS |
+| Material edit after approval invalidates that approval | Yes ("Any material edit after approval resets approval") | **Corrected in the review-2 pass to be actually deterministic**, not just documented — see note below | PASS (as of the correction; PARTIAL/overclaim before it) |
 | No fabricated accomplishments; Git > chat as evidence | Yes | Yes | PASS |
+
+**Correction (Phase 1.2 review round 2):** the first migration pass called
+this "PASS" via `scripts/approval-gate.mjs`'s `isApprovalValid()`, but
+`evaluateEligibility()` never actually called it — the deterministic gate
+only checked `task.hasPermission`, a generic boolean the *caller* was
+trusted to set correctly after doing its own hash comparison. That was an
+overclaim: nothing prevented a caller from setting `hasPermission: true`
+without ever checking the hash. `operationGates.publish` now declares
+`requiresApprovedContentMatch: true`, and `evaluateEligibility()` itself
+compares `task.approvedContentHash` against `task.currentContentHash` (via
+`isApprovalValid()`) and BLOCKs (`OPERATION_NO_APPROVED_CONTENT` /
+`OPERATION_APPROVAL_STALE`) if they don't match — the engine enforces this
+now, not merely a documented caller convention.
+
+**Also corrected:** the publish gate's capability/permission were
+initially declared as `discord_send`, contradicting this skill's own
+canonical body, which explicitly generalizes the destination beyond
+Discord ("a chat channel is only the approved publication destination").
+Both are now `message_publish` — a destination-agnostic name — so the
+canonical text and the enforced gate agree. (Contrast
+`ush-discord-repo-cross-reference`, which intentionally keeps `discord_send`
+— it is a Discord domain skill by design, not a generalized one.)
 
 Design choice made explicit here per the Phase 1.2 brief's option A/B: this
 hub chose **one skill with a deterministic publication gate** (option A) —
@@ -194,6 +240,28 @@ in the `discord` domain folder because its origin and its typical pairing
 with `ush-discord-repo-cross-reference`'s send mechanics are Discord-shaped.
 
 **Equivalence: PASS.**
+
+### Bundle support matrix (per-skill, per-target — Phase 1.2 review round 2)
+
+`skill.platforms` (runtime CLI/IDE support: codex/claude-code/cursor/
+opencode) and `skill.bundle_targets` (claude.ai / OpenAI API project-Skills
+packaging) are separate models — see `docs/DESIGN.md`. A skill's bundle
+eligibility was re-evaluated individually per skill, not blanket-excluded
+because it originated in a coding-agent skill set (an earlier pass in this
+migration did exactly that overbroad exclusion; corrected here):
+
+| Skill | `claude-ai` | `openai-api` | Why |
+|---|---|---|---|
+| `ush-repo-evidence-plan` | SUPPORTED | SUPPORTED | Pure read-only reasoning over supplied evidence; no live-network/connector need |
+| `ush-github-task-flow` | SUPPORTED_WITH_RESTRICTIONS | UNSUPPORTED | claude.ai's network access varies by user/admin setting (Anthropic docs) — GitHub write depends on that being enabled; no verified GitHub-write/network capability was found in the OpenAI API project-Skills docs consulted |
+| `ush-concurrent-edit-coordination` | SUPPORTED_WITH_RESTRICTIONS | SUPPORTED_WITH_RESTRICTIONS | Packaging is fine; the deterministic `required_tools: git_diff_read` gate already BLOCKs at runtime if the deployment can't actually supply diff evidence — packaging and runtime-tool-availability are different questions |
+| `ush-game-meeting-plan` | SUPPORTED | SUPPORTED | L0 read-only planning over supplied bounded evidence; repository cross-check is explicitly optional/conditional (see the skill body's step 5) |
+| `ush-discord-repo-cross-reference` | SUPPORTED_WITH_RESTRICTIONS | SUPPORTED_WITH_RESTRICTIONS | Analyzing already-supplied Discord evidence needs no live connector; only the separately-gated `send` operation needs `discord_send`, already enforced by `operationGates.send` at runtime |
+| `ush-work-announcement` | SUPPORTED_WITH_RESTRICTIONS | SUPPORTED_WITH_RESTRICTIONS | Drafting from supplied/live history is L0; `publish` is separately gated and needs a generic `message_publish` capability the deployment may or may not have configured |
+
+Every `UNSUPPORTED` and `SUPPORTED_WITH_RESTRICTIONS` entry carries a
+machine-readable `reason` in `registry/skills-index.json`, enforced by
+`scripts/registry-consistency.mjs`'s enum + non-empty-reason check.
 
 ### Conflicts considered and rejected
 

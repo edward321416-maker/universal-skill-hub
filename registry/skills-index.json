@@ -13,12 +13,16 @@
       "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
       "source_path": ".codex/skills/repo-task-plan/SKILL.md",
       "source_commit": "983005fc41b22cb0efc76fb4b529df8ef6c6d6d8",
-      "content_sha256": "352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688"
+      "content_sha256": "352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688",
+      "bundle_targets": {
+        "claude-ai": { "status": "SUPPORTED", "reason": "pure read-only planning skill operating on supplied repository evidence; no live-network or connector capability needed" },
+        "openai-api": { "status": "SUPPORTED", "reason": "same — pure read-only reasoning over supplied evidence" }
+      }
     },
     {
       "skill_id": "ush-github-task-flow",
       "path": "skills/git/ush-github-task-flow",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "scope": "global",
       "risk": "L3",
       "status": "EXPERIMENTAL",
@@ -26,9 +30,27 @@
       "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
       "source_path": ".codex/skills/github-task-flow/SKILL.md",
       "source_commit": "4b8cf8b0faa7e1d7dc195984dcb66fc468b3157f",
-      "content_sha256": "6d4f9f7b65750459961f2d41ccb78f415ff301c503a96fd32818de2e4e95d3f9",
+      "content_sha256": "d781c4d4c3a4ab78e83976a4ed07c76c4375284542760aafd31ce89a5d89a9f4",
       "required_capabilities": ["github_write"],
-      "required_permissions": ["github_write"]
+      "required_permissions": ["github_write"],
+      "operationGates": {
+        "merge": {
+          "requiredCapabilities": ["github_write"],
+          "requiredPermissions": ["github_merge"],
+          "requiresExplicitIntent": true
+        }
+      },
+      "bundle_targets": {
+        "claude-ai": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "claude.ai custom Skills have varying network access depending on user/admin settings (Anthropic docs: 'Depending on user/admin settings, Skills may have full, partial, or no network access') — GitHub write depends on that being enabled for this deployment.",
+          "requires_at_runtime": ["network_access", "github_write"]
+        },
+        "openai-api": {
+          "status": "UNSUPPORTED",
+          "reason": "no verified GitHub-write or live outbound network capability was found in the OpenAI API project-Skills documentation consulted as of 2026-09-06; treated as unconfirmed rather than assumed present."
+        }
+      }
     },
     {
       "skill_id": "ush-concurrent-edit-coordination",
@@ -42,12 +64,24 @@
       "source_path": ".codex/skills/coordinate-github-tasks/SKILL.md",
       "source_commit": "4b8cf8b0faa7e1d7dc195984dcb66fc468b3157f",
       "content_sha256": "a8b83254c1eaffb35c15222ec1bb5227f0c00725111ea44a76e364f1bb2d3728",
-      "required_tools": ["git_diff_read"]
+      "required_tools": ["git_diff_read"],
+      "bundle_targets": {
+        "claude-ai": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "packaging is fine; the deterministic eligibility gate (required_tools: git_diff_read) already BLOCKs at runtime when real diff-inspection tooling isn't actually available on this deployment — packaging a skill and guaranteeing every invocation has every tool are different questions.",
+          "requires_at_runtime": ["git_diff_read"]
+        },
+        "openai-api": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "same reasoning as claude-ai",
+          "requires_at_runtime": ["git_diff_read"]
+        }
+      }
     },
     {
       "skill_id": "ush-game-meeting-plan",
       "path": "skills/game/ush-game-meeting-plan",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "scope": "domain",
       "risk": "L0",
       "status": "EXPERIMENTAL",
@@ -55,7 +89,11 @@
       "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
       "source_path": ".codex/skills/meeting-to-game-plan/SKILL.md",
       "source_commit": "983005fc41b22cb0efc76fb4b529df8ef6c6d6d8",
-      "content_sha256": "228f9b8bb16e5f74a49f829a60c748d80e9071ceff9be8e82b5596f00d1fbe70"
+      "content_sha256": "8834cc8d711e89f14521d8e45b3735f17eeb75f8e7cddf1b0d9829e4d5a79e13",
+      "bundle_targets": {
+        "claude-ai": { "status": "SUPPORTED", "reason": "L0 read-only planning over supplied bounded evidence (meeting notes/chat/decision log); repository cross-check is explicitly optional/conditional per this skill's own workflow, not a hard requirement to run" },
+        "openai-api": { "status": "SUPPORTED", "reason": "same reasoning as claude-ai" }
+      }
     },
     {
       "skill_id": "ush-discord-repo-cross-reference",
@@ -72,15 +110,27 @@
       "operationGates": {
         "send": {
           "requiredCapabilities": ["discord_send"],
-          "requiresExplicitIntent": true,
-          "requiresPermission": true
+          "requiredPermissions": ["discord_send"],
+          "requiresExplicitIntent": true
+        }
+      },
+      "bundle_targets": {
+        "claude-ai": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "analyzing Discord evidence already supplied as input (pasted/attached) needs no live connector; only the separately-gated send operation needs discord_send, which the deterministic operationGates.send check already enforces at runtime.",
+          "requires_at_runtime": ["discord_send"]
+        },
+        "openai-api": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "same reasoning as claude-ai",
+          "requires_at_runtime": ["discord_send"]
         }
       }
     },
     {
       "skill_id": "ush-work-announcement",
       "path": "skills/discord/ush-work-announcement",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "scope": "domain",
       "risk": "L0",
       "status": "EXPERIMENTAL",
@@ -88,12 +138,25 @@
       "source_repo": "https://github.com/openbaeseongjin/baeseongjin",
       "source_path": ".codex/skills/work-announcement/SKILL.md",
       "source_commit": "a8bc0493355b82582e98ec4ffc8064506f8f422a",
-      "content_sha256": "91934dc020c85f5ee65095fb89a82c5f5d8d74ed0f144c80e980ea53103419f3",
+      "content_sha256": "20d3266b52477c344cc07a1b1586a0e6820b4b3cd2629652d00fe46f4d1c6a12",
       "operationGates": {
         "publish": {
-          "requiredCapabilities": ["discord_send"],
+          "requiredCapabilities": ["message_publish"],
+          "requiredPermissions": ["message_publish"],
           "requiresExplicitIntent": true,
-          "requiresPermission": true
+          "requiresApprovedContentMatch": true
+        }
+      },
+      "bundle_targets": {
+        "claude-ai": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "drafting from supplied/live repository history is L0 and needs no connector by itself; publish is separately gated (operationGates.publish) and requires a generic message_publish capability the deployment may or may not have configured.",
+          "requires_at_runtime": ["repository_evidence", "message_publish"]
+        },
+        "openai-api": {
+          "status": "SUPPORTED_WITH_RESTRICTIONS",
+          "reason": "same reasoning as claude-ai",
+          "requires_at_runtime": ["repository_evidence", "message_publish"]
         }
       }
     }

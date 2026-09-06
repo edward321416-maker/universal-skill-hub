@@ -47,9 +47,9 @@ function runCli() {
   fs.mkdirSync(outDir, { recursive: true });
   let failed = 0;
 
-  const { eligible, ineligible } = partitionBundleEligibility(registry, 'chatgpt');
-  for (const skill of ineligible) {
-    console.log(`SKIP (not eligible for the OpenAI API project-Skills surface): ${skill.skill_id}`);
+  const { eligible, ineligible } = partitionBundleEligibility(registry, 'openai-api');
+  for (const entry of ineligible) {
+    console.log(`SKIP (not eligible for the OpenAI API project-Skills surface): ${entry.skill_id} — ${entry.reason}`);
   }
 
   for (const skill of eligible) {

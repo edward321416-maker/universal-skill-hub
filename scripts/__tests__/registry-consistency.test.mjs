@@ -50,3 +50,29 @@ test('a registry skill_id that no longer matches the canonical frontmatter name 
   assert.equal(result.consistent, false);
   assert.ok(result.errors.some((e) => e.includes('skill_id') || e.includes('name')));
 });
+
+test('a bundle_targets status outside SUPPORTED|SUPPORTED_WITH_RESTRICTIONS|UNSUPPORTED is FAIL', () => {
+  const result = checkConsistency({
+    registryEntry: { ...goodRegistryEntry, bundle_targets: { 'claude-ai': { status: 'MOSTLY_FINE_PROBABLY', reason: 'x' } } },
+    canonicalContent,
+  });
+  assert.equal(result.consistent, false);
+  assert.ok(result.errors.some((e) => e.includes('bundle_targets') && e.includes('claude-ai')));
+});
+
+test('a bundle_targets entry with a valid status enum value and a reason is consistent', () => {
+  const result = checkConsistency({
+    registryEntry: { ...goodRegistryEntry, bundle_targets: { 'claude-ai': { status: 'SUPPORTED', reason: 'x' } } },
+    canonicalContent,
+  });
+  assert.equal(result.consistent, true, `expected consistent, got errors: ${JSON.stringify(result.errors)}`);
+});
+
+test('a bundle_targets entry with no reason is FAIL — a support/restriction/unsupported claim must be machine-readable AND explained', () => {
+  const result = checkConsistency({
+    registryEntry: { ...goodRegistryEntry, bundle_targets: { 'claude-ai': { status: 'UNSUPPORTED' } } },
+    canonicalContent,
+  });
+  assert.equal(result.consistent, false);
+  assert.ok(result.errors.some((e) => e.includes('reason')));
+});
