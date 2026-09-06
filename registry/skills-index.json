@@ -368,11 +368,7 @@
       "runtime_support": {
         "codex": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
-          "reason": "The default analyze operation needs nothing; only the separately-gated send operation needs discord_send, enforced by operationGates.send regardless of platform.",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "discord_send" },
-            { "kind": "permission", "id": "discord_send" }
-          ],
+          "reason": "The default analyze operation over already-supplied Discord evidence needs nothing generally at runtime; discord_send is required only for the separately-gated send operation, tracked entirely by operationGates.send (not a general runtime requirement, so it is intentionally absent from requires_at_runtime here).",
           "evidence": [
             { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex reads skills from .agents/skills at repo/user/admin scope", "verified_on": "2026-09-05" }
           ]
@@ -380,10 +376,6 @@
         "claude-code": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
           "reason": "Same reasoning as codex.",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "discord_send" },
-            { "kind": "permission", "id": "discord_send" }
-          ],
           "evidence": [
             { "source_type": "local_runtime_test", "source": "scripts/install-skills.mjs --apply installs hub skills to ~/.claude/skills; Claude Code's own Skill tool listing has confirmed discovery of skills installed this way in this session", "verified_on": "2026-09-06" }
           ]
@@ -391,10 +383,6 @@
         "cursor": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
           "reason": "Same reasoning as codex.",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "discord_send" },
-            { "kind": "permission", "id": "discord_send" }
-          ],
           "evidence": [
             { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" }
           ]
@@ -402,21 +390,13 @@
         "opencode": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
           "reason": "Same reasoning as codex.",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "discord_send" },
-            { "kind": "permission", "id": "discord_send" }
-          ],
           "evidence": [
             { "source_type": "official_docs", "source": "opencode.ai/docs/skills/ — OpenCode searches .opencode/skills/<name>/SKILL.md and ~/.config/opencode/skills/<name>/SKILL.md", "verified_on": "2026-09-06" }
           ]
         },
         "claude-ai": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
-          "reason": "Analyzing Discord evidence already supplied as input (pasted/attached) needs no live connector; only the separately-gated send operation needs discord_send, which the deterministic operationGates.send check already enforces at runtime.",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "discord_send" },
-            { "kind": "permission", "id": "discord_send" }
-          ],
+          "reason": "Analyzing Discord evidence already supplied as input (pasted/attached) needs no live connector and nothing generally at runtime; discord_send is required only for the separately-gated send operation, which the deterministic operationGates.send check already enforces (not a general runtime requirement, so it is intentionally absent from requires_at_runtime here).",
           "evidence": [
             { "source_type": "official_docs", "source": "support.claude.com / platform.claude.com — claude.ai custom Skills upload shape", "verified_on": "2026-09-05" }
           ]
@@ -424,10 +404,6 @@
         "openai-api": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
           "reason": "same reasoning as claude-ai",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "discord_send" },
-            { "kind": "permission", "id": "discord_send" }
-          ],
           "evidence": [
             { "source_type": "official_docs", "source": "developers.openai.com/api/docs/guides/tools-skills — OpenAI API project Skills upload shape", "verified_on": "2026-09-05" }
           ]
@@ -445,13 +421,11 @@
       "bundle_targets": {
         "claude-ai": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
-          "reason": "analyzing Discord evidence already supplied as input (pasted/attached) needs no live connector; only the separately-gated send operation needs discord_send, which the deterministic operationGates.send check already enforces at runtime.",
-          "requires_at_runtime": [{ "kind": "capability", "id": "discord_send" }]
+          "reason": "analyzing Discord evidence already supplied as input (pasted/attached) needs no live connector and nothing generally; only the separately-gated send operation needs discord_send, which the deterministic operationGates.send check already enforces at runtime (not a general packaging-time requirement)."
         },
         "openai-api": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
-          "reason": "same reasoning as claude-ai",
-          "requires_at_runtime": [{ "kind": "capability", "id": "discord_send" }]
+          "reason": "same reasoning as claude-ai"
         }
       }
     },
@@ -478,12 +452,8 @@
       "runtime_support": {
         "codex": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
-          "reason": "Drafting from supplied/live repository evidence is L0 and needs no connector; publish is separately gated (operationGates.publish) and requires message_publish capability/permission the deployment may or may not have configured.",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "repository_evidence" },
-            { "kind": "capability", "id": "message_publish" },
-            { "kind": "permission", "id": "message_publish" }
-          ],
+          "reason": "Drafting from supplied/live repository evidence is a general runtime requirement (repository_evidence) for this skill's default draft operation. publish is a separate, operation-gated capability/permission (message_publish, tracked entirely by operationGates.publish) the deployment may or may not have configured — not a general runtime requirement, so it is intentionally absent from requires_at_runtime here.",
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
           "evidence": [
             { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex reads skills from .agents/skills at repo/user/admin scope", "verified_on": "2026-09-05" }
           ]
@@ -491,11 +461,7 @@
         "claude-code": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
           "reason": "Same reasoning as codex.",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "repository_evidence" },
-            { "kind": "capability", "id": "message_publish" },
-            { "kind": "permission", "id": "message_publish" }
-          ],
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
           "evidence": [
             { "source_type": "local_runtime_test", "source": "scripts/install-skills.mjs --apply installs hub skills to ~/.claude/skills; Claude Code's own Skill tool listing has confirmed discovery of skills installed this way in this session", "verified_on": "2026-09-06" }
           ]
@@ -503,11 +469,7 @@
         "cursor": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
           "reason": "Same reasoning as codex.",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "repository_evidence" },
-            { "kind": "capability", "id": "message_publish" },
-            { "kind": "permission", "id": "message_publish" }
-          ],
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
           "evidence": [
             { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" }
           ]
@@ -515,23 +477,15 @@
         "opencode": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
           "reason": "Same reasoning as codex.",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "repository_evidence" },
-            { "kind": "capability", "id": "message_publish" },
-            { "kind": "permission", "id": "message_publish" }
-          ],
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
           "evidence": [
             { "source_type": "official_docs", "source": "opencode.ai/docs/skills/ — OpenCode searches .opencode/skills/<name>/SKILL.md and ~/.config/opencode/skills/<name>/SKILL.md", "verified_on": "2026-09-06" }
           ]
         },
         "claude-ai": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
-          "reason": "Drafting from supplied/live repository history is L0 and needs no connector by itself; publish is separately gated (operationGates.publish) and requires a generic message_publish capability the deployment may or may not have configured.",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "repository_evidence" },
-            { "kind": "capability", "id": "message_publish" },
-            { "kind": "permission", "id": "message_publish" }
-          ],
+          "reason": "Drafting from supplied/live repository history needs repository_evidence generally (the default draft operation). publish is a separate, operation-gated requirement (message_publish, tracked entirely by operationGates.publish) the deployment may or may not have configured — not a general runtime requirement, so it is intentionally absent from requires_at_runtime here.",
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
           "evidence": [
             { "source_type": "official_docs", "source": "support.claude.com / platform.claude.com — claude.ai custom Skills upload shape", "verified_on": "2026-09-05" }
           ]
@@ -539,11 +493,7 @@
         "openai-api": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
           "reason": "same reasoning as claude-ai",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "repository_evidence" },
-            { "kind": "capability", "id": "message_publish" },
-            { "kind": "permission", "id": "message_publish" }
-          ],
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
           "evidence": [
             { "source_type": "official_docs", "source": "developers.openai.com/api/docs/guides/tools-skills — OpenAI API project Skills upload shape", "verified_on": "2026-09-05" }
           ]
@@ -561,19 +511,13 @@
       "bundle_targets": {
         "claude-ai": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
-          "reason": "drafting from supplied/live repository history is L0 and needs no connector by itself; publish is separately gated (operationGates.publish) and requires a generic message_publish capability the deployment may or may not have configured.",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "repository_evidence" },
-            { "kind": "capability", "id": "message_publish" }
-          ]
+          "reason": "drafting from supplied/live repository history needs repository_evidence generally; publish is a separate, operation-gated requirement (message_publish, tracked by operationGates.publish) the deployment may or may not have configured — not a general packaging-time requirement.",
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }]
         },
         "openai-api": {
           "status": "SUPPORTED_WITH_RESTRICTIONS",
           "reason": "same reasoning as claude-ai",
-          "requires_at_runtime": [
-            { "kind": "capability", "id": "repository_evidence" },
-            { "kind": "capability", "id": "message_publish" }
-          ]
+          "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }]
         }
       }
     }

@@ -204,11 +204,16 @@ ownership:
   `content_sha256` <- SHA-256 of the canonical `SKILL.md`'s exact bytes.
 - **Registry-owned** (no canonical-source equivalent): `path`, `source_repo`,
   `source_path`, `source_commit`.
-  - `runtime_support` is registry-owned and **authoritative** for runtime
-    compatibility (see below).
-  - `platforms` is registry-owned but only as a **backward-compatible
-    mirror** of `runtime_support` — `scripts/registry-consistency.mjs`
-    fails if the two sets ever diverge (order-independent set equality).
+  - `runtime_support` is registry-owned, **authoritative** for runtime
+    compatibility, and **mandatory** — `scripts/registry-consistency.mjs`
+    fails a registry entry outright if `runtime_support` is absent
+    (Phase 1.2 review round 4, final patch: this is enforced by
+    `checkConsistency` itself, not merely by a repo-level test enumerating
+    today's entries).
+  - `platforms` is registry-owned, likewise **mandatory**, but only as a
+    **backward-compatible mirror** of `runtime_support` —
+    `scripts/registry-consistency.mjs` fails if either field is missing,
+    or if the two sets ever diverge (order-independent set equality).
   - `runtime_exclusions` is registry-owned, sparse, evidence-backed
     negative/unverified runtime metadata.
   - `bundle_targets` remains registry-owned distribution/packaging
@@ -338,11 +343,38 @@ tool) — see `scripts/runtime-vocabulary.mjs`.
 ### Typed `requires_at_runtime`
 
 Each `requires_at_runtime` entry is `{ kind: "capability"|"permission"|"tool",
-id: "<vocabulary id>" }`, not a bare string. `scripts/registry-consistency.mjs`
-rejects an unknown `kind`, an `id` not present in that kind's vocabulary
-namespace (including a name registered under the *wrong* namespace, e.g.
+id: "<vocabulary id>" }`, not a bare string — **strictly**: a raw string
+item is rejected outright, not silently skipped as a legacy form.
+`scripts/registry-consistency.mjs`'s `validateRequiresAtRuntime` helper is
+the single implementation for this check, shared identically by both
+`runtime_support[*].requires_at_runtime` and
+`bundle_targets[*].requires_at_runtime` — there is deliberately no second,
+subtly-different validator for the bundle_targets case. It rejects an
+unknown `kind`, an `id` not present in that kind's vocabulary namespace
+(including a name registered under the *wrong* namespace, e.g.
 `{kind: "capability", id: "github_merge"}` — `github_merge` is a
 permission), and a duplicate `{kind, id}` pair within one entry's array.
+
+**`requires_at_runtime` scope — general requirements only, never
+operation-specific ones (Phase 1.2 review round 4, final patch):**
+`requires_at_runtime` lists what a runtime needs for the skill *generally*
+— i.e., for its default, ungated behavior. A requirement that applies only
+to one specific gated operation (an `operationGates` entry, e.g. `send` or
+`publish`) belongs *solely* in that operation's `requiredCapabilities`/
+`requiredPermissions` — it must never also be duplicated into
+`requires_at_runtime`. For example, `ush-discord-repo-cross-reference`'s
+default `analyze` operation needs nothing, so its `runtime_support`
+entries carry no `requires_at_runtime` at all; `discord_send` lives only
+in `operationGates.send`. `ush-work-announcement`'s default `draft`
+operation genuinely needs `repository_evidence` generally, so that one
+stays in `requires_at_runtime` — but `message_publish` is `publish`-only
+and lives solely in `operationGates.publish`. A skill's `runtime_support`
+status may still be `SUPPORTED_WITH_RESTRICTIONS` purely because it has an
+optional gated operation, provided its `reason` says so explicitly instead
+of implying a general restriction that doesn't exist. This is
+documentation discipline only — `requires_at_runtime`'s presence or
+absence never changes what `scripts/eligibility.mjs` actually enforces at
+invocation time; `operationGates` checks run identically regardless.
 
 ### Provenance
 

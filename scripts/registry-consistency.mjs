@@ -18,11 +18,47 @@ function isValidVerifiedOn(value) {
 }
 
 /**
+ * Validates one `requires_at_runtime` array — shared, identical logic for
+ * BOTH `runtime_support[*].requires_at_runtime` and
+ * `bundle_targets[*].requires_at_runtime` (Phase 1.2 review round 4 "FINAL
+ * REVIEW PATCH" blocker 1: no separate, subtly-different implementation
+ * for bundle_targets, and no legacy raw-string carve-out). Every item MUST
+ * be a typed `{kind, id}` object resolving into the central vocabulary; a
+ * raw string or any other shape FAILs outright instead of being silently
+ * skipped.
+ */
+function validateRequiresAtRuntime({ label, runtimeKey, list }, errors) {
+  if (list === undefined) return;
+  if (!Array.isArray(list)) {
+    errors.push(`${label}["${runtimeKey}"].requires_at_runtime must be an array of typed {kind, id} objects`);
+    return;
+  }
+  const seen = new Set();
+  for (const req of list) {
+    const isTypedObject = req !== null && typeof req === 'object' && !Array.isArray(req) && typeof req.kind === 'string' && typeof req.id === 'string';
+    if (!isTypedObject) {
+      errors.push(`${label}["${runtimeKey}"].requires_at_runtime entry ${JSON.stringify(req)} is not a typed {kind, id} object — raw strings and other untyped shapes are rejected`);
+      continue;
+    }
+    const dedupeKey = `${req.kind}:${req.id}`;
+    if (seen.has(dedupeKey)) {
+      errors.push(`${label}["${runtimeKey}"].requires_at_runtime has a duplicate {kind: "${req.kind}", id: "${req.id}"} entry`);
+    }
+    seen.add(dedupeKey);
+    if (!VALID_REQUIREMENT_KINDS.includes(req.kind)) {
+      errors.push(`${label}["${runtimeKey}"].requires_at_runtime has an unknown kind "${req.kind}" — must be one of ${VALID_REQUIREMENT_KINDS.join('|')}`);
+    } else if (!isKnownRequirement(req.kind, req.id)) {
+      errors.push(`${label}["${runtimeKey}"].requires_at_runtime references unknown ${req.kind} "${req.id}" — not found in registry/runtime-requirements.json (wrong namespace or typo)`);
+    }
+  }
+}
+
+/**
  * Validates a `runtime_support`/`runtime_exclusions` entry's provenance:
  * `reason` (non-empty), `evidence` (non-empty array of {source_type, source,
  * verified_on}), and — for runtime_support only — typed `requires_at_runtime`
- * entries resolving into the central runtime-requirements vocabulary. See
- * docs/DESIGN.md's "Runtime compatibility model" section.
+ * entries via `validateRequiresAtRuntime` above. See docs/DESIGN.md's
+ * "Runtime compatibility model" section.
  */
 function validateRuntimeEntry({ label, skillId, runtimeKey, entry, allowedStatuses, statusLabel, checkRequiresAtRuntime }, errors) {
   if (!allowedStatuses.includes(entry.status)) {
@@ -47,24 +83,8 @@ function validateRuntimeEntry({ label, skillId, runtimeKey, entry, allowedStatus
     }
   }
 
-  if (checkRequiresAtRuntime && entry.requires_at_runtime !== undefined) {
-    if (!Array.isArray(entry.requires_at_runtime)) {
-      errors.push(`${label}["${runtimeKey}"].requires_at_runtime must be an array of {kind, id}`);
-    } else {
-      const seen = new Set();
-      for (const req of entry.requires_at_runtime) {
-        const dedupeKey = `${req && req.kind}:${req && req.id}`;
-        if (seen.has(dedupeKey)) {
-          errors.push(`${label}["${runtimeKey}"].requires_at_runtime has a duplicate {kind: "${req.kind}", id: "${req.id}"} entry`);
-        }
-        seen.add(dedupeKey);
-        if (!VALID_REQUIREMENT_KINDS.includes(req.kind)) {
-          errors.push(`${label}["${runtimeKey}"].requires_at_runtime has an unknown kind "${req.kind}" — must be one of ${VALID_REQUIREMENT_KINDS.join('|')}`);
-        } else if (!isKnownRequirement(req.kind, req.id)) {
-          errors.push(`${label}["${runtimeKey}"].requires_at_runtime references unknown ${req.kind} "${req.id}" — not found in registry/runtime-requirements.json (wrong namespace or typo)`);
-        }
-      }
-    }
+  if (checkRequiresAtRuntime) {
+    validateRequiresAtRuntime({ label, runtimeKey, list: entry.requires_at_runtime }, errors);
   }
 }
 
@@ -160,20 +180,11 @@ export function checkConsistency({ registryEntry, canonicalContent }) {
       }
     }
 
-    // Typed requires_at_runtime entries (same {kind, id} shape as
-    // runtime_support) are validated against the same central vocabulary,
-    // so a bundle_targets requirement can never drift into an identifier
-    // runtime_support doesn't also recognize.
+    // Typed requires_at_runtime entries use the exact same
+    // validateRequiresAtRuntime helper as runtime_support — no separate,
+    // subtly-different implementation, and no legacy raw-string exception.
     for (const [target, entry] of Object.entries(bundleTargets)) {
-      if (!Array.isArray(entry.requires_at_runtime)) continue;
-      for (const req of entry.requires_at_runtime) {
-        if (typeof req === 'string') continue; // legacy untyped form, not re-validated here
-        if (!VALID_REQUIREMENT_KINDS.includes(req.kind)) {
-          errors.push(`bundle_targets["${target}"].requires_at_runtime has an unknown kind "${req.kind}"`);
-        } else if (!isKnownRequirement(req.kind, req.id)) {
-          errors.push(`bundle_targets["${target}"].requires_at_runtime references unknown ${req.kind} "${req.id}"`);
-        }
-      }
+      validateRequiresAtRuntime({ label: 'bundle_targets', runtimeKey: target, list: entry.requires_at_runtime }, errors);
     }
   }
 
@@ -182,10 +193,16 @@ export function checkConsistency({ registryEntry, canonicalContent }) {
   // full definitions: runtime_support is authoritative, platforms is its
   // backward-compatible mirror, runtime_exclusions is sparse evidence-
   // backed negative/unverified assessment.
+  // runtime_support and platforms are MANDATORY (Phase 1.2 review round 4
+  // "FINAL REVIEW PATCH" blocker 2): every registry skill must declare
+  // authoritative runtime compatibility, enforced here by checkConsistency
+  // itself — not merely by a repo-level test enumerating today's entries.
   const runtimeSupport = registryEntry.runtime_support;
   const runtimeExclusions = registryEntry.runtime_exclusions;
 
-  if (runtimeSupport) {
+  if (runtimeSupport === undefined) {
+    errors.push(`registry entry "${registryEntry.skill_id}" is missing "runtime_support" — every registry skill must declare authoritative runtime compatibility (see docs/DESIGN.md's "Runtime compatibility model")`);
+  } else {
     for (const [platform, entry] of Object.entries(runtimeSupport)) {
       validateRuntimeEntry(
         {
@@ -200,9 +217,14 @@ export function checkConsistency({ registryEntry, canonicalContent }) {
         errors
       );
     }
+  }
 
-    const platforms = registryEntry.platforms || [];
-    const platformSet = new Set(platforms);
+  if (registryEntry.platforms === undefined) {
+    errors.push(`registry entry "${registryEntry.skill_id}" is missing "platforms" — platforms must be declared as the backward-compatible mirror of runtime_support`);
+  }
+
+  if (runtimeSupport !== undefined && registryEntry.platforms !== undefined) {
+    const platformSet = new Set(registryEntry.platforms);
     const supportKeySet = new Set(Object.keys(runtimeSupport));
     for (const platform of platformSet) {
       if (!supportKeySet.has(platform)) {

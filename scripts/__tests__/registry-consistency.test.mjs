@@ -26,6 +26,18 @@ const goodRegistryEntry = {
   risk: 'L0',
   status: 'EXPERIMENTAL',
   content_sha256: correctHash,
+  // Phase 1.2 review round 4 "FINAL REVIEW PATCH" (blocker 2): every
+  // registry entry must declare runtime_support + platforms, checked by
+  // checkConsistency itself — this fixture needs a minimal valid pair so
+  // the bundle_targets-focused tests below aren't also flagged for that.
+  platforms: ['codex'],
+  runtime_support: {
+    codex: {
+      status: 'SUPPORTED',
+      reason: 'fixture skill, read-only, no runtime capability required',
+      evidence: [{ source_type: 'official_docs', source: 'fixture — not a real claim', verified_on: '2026-09-06' }],
+    },
+  },
 };
 
 test('a registry entry that matches its canonical source on every owned field is consistent', () => {

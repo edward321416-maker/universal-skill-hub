@@ -297,6 +297,23 @@ already-`SUPPORTED`/`SUPPORTED_WITH_RESTRICTIONS` `bundle_targets` status.
 No skill's `bundle_targets` values changed in this round (item 13:
 `runtime_support` and `bundle_targets` remain independently assessed).
 
+**Materially changed in the round 4 final patch (blocker 3):**
+`ush-discord-repo-cross-reference`'s and `ush-work-announcement`'s
+`runtime_support`/`bundle_targets` entries previously duplicated their
+operation-gated requirements (`discord_send`, `message_publish`) into
+`requires_at_runtime`, even though those requirements apply only to the
+separately-gated `send`/`publish` operations, not to the skills'
+general/default behavior. Corrected: `discord_send` was removed from
+`ush-discord-repo-cross-reference`'s `requires_at_runtime` entirely (its
+default `analyze` operation needs nothing) — it remains, unchanged, in
+`operationGates.send`. `message_publish` was removed from
+`ush-work-announcement`'s `requires_at_runtime` (its default `draft`
+operation doesn't need it) while `repository_evidence` correctly stays
+(drafting genuinely needs it generally) — `message_publish` remains,
+unchanged, in `operationGates.publish`. Neither skill's actual eligibility
+behavior changed — `scripts/eligibility.mjs` never reads `runtime_support`
+or `bundle_targets`, only `operationGates`, which were untouched.
+
 ### Conflicts considered and rejected
 
 - `ush-repo-evidence-plan` vs. `ush-github-task-flow`: **not conflicting** —
