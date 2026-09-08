@@ -46,6 +46,22 @@ methodology:
 NOT part of either precision/recall computation above** (explicit sessions
 name the skill directly, so they are not a routing measurement at all):
 
+- Explicit invocation (Codex, `ush-repo-evidence-plan`, one live
+  `codex exec -s read-only --json` session, real account, real unmodified
+  environment, 2026-09-08): **CONFIRMED** reachable despite the same
+  modelVisible=false crowding-out documented for the implicit cases above.
+  The session's own event stream shows a `command_execution` reading the
+  exact installed `~/.agents/skills/ush-repo-evidence-plan/SKILL.md` (via
+  `Get-Content`) after being told the skill's name — not native
+  skill-loading, since the skill was absent from the model-visible list, but
+  the model locating and reading the file itself — followed by an
+  `agent_message` narrating "I'm applying `ush-repo-evidence-plan`" and a
+  final response matching the skill's own documented Result Contract fields
+  (`status`/`summary`/`proposedChanges`/`verification`/`risks`) and Safety
+  Contract (remained read-only; `git status --porcelain` confirmed zero file
+  mutations). An earlier 2026-09-06 attempt at this same probe was blocked
+  mid-turn by account usage-limit exhaustion before completing; that result
+  was not recorded and not fabricated, and this is the retry.
 - Explicit invocation (Cursor, all six Hub skills, one fresh session each,
   `--mode ask --trust --output-format stream-json`, real authenticated
   Cursor Agent CLI 2026.09.02-c22c1a3): **6/6 CONFIRMED** — each session's
