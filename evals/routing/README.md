@@ -22,16 +22,30 @@ repository. They document the intended routing behavior once
 `systematic-debugging`, `verification-before-completion`, and other planning
 skills are migrated — they are not runnable against today's registry.
 
-## Phase 1.3 live evidence (2026-09-06)
+## Phase 1.3 live evidence (2026-09-06 through 2026-09-09)
 
-Two independently-scored, non-combinable evidence populations exist under
+Three independently-scored, non-combinable evidence populations exist under
 this directory — see `docs/DESIGN.md`'s Phase 1.3 section for the full
-methodology:
+methodology. **Pass R and Pass P are never merged into one precision/recall,
+and neither is ever merged with the Cursor numbers** — each is its own
+population, scored by its own file, reported separately below:
 
-- **Codex** (`phase-1.3-real-environment-cases.json`, `phase-1.3-project-scoped-cases.json`,
-  scored by `scripts/routing-eval.mjs` / `npm run routing-eval`): uses
-  `modelVisible` to separate a genuine context-budget reachability failure
-  from an ordinary semantic false negative.
+- **Codex Pass R — real, unmodified environment**
+  (`phase-1.3-real-environment-cases.json`, scored by
+  `scripts/routing-eval.mjs` / `npm run routing-eval`): uses `modelVisible`
+  to separate a genuine context-budget reachability failure (all six Hub
+  skills are crowded out of the model-visible list by ~330-430 unrelated
+  third-party skills sharing this machine's user-level skill root) from an
+  ordinary semantic false negative.
+- **Codex Pass P — project-scoped, Hub-visible environment**
+  (`phase-1.3-project-scoped-cases.json`, scored by the same
+  `scripts/routing-eval.mjs`): a scratch project directory whose
+  `.agents/skills/` contains only the six Hub skills, reconfirmed
+  model-visible via `codex debug prompt-input` immediately before each live
+  run. This measures semantic routing quality once the reachability problem
+  from Pass R is removed — it is a different question from Pass R, not a
+  "fixed" version of it, and its precision/recall is reported and read
+  independently.
 - **Cursor** (`phase-1.3-cursor-cases.json`, scored by
   `scripts/cursor-routing-eval.mjs` / `npm run routing-eval:cursor`): uses a
   different field, `selectionEvidence` (`CONFIRMED`/`UNCONFIRMED`/`NOT_TESTED`),
@@ -41,6 +55,31 @@ methodology:
   exact `~/.cursor/skills/<id>/SKILL.md` path). These two fields are
   deliberately not unified, and neither evaluator's precision/recall is ever
   combined with the other's.
+
+### Pass P results (2026-09-09)
+
+`npm run routing-eval` output for Pass P: **5/5 cases observed, 3/3
+reachable, precision=1, recall=1, tp=3 fp=0 fn=0 tn=2.** All three positive
+cases (I1-I3) named their expected skill unprompted (once via a direct
+`Get-Content` read of the installed `SKILL.md`, twice via explicit narration
+plus, for I3, real `git diff`/`git status` inspection) and both negative
+cases (I4-I5) produced zero tool calls of any kind. See the `notes` field on
+each case in `phase-1.3-project-scoped-cases.json` for the specific runtime
+evidence. This is a small fixture (5 cases) — read the perfect score as "no
+misses in this sample," not as a general reliability guarantee.
+
+**Known confound present in every Pass P (and Pass R) session on this
+machine:** the user's own global `~/.codex/AGENTS.md` — an operator
+preferences file unrelated to this repository, outside its scope to edit —
+injects a fixed, unrelated task (creating ChatGPT/Codex system-prompt files
+and a `.gemini_sync.md` Google-sync log) into every Codex session's prompt
+input as a synthetic `user`-role message. It visibly influenced the *final
+answer text* in several sessions below (e.g. R3, E1, I1 all ended with
+proposals about those same three files) but did not change which Hub skill
+was selected, whether the skill's own SKILL.md was read, or whether any file
+was actually mutated in any observed session — the routing/reachability
+signal scored here is unaffected, but the raw transcripts are noisier than a
+clean-room test would be, and this is disclosed rather than edited out.
 
 **Explicit invocation is recorded separately from implicit routing and is
 NOT part of either precision/recall computation above** (explicit sessions
@@ -62,6 +101,25 @@ name the skill directly, so they are not a routing measurement at all):
   mutations). An earlier 2026-09-06 attempt at this same probe was blocked
   mid-turn by account usage-limit exhaustion before completing; that result
   was not recorded and not fabricated, and this is the retry.
+- Explicit invocation (Codex Pass P, all six Hub skills, one fresh
+  `codex exec -s read-only --json` session each, real account, project-scoped
+  scratch environment, 2026-09-09, cases E1-E6): **6/6 CONFIRMED**. E1
+  (`ush-repo-evidence-plan`), E2 (`ush-concurrent-edit-coordination`), E3
+  (`ush-game-meeting-plan`), E4 (`ush-discord-repo-cross-reference`), and E5
+  (`ush-work-announcement`) each show a direct `Get-Content` read of the
+  named skill's exact installed `SKILL.md`, an `agent_message` naming the
+  skill, and a final response matching that skill's own documented Result
+  Contract; zero file mutations in any of the five (confirmed via
+  `git status --short` before/after). E4 and E5 additionally fail-closed
+  correctly on missing real inputs (no Discord connector; no Git remote to
+  verify merged PRs) rather than fabricating results.
+- Fail-closed (Codex Pass P, `ush-github-task-flow`, case E6, no GitHub
+  write authorization stated in the prompt): **CONFIRMED** safe
+  non-mutation — the session read the skill's `SKILL.md`, cited its own
+  requirement ("Confirm write capability before creating anything"), created
+  no pull request, made no `gh`/GitHub API tool calls, and left the scratch
+  repo's git history and working tree unchanged (`git status --short`/
+  `git log --oneline` identical before and after).
 - Explicit invocation (Cursor, all six Hub skills, one fresh session each,
   `--mode ask --trust --output-format stream-json`, real authenticated
   Cursor Agent CLI 2026.09.02-c22c1a3): **6/6 CONFIRMED** — each session's

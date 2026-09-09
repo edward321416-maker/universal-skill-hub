@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "status": "PASS P — PROJECT-SCOPED HUB-VISIBLE ENVIRONMENT. This is NOT a Hub-only clean room: unrelated global/user-level skills remain present (no working mechanism was found to exclude them — see docs/DESIGN.md). It is the real environment PLUS a scratch project directory whose `.agents/skills/` contains the six Hub skills, using Codex's own documented project-level skill-discovery convention. A quota-free `codex debug prompt-input` investigation already confirmed this setup makes all six Hub skills model-visible (verified 2026-09-06 against a throwaway scratch copy). `modelVisible` is left null here pending a fresh, official reconfirmation immediately before spending live-test quota (per the locked methodology: confirm 6/6 model-visible right before testing, not merely at fixture-authoring time) — do not treat null as a prediction of failure, only as 'not yet (re-)confirmed for this run'.",
+  "version": 2,
+  "status": "PASS P — PROJECT-SCOPED HUB-VISIBLE ENVIRONMENT. This is NOT a Hub-only clean room: unrelated global/user-level skills remain present (no working mechanism was found to exclude them — see docs/DESIGN.md). It is the real environment PLUS a scratch project directory whose `.agents/skills/` contains the six Hub skills, using Codex's own documented project-level skill-discovery convention. A fresh scratch copy was rebuilt and reverified 2026-09-09 (byte-identical `cmp` against `adapters/codex/*/SKILL.md`), then a quota-free `codex debug prompt-input` run immediately before live testing reconfirmed all six Hub skills model-visible under skill root `r18` = the scratch project's `.agents/skills/` (per the locked methodology: confirm 6/6 right before spending live-test quota, not merely at fixture-authoring time). All 5 pure-implicit cases below (I1-I5) were then run live, one fresh `codex exec -s read-only --json` session each, real account, 2026-09-09. A known confound applies to every session in this pass (see evals/routing/README.md): the user's own global `~/.codex/AGENTS.md` (unrelated to this repo) injects an unrelated fixed task into every session's prompt input; it did not change which Hub skill was selected or whether any file was mutated in any of the 5 sessions, but it is visible in the raw transcripts and is not this repo's content.",
   "platform": "codex",
   "environment": "project-scoped: a scratch git-initialized directory outside this repo, containing only `.agents/skills/<six ush-* skills>/SKILL.md` (byte-identical copies of adapters/codex/*/SKILL.md); real user-level/marketplace skills remain present alongside (additive, not exclusive)",
   "cases": [
@@ -8,39 +8,39 @@
       "id": "phase-1.3-project-implicit-1-repo-evidence-plan",
       "task": "Inspect the repository evidence and give me a plan showing which files/functions should change, without editing anything.",
       "expectedSkillIds": ["ush-repo-evidence-plan"],
-      "actualSkillIds": null,
-      "modelVisible": null,
-      "notes": "Same task text as phase-1.3-real-implicit-1-repo-evidence-plan, for direct Pass R vs. Pass P comparison."
+      "actualSkillIds": ["ush-repo-evidence-plan"],
+      "modelVisible": true,
+      "notes": "Same task text as phase-1.3-real-implicit-1-repo-evidence-plan, for direct Pass R vs. Pass P comparison. CONFIRMED live 2026-09-09 (I1): without being told the skill's name, the session's own agent_message stated \"I'm using the `ush-repo-evidence-plan` skill to keep this read-only and scoped\" and the final response matched the skill's documented Result Contract fields (status/summary/proposedChanges/verification/risks). Zero file mutations."
     },
     {
       "id": "phase-1.3-project-implicit-2-game-meeting-plan",
       "task": "Turn these meeting notes into a scoped game implementation plan with locks, dependencies, and open questions.",
       "expectedSkillIds": ["ush-game-meeting-plan"],
-      "actualSkillIds": null,
-      "modelVisible": null,
-      "notes": "Same task text as phase-1.3-real-implicit-2-game-meeting-plan."
+      "actualSkillIds": ["ush-game-meeting-plan"],
+      "modelVisible": true,
+      "notes": "Same task text as phase-1.3-real-implicit-2-game-meeting-plan. CONFIRMED live 2026-09-09 (I2): a command_execution item shows a direct `Get-Content .agents/skills/ush-game-meeting-plan/SKILL.md` read, and the agent_message named the skill (\"I'll use the game meeting planning skill\"). The task text (matching Pass R's) contains no actual meeting-notes content, so the session correctly asked for the missing notes instead of fabricating a plan — a fail-closed response, not a routing miss; the skill was still selected and read."
     },
     {
       "id": "phase-1.3-project-implicit-3-concurrent-edit-coordination",
       "task": "Check whether two independent tasks are likely to edit overlapping files based on the real git diff.",
       "expectedSkillIds": ["ush-concurrent-edit-coordination"],
-      "actualSkillIds": null,
-      "modelVisible": null,
-      "notes": "Same task text as phase-1.3-real-implicit-3-concurrent-edit-coordination. Expected candidate only when real diff-inspection evidence is available in the scratch project; otherwise the deterministic eligibility filter should BLOCK (MISSING_TOOL)."
+      "actualSkillIds": ["ush-concurrent-edit-coordination"],
+      "modelVisible": true,
+      "notes": "Same task text as phase-1.3-real-implicit-3-concurrent-edit-coordination. CONFIRMED live 2026-09-09 (I3): agent_message stated \"I'll use the concurrent-edit coordination skill\", then ran real `git status --short`/`git diff --name-only` against the scratch repo's actual (single-sided) diff and correctly returned SKIP (\"insufficient evidence to compare two tasks\" — only one task's diff exists in this environment) rather than fabricating a collision verdict. Skill selection is the routing signal scored here; the SKIP outcome matches this fixture's own documented expectation (see original notes: deterministic eligibility should BLOCK/SKIP without real two-task diff evidence)."
     },
     {
       "id": "phase-1.3-project-negative-1-semver-explanation",
       "task": "Explain what semantic versioning means.",
       "expectedSkillIds": [],
-      "actualSkillIds": null,
-      "notes": "Same task text as phase-1.3-real-negative-1-semver-explanation, for direct comparison."
+      "actualSkillIds": [],
+      "notes": "Same task text as phase-1.3-real-negative-1-semver-explanation, for direct comparison. CONFIRMED true negative live 2026-09-09 (I4): zero command_execution or tool-call events of any kind in the session; the model answered directly with no Hub skill involvement."
     },
     {
       "id": "phase-1.3-project-negative-2-summarize-paragraph",
-      "task": "Summarize this paragraph.",
+      "task": "Summarize this paragraph: The quarterly report showed steady growth in the northern region, while the southern branch experienced a slight decline due to supply chain delays. Management plans to address this by diversifying suppliers next quarter.",
       "expectedSkillIds": [],
-      "actualSkillIds": null,
-      "notes": "Same task text as phase-1.3-real-negative-2-summarize-paragraph."
+      "actualSkillIds": [],
+      "notes": "Task text corrected to match phase-1.3-real-negative-2-summarize-paragraph's full paragraph verbatim (the previous stub, \"Summarize this paragraph.\", had no actual paragraph to summarize and was never run — this is the first live execution of this case). CONFIRMED true negative live 2026-09-09 (I5): zero command_execution or tool-call events of any kind in the session; the model summarized directly with no Hub skill involvement."
     }
   ]
 }
