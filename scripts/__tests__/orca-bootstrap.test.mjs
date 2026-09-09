@@ -1,0 +1,125 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createManifest, verifyRelease, resolveContext, deploy, bridgeEligibility, launch, digest } from '../orca-bootstrap.mjs';
+
+const source = fileURLToPath(new URL('../../', import.meta.url));
+const pin = '463446ae2372161dd9431c96bcb52bdfab024001';
+function fixture(t) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ush-bootstrap-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const cache = path.join(root, 'release');
+  fs.mkdirSync(cache);
+  for (const name of ['scripts', 'registry', 'skills', 'adapters', 'node_modules', 'package.json', 'package-lock.json']) {
+    fs.cpSync(path.join(source, name), path.join(cache, name), { recursive: true });
+  }
+  const target = path.join(root, '한글 project');
+  fs.mkdirSync(target);
+  return { root, target, release: createManifest(cache, pin), platform: 'codex' };
+}
+
+test('deployment reuses installer, preserves exact adapters and is idempotent', async t => {
+  const f = fixture(t);
+  const first = await deploy(f);
+  assert.equal(first.changed, 7);
+  assert.equal(first.skills.length, 6);
+  for (const skill of first.skills) {
+    assert.deepEqual(fs.readFileSync(path.join(f.target, '.agents/skills', skill.id, 'SKILL.md')),
+      fs.readFileSync(path.join(f.release.root, 'adapters/codex', skill.id, 'SKILL.md')));
+  }
+  assert.equal((await deploy(f)).changed, 0);
+});
+
+test('context requires registered actual cwd, consistent local host and approved owner', t => {
+  const f = fixture(t);
+  const input = { cwd: f.target, repos: [{ id: 'repo' }], worktrees: [{ id: 'tree', repoId: 'repo', path: f.target, hostId: 'local' }], allowedRepoIds: ['repo'] };
+  assert.equal(resolveContext(input).repoId, 'repo');
+  assert.throws(() => resolveContext({ ...input, worktrees: [] }), /UNREGISTERED/);
+  assert.throws(() => resolveContext({ ...input, allowedRepoIds: [] }), /OWNERSHIP/);
+  assert.throws(() => resolveContext({ ...input, worktrees: [{ ...input.worktrees[0], hostId: 'remote', identity: { executionHostId: 'local' } }] }), /HOST/);
+});
+
+for (const relative of ['skills/global/ush-repo-evidence-plan/SKILL.md', 'adapters/codex/ush-repo-evidence-plan/SKILL.md', 'scripts/install-skills.mjs']) {
+  test('tampering fails before target writes: ' + relative, async t => {
+    const f = fixture(t);
+    fs.appendFileSync(path.join(f.release.root, relative), '\r\n');
+    assert.throws(() => verifyRelease(f.release), /INTEGRITY/);
+    await assert.rejects(deploy(f), /INTEGRITY/);
+    assert.deepEqual(fs.readdirSync(f.target), []);
+  });
+}
+
+test('modified managed skills are never overwritten', async t => {
+  const f = fixture(t);
+  await deploy(f);
+  const file = path.join(f.target, '.agents/skills/ush-repo-evidence-plan/SKILL.md');
+  fs.appendFileSync(file, '\nuser edit');
+  const before = fs.readFileSync(file);
+  await assert.rejects(deploy(f), /CONFLICT/);
+  assert.deepEqual(fs.readFileSync(file), before);
+});
+
+test('junction or symlink cannot redirect deployment', async t => {
+  const f = fixture(t);
+  const outside = path.join(f.root, 'outside');
+  fs.mkdirSync(outside);
+  fs.symlinkSync(outside, path.join(f.target, '.agents'), process.platform === 'win32' ? 'junction' : 'dir');
+  await assert.rejects(deploy(f), /SYMLINK/);
+  assert.deepEqual(fs.readdirSync(outside), []);
+});
+
+test('policy review is exact-byte and preserves the original prefix', async t => {
+  const f = fixture(t);
+  const before = Buffer.from('Existing project lock\r\n');
+  const policy = path.join(f.target, 'AGENTS.md');
+  fs.writeFileSync(policy, before);
+  await assert.rejects(deploy(f), /POLICY_REVIEW/);
+  await deploy({ ...f, approvedPolicyHashes: [digest(before)] });
+  assert.deepEqual(fs.readFileSync(policy).subarray(0, before.length), before);
+});
+
+test('concurrent preparations serialize and do not duplicate policy', async t => {
+  const f = fixture(t);
+  const results = await Promise.all([deploy(f), deploy(f)]);
+  assert.deepEqual(results.map(x => x.changed).sort(), [0, 7]);
+});
+
+test('bridge skips neutral tasks and is explicitly advisory', async t => {
+  const f = fixture(t);
+  const result = await bridgeEligibility(f.release, { skillId: null });
+  assert.equal(result.decision, 'SKIP');
+  assert.equal(result.enforcement, 'ADVISORY');
+});
+
+test('bridge executes the pinned engine and blocks missing task facts', async t => {
+  const f = fixture(t);
+  const result = await bridgeEligibility(f.release, { skillId: 'ush-github-task-flow', task: { platform: 'codex' } });
+  assert.equal(result.decision, 'BLOCK');
+  assert.match(result.reasonCode, /^MISSING_/);
+  assert.equal(result.enforcement, 'ADVISORY');
+});
+
+test('bridge retains EXPERIMENTAL L3 automatic-write gate with synthetic grants', async t => {
+  const f = fixture(t);
+  const skill = verifyRelease(f.release).skills.find(x => x.skill_id === 'ush-github-task-flow');
+  const result = await bridgeEligibility(f.release, { skillId: skill.skill_id, task: {
+    platform: 'codex', autoInvoke: true, explicitIntent: true, hasPermission: true,
+    availableInputs: skill.required_inputs, availableTools: skill.required_tools,
+    availableCapabilities: skill.required_capabilities, grantedPermissions: skill.required_permissions
+  } });
+  assert.equal(result.decision, 'BLOCK');
+  assert.equal(result.reasonCode, 'EXPERIMENTAL_L3_AUTO');
+});
+
+test('launcher diagnostic bypass is only for standalone diagnostics', async () => {
+  let prepared = 0;
+  const prepare = async () => { prepared++; };
+  assert.equal(await launch({ executable: process.execPath, args: ['--version'], prepare }), 0);
+  assert.equal(prepared, 0);
+  assert.equal(await launch({ executable: process.execPath, args: ['-e', 'process.exit(7)', '--', '--help'], prepare }), 7);
+  assert.equal(prepared, 1);
+  await assert.rejects(launch({ executable: process.execPath, args: ['-e', 'process.exit(0)'], prepare: async () => { throw new Error('not ready'); } }), /not ready/);
+});
