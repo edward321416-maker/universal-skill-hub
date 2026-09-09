@@ -56,17 +56,48 @@ population, scored by its own file, reported separately below:
   deliberately not unified, and neither evaluator's precision/recall is ever
   combined with the other's.
 
-### Pass P results (2026-09-09)
+### Pass P results (2026-09-09, corrected 2026-09-09 per Decision 12)
 
-`npm run routing-eval` output for Pass P: **5/5 cases observed, 3/3
-reachable, precision=1, recall=1, tp=3 fp=0 fn=0 tn=2.** All three positive
-cases (I1-I3) named their expected skill unprompted (once via a direct
-`Get-Content` read of the installed `SKILL.md`, twice via explicit narration
-plus, for I3, real `git diff`/`git status` inspection) and both negative
-cases (I4-I5) produced zero tool calls of any kind. See the `notes` field on
-each case in `phase-1.3-project-scoped-cases.json` for the specific runtime
-evidence. This is a small fixture (5 cases) — read the perfect score as "no
-misses in this sample," not as a general reliability guarantee.
+**Evidence rule (Decision 12):** for Codex implicit routing, the session's
+own narrative alone ("I'm using ush-...", "I'll use ush-...") does NOT
+establish `actualSkillIds`, even when the final output resembles the named
+skill's Result Contract. `model narrative != confirmed Skill invocation`.
+A positive case is CONFIRMED only when the session's own
+`command_execution` stream shows a direct read of the exact installed
+`SKILL.md` (a `Get-Content` or equivalent host/runtime event) — the same
+evidence bar already applied to Cursor's `readToolCall`. This bar was
+applied retroactively to I1 and I3, both originally scored from narrative
+evidence only; see each case's `notes` in
+`phase-1.3-project-scoped-cases.json` for the full correction rationale.
+
+Codex Pass P — pure implicit routing:
+
+- **Directly confirmed:**
+  - I2 (`ush-game-meeting-plan`) — TP. Transcript shows a successful
+    `Get-Content .agents/skills/ush-game-meeting-plan/SKILL.md`.
+  - I4 (no Hub skill expected) — TN. Zero tool calls of any kind.
+  - I5 (no Hub skill expected) — TN. Zero tool calls of any kind.
+- **Unconfirmed** (`actualSkillIds: null`, excluded from TP/FP/FN, not
+  recorded as a routing miss):
+  - I1 — expected `ush-repo-evidence-plan`. Model narrative claimed usage
+    and produced Result-Contract-shaped output, but no direct `SKILL.md`
+    read was observed in the transcript.
+  - I3 — expected `ush-concurrent-edit-coordination`. Model narrative
+    claimed usage and the session did real `git diff`/`git status`
+    inspection (correctly returning SKIP for insufficient evidence), but
+    its one attempted `SKILL.md` read exited 1 (failed) — no successful
+    direct read exists.
+
+`npm run routing-eval` output for Pass P on the confirmed/evaluable subset
+only: **casesTotal=5, casesObserved=3, casesNotObserved=2,
+casesReachable=3, tp=1, fp=0, fn=0, tn=2, precision=1, recall=1.**
+
+**Do not read this as "5/5 implicit routing passed" or "3/3 positives
+confirmed."** Those claims are no longer valid. This is a 1-TP, 2-TN
+confirmed subset out of a small (5-case) fixture, with 2 additional
+positive sessions left unconfirmed for lack of direct load evidence —
+precision/recall of 1 here describes a very small directly-observed sample,
+not a general reliability guarantee.
 
 **Known confound present in every Pass P (and Pass R) session on this
 machine:** the user's own global `~/.codex/AGENTS.md` — an operator
