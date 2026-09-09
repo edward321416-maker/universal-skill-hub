@@ -1,0 +1,8 @@
+# Exact-byte hashes and generated adapters must survive Windows checkout.
+# Keep the repository's text formats LF regardless of core.autocrlf.
+*.md text eol=lf
+*.json text eol=lf
+*.mjs text eol=lf
+*.yml text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf

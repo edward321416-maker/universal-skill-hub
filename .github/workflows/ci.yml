@@ -7,7 +7,11 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       # actions/checkout v7.0.1, pinned by commit SHA (verified via
       # `gh api repos/actions/checkout/tags` on 2026-09-05). v7's action.yml
