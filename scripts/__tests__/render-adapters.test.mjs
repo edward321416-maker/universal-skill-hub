@@ -38,6 +38,30 @@ test('Phase 1.2: codex/claude-code/cursor/opencode all declare shell_exec by def
   }
 });
 
+// Phase 1.3 live Codex validation: a real `codex exec` run against all six
+// installed Hub skills failed every one with "failed to load skill ...:
+// missing YAML frontmatter delimited by ---". Codex's real skill loader
+// requires the file to start with the `---` delimiter as its literal first
+// bytes; the GENERATED marker used to be prepended BEFORE the frontmatter
+// (marker, blank line, then `---`), which Codex's parser rejects outright.
+// Claude Code's own harness tolerated the old ordering (confirmed live in
+// this session), so this was never caught until Codex was actually tested.
+test('Phase 1.3: rendered adapter content begins with the frontmatter delimiter "---" as its literal first bytes, not the GENERATED marker — required for Codex\'s real skill loader to accept the file at all', () => {
+  const rendered = renderAdapter({ skillId: 'ush-example-skill', canonicalBody: CANONICAL, platform: 'codex', capabilities: { requires: [], requires_not: [] } });
+  assert.equal(rendered.blocked, false);
+  assert.ok(rendered.content.startsWith('---\n'), `expected content to start with "---\\n", got: ${JSON.stringify(rendered.content.slice(0, 40))}`);
+});
+
+test('Phase 1.3: the GENERATED marker still appears in the rendered content (right after the frontmatter block), so provenance/drift detection is unaffected by the reordering', () => {
+  const rendered = renderAdapter({ skillId: 'ush-example-skill', canonicalBody: CANONICAL, platform: 'codex', capabilities: { requires: [], requires_not: [] } });
+  assert.ok(rendered.content.includes('GENERATED — DO NOT EDIT'));
+  assert.ok(rendered.content.includes('Fixture body, not a real skill.'));
+  // Frontmatter block must appear in full, byte-for-byte, before the marker.
+  const frontmatterBlock = CANONICAL.slice(0, CANONICAL.indexOf('---', 3) + 3);
+  assert.ok(rendered.content.startsWith(frontmatterBlock));
+  assert.ok(rendered.content.indexOf('GENERATED') > rendered.content.indexOf(frontmatterBlock) + frontmatterBlock.length - 10);
+});
+
 test('Test G: adapter render BLOCKs when the skill requires a capability the platform cannot support', () => {
   const rendered = renderAdapter({
     skillId: 'ush-example-skill',

@@ -1,11 +1,3 @@
-<!--
-GENERATED — DO NOT EDIT
-Rendered from canonical skill "ush-discord-repo-cross-reference" for platform "cursor".
-canonical_content_sha256: 9fea22eca989a8548c5c19387d7bdc27b0c0db3d97b6a65d5b23932a4696bfda
-source_commit: 983005fc41b22cb0efc76fb4b529df8ef6c6d6d8
-Edit the canonical SKILL.md under skills/ and re-run scripts/render-adapters.mjs instead.
--->
-
 ---
 name: ush-discord-repo-cross-reference
 description: Cross-reference a claim or discussion from Discord against actual repository evidence (code, tests, decisions, docs) to determine whether it is confirmed, contradicted, or unresolved. Use when asked whether a Discord claim about the project's state is actually true, or to relate repository history back to a Discord discussion. Do not use to moderate, edit, delete, or react to Discord content, and do not use it to send a message unless the exact text, destination, and explicit sending intent are all already in place.
@@ -18,6 +10,14 @@ metadata:
   source_path: .codex/skills/discord-repo-cross-reference/SKILL.md
   source_commit: 983005fc41b22cb0efc76fb4b529df8ef6c6d6d8
 ---
+
+<!--
+GENERATED — DO NOT EDIT
+Rendered from canonical skill "ush-discord-repo-cross-reference" for platform "cursor".
+canonical_content_sha256: 9fea22eca989a8548c5c19387d7bdc27b0c0db3d97b6a65d5b23932a4696bfda
+source_commit: 983005fc41b22cb0efc76fb4b529df8ef6c6d6d8
+Edit the canonical SKILL.md under skills/ and re-run scripts/render-adapters.mjs instead.
+-->
 
 # Discord Repo Cross Reference
 

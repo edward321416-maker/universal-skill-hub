@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "status": "PASS P — PROJECT-SCOPED HUB-VISIBLE ENVIRONMENT. This is NOT a Hub-only clean room: unrelated global/user-level skills remain present (no working mechanism was found to exclude them — see docs/DESIGN.md). It is the real environment PLUS a scratch project directory whose `.agents/skills/` contains the six Hub skills, using Codex's own documented project-level skill-discovery convention. A fresh scratch copy was rebuilt and reverified 2026-09-09 (byte-identical `cmp` against `adapters/codex/*/SKILL.md`), then a quota-free `codex debug prompt-input` run immediately before live testing reconfirmed all six Hub skills model-visible under skill root `r18` = the scratch project's `.agents/skills/` (per the locked methodology: confirm 6/6 right before spending live-test quota, not merely at fixture-authoring time). All 5 pure-implicit cases below (I1-I5) were then run live, one fresh `codex exec -s read-only --json` session each, real account, 2026-09-09. A known confound applies to every session in this pass (see evals/routing/README.md): the user's own global `~/.codex/AGENTS.md` (unrelated to this repo) injects an unrelated fixed task into every session's prompt input; it did not change which Hub skill was selected or whether any file was mutated in any of the 5 sessions, but it is visible in the raw transcripts and is not this repo's content. DECISION 12 CORRECTION (2026-09-09): I1 and I3 were originally scored actualSkillIds=[the expected skill] on the strength of the session's own narrated self-report (\"I'm using ush-...\"/\"I'll use ush-...\") plus Result-Contract-shaped output. On review this was judged insufficient — model self-report alone must not establish actualSkillIds, the same evidence bar already applied to Cursor. Only a direct runtime event (a Get-Content or equivalent read of the exact installed SKILL.md, observed in the session's own command_execution stream) counts as confirmation. Neither I1 nor I3 has that corroborating read in its transcript (I3's one attempted SKILL.md read exited 1/failed). Both are now actualSkillIds=null — UNCONFIRMED, excluded from TP/FP/FN, not recorded as a routing miss. I2 keeps its original CONFIRMED status: its transcript shows a successful `Get-Content .agents/skills/ush-game-meeting-plan/SKILL.md`. I2 is therefore the only directly confirmed positive implicit case in this pass; do not describe this fixture as \"5/5 confirmed\" or \"3/3 positives confirmed\" — see evals/routing/README.md for the corrected summary.",
+  "platform": "codex",
+  "environment": "project-scoped: a scratch git-initialized directory outside this repo, containing only `.agents/skills/<six ush-* skills>/SKILL.md` (byte-identical copies of adapters/codex/*/SKILL.md); real user-level/marketplace skills remain present alongside (additive, not exclusive)",
+  "cases": [
+    {
+      "id": "phase-1.3-project-implicit-1-repo-evidence-plan",
+      "task": "Inspect the repository evidence and give me a plan showing which files/functions should change, without editing anything.",
+      "expectedSkillIds": ["ush-repo-evidence-plan"],
+      "actualSkillIds": null,
+      "modelVisible": true,
+      "notes": "Same task text as phase-1.3-real-implicit-1-repo-evidence-plan, for direct Pass R vs. Pass P comparison. UNCONFIRMED (Decision 12, 2026-09-09 correction): expectedSkillIds was confirmed model-visible before the run, and the live session completed. Without being told the skill's name, the session's own agent_message narrated \"I'm using the `ush-repo-evidence-plan` skill to keep this read-only and scoped\", and the final response resembled the skill's documented Result Contract fields (status/summary/proposedChanges/verification/risks). But no corroborating direct SKILL.md load (a Get-Content or equivalent host/runtime event on the exact installed file) was observed in this session's command_execution stream — the transcript's actual commands were directory/AGENTS.md/README inspection, not a read of ush-repo-evidence-plan/SKILL.md. Per the evidence rule locked in Decision 12, model self-report alone does not establish actualSkillIds, consistent with the standard already applied to Cursor. This is deliberately left as actualSkillIds=null (not [] and not a recorded miss) so it is excluded from TP/FP/FN rather than misclassified as a routing failure — it is an evidence gap, not a disconfirmed selection."
+    },
+    {
+      "id": "phase-1.3-project-implicit-2-game-meeting-plan",
+      "task": "Turn these meeting notes into a scoped game implementation plan with locks, dependencies, and open questions.",
+      "expectedSkillIds": ["ush-game-meeting-plan"],
+      "actualSkillIds": ["ush-game-meeting-plan"],
+      "modelVisible": true,
+      "notes": "Same task text as phase-1.3-real-implicit-2-game-meeting-plan. CONFIRMED live 2026-09-09 (I2): a command_execution item shows a direct `Get-Content .agents/skills/ush-game-meeting-plan/SKILL.md` read, and the agent_message named the skill (\"I'll use the game meeting planning skill\"). The task text (matching Pass R's) contains no actual meeting-notes content, so the session correctly asked for the missing notes instead of fabricating a plan — a fail-closed response, not a routing miss; the skill was still selected and read."
+    },
+    {
+      "id": "phase-1.3-project-implicit-3-concurrent-edit-coordination",
+      "task": "Check whether two independent tasks are likely to edit overlapping files based on the real git diff.",
+      "expectedSkillIds": ["ush-concurrent-edit-coordination"],
+      "actualSkillIds": null,
+      "modelVisible": true,
+      "notes": "Same task text as phase-1.3-real-implicit-3-concurrent-edit-coordination. UNCONFIRMED (Decision 12, 2026-09-09 correction): expectedSkillIds was confirmed model-visible before the run. The session's agent_message narrated \"I'll use the concurrent-edit coordination skill\", then ran real `git status --short`/`git diff --name-only` against the scratch repo's actual (single-sided) diff and correctly returned SKIP (\"insufficient evidence to compare two tasks\" — only one task's diff exists in this environment) rather than fabricating a collision verdict; that SKIP outcome matches this fixture's own documented expectation. However, the transcript's one attempted `Get-Content -LiteralPath 'C:/Users/admin/AppData/Local/Temp/...` command targeting a SKILL.md path exited 1 (failed) — it did not successfully read the file — so there is no corroborating direct SKILL.md load evidence, only narrative claim plus real (but skill-independent) git inspection. Per the Decision 12 evidence rule, this is left as actualSkillIds=null: an evidence gap, not a disconfirmed selection, and excluded from TP/FP/FN."
+    },
+    {
+      "id": "phase-1.3-project-negative-1-semver-explanation",
+      "task": "Explain what semantic versioning means.",
+      "expectedSkillIds": [],
+      "actualSkillIds": [],
+      "notes": "Same task text as phase-1.3-real-negative-1-semver-explanation, for direct comparison. CONFIRMED true negative live 2026-09-09 (I4): zero command_execution or tool-call events of any kind in the session; the model answered directly with no Hub skill involvement."
+    },
+    {
+      "id": "phase-1.3-project-negative-2-summarize-paragraph",
+      "task": "Summarize this paragraph: The quarterly report showed steady growth in the northern region, while the southern branch experienced a slight decline due to supply chain delays. Management plans to address this by diversifying suppliers next quarter.",
+      "expectedSkillIds": [],
+      "actualSkillIds": [],
+      "notes": "Task text corrected to match phase-1.3-real-negative-2-summarize-paragraph's full paragraph verbatim (the previous stub, \"Summarize this paragraph.\", had no actual paragraph to summarize and was never run — this is the first live execution of this case). CONFIRMED true negative live 2026-09-09 (I5): zero command_execution or tool-call events of any kind in the session; the model summarized directly with no Hub skill involvement."
+    }
+  ]
+}

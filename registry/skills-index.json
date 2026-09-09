@@ -20,7 +20,8 @@
           "reason": "Pure read-only reasoning over supplied evidence; requires only read_files, a static capability Codex's filesystem skill convention already provides.",
           "evidence": [
             { "source_type": "official_docs", "source": "developers.openai.com/codex/skills (redirects to learn.chatgpt.com/docs/build-skills) — Codex reads skills from .agents/skills at repo/user/admin scope", "verified_on": "2026-09-05" },
-            { "source_type": "local_runtime_test", "source": "scripts/install-skills.mjs --apply installed this skill to ~/.agents/skills; installed file verified byte-identical to a fresh renderAdapter render", "verified_on": "2026-09-05" }
+            { "source_type": "local_runtime_test", "source": "scripts/install-skills.mjs --apply installed this skill to ~/.agents/skills; installed file verified byte-identical to a fresh renderAdapter render", "verified_on": "2026-09-05" },
+            { "source_type": "local_runtime_test", "source": "Phase 1.3 project-scoped Codex live test: the exact installed SKILL.md was explicitly loaded in a real codex exec -s read-only session (a direct Get-Content read observed in the session's own command_execution stream) and the skill followed its documented Result/Safety Contract, remaining read-only; this confirms runtime skill loading/execution, not unrestricted availability of operation-specific tools or permissions.", "verified_on": "2026-09-09" }
           ]
         },
         "claude-code": {
@@ -34,7 +35,8 @@
           "status": "SUPPORTED",
           "reason": "Pure read-only reasoning over supplied evidence; requires only read_files, a static capability Cursor already provides.",
           "evidence": [
-            { "source_type": "official_docs", "source": "cursor.com/docs/skills — \"Skills are automatically loaded from these locations\": project .cursor/skills/ and .agents/skills/, user-level ~/.cursor/skills/ and ~/.agents/skills/ (plus .claude/skills/ and .codex/skills/ compatibility paths)", "verified_on": "2026-09-06" }
+            { "source_type": "official_docs", "source": "cursor.com/docs/skills — \"Skills are automatically loaded from these locations\": project .cursor/skills/ and .agents/skills/, user-level ~/.cursor/skills/ and ~/.agents/skills/ (plus .claude/skills/ and .codex/skills/ compatibility paths)", "verified_on": "2026-09-06" },
+            { "source_type": "local_runtime_test", "source": "Phase 1.3 authenticated Cursor Agent CLI live test on Windows: stream-json showed a direct readToolCall on the exact installed ~/.cursor/skills/ush-repo-evidence-plan/SKILL.md during explicit invocation, followed by behavior matching the skill's documented workflow and Result/Safety Contract; Ask mode produced no filesystem mutation. This confirms explicit runtime load only, not implicit semantic routing (Cursor's 3 implicit-positive routing cases remain UNCONFIRMED — see evals/routing/README.md).", "verified_on": "2026-09-06" }
           ]
         },
         "opencode": {
@@ -103,7 +105,8 @@
             { "kind": "permission", "id": "github_write" }
           ],
           "evidence": [
-            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills (redirects to learn.chatgpt.com/docs/build-skills) — Codex reads skills from .agents/skills; Codex CLI has real shell/gh access by design", "verified_on": "2026-09-05" }
+            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills (redirects to learn.chatgpt.com/docs/build-skills) — Codex reads skills from .agents/skills; Codex CLI has real shell/gh access by design", "verified_on": "2026-09-05" },
+            { "source_type": "local_runtime_test", "source": "Phase 1.3 project-scoped Codex live test: the exact installed SKILL.md was explicitly loaded in a real codex exec -s read-only session; with no GitHub write authorization stated, the session blocked safely, attempted no GitHub mutation (no gh/GitHub API tool calls), and left the scratch repository's git history and working tree unchanged. This confirms runtime skill loading and correct fail-closed behavior, not that github_write capability/permission was available or granted.", "verified_on": "2026-09-09" }
           ]
         },
         "claude-code": {
@@ -125,7 +128,8 @@
             { "kind": "permission", "id": "github_write" }
           ],
           "evidence": [
-            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/ (project and user-level)", "verified_on": "2026-09-06" }
+            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/ (project and user-level)", "verified_on": "2026-09-06" },
+            { "source_type": "local_runtime_test", "source": "Phase 1.3 authenticated Cursor Agent CLI live test on Windows: stream-json showed a direct readToolCall on the exact installed ~/.cursor/skills/ush-github-task-flow/SKILL.md during explicit invocation; a separate no-write-authorization case failed closed with zero GitHub mutation tool calls attempted (\"cannot proceed — blocked at step 1\"). This confirms explicit runtime load and safe fail-closed behavior, not that github_write capability/permission was available or that Cursor's Windows sandbox supports it, and not implicit semantic routing.", "verified_on": "2026-09-06" }
           ]
         },
         "opencode": {
@@ -210,7 +214,8 @@
           "reason": "Codex's shell access makes real diff inspection possible, but git_diff_read must actually be available per task; scripts/eligibility.mjs's required_tools check remains fail-closed regardless of platform.",
           "requires_at_runtime": [{ "kind": "tool", "id": "git_diff_read" }],
           "evidence": [
-            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex CLI has real shell access by design", "verified_on": "2026-09-05" }
+            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex CLI has real shell access by design", "verified_on": "2026-09-05" },
+            { "source_type": "local_runtime_test", "source": "Phase 1.3 project-scoped Codex live test: the exact installed SKILL.md was explicitly loaded in a real codex exec -s read-only session; the skill ran real git diff/git status inspection and correctly returned SKIP when only one side of a two-task comparison was available, rather than fabricating a collision verdict. This confirms runtime skill loading/execution and safe behavior under insufficient evidence, not that every required diff-comparison scenario was successfully actionable.", "verified_on": "2026-09-09" }
           ]
         },
         "claude-code": {
@@ -226,7 +231,8 @@
           "reason": "Cursor's shell access makes real diff inspection possible, but git_diff_read must actually be available per task.",
           "requires_at_runtime": [{ "kind": "tool", "id": "git_diff_read" }],
           "evidence": [
-            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" }
+            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" },
+            { "source_type": "local_runtime_test", "source": "Phase 1.3 authenticated Cursor Agent CLI live test on Windows: stream-json showed a direct readToolCall on the exact installed ~/.cursor/skills/ush-concurrent-edit-coordination/SKILL.md during explicit invocation, followed by behavior matching the skill's documented workflow; Ask mode produced no filesystem mutation. This confirms explicit runtime load only, not implicit semantic routing.", "verified_on": "2026-09-06" }
           ]
         },
         "opencode": {
@@ -293,7 +299,8 @@
           "status": "SUPPORTED",
           "reason": "L0 read-only planning over supplied bounded evidence; repository cross-check is explicitly optional per this skill's own workflow, so no extra runtime capability is required.",
           "evidence": [
-            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex reads skills from .agents/skills at repo/user/admin scope", "verified_on": "2026-09-05" }
+            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex reads skills from .agents/skills at repo/user/admin scope", "verified_on": "2026-09-05" },
+            { "source_type": "local_runtime_test", "source": "Phase 1.3 project-scoped Codex live test: the exact installed SKILL.md was explicitly loaded in a real codex exec -s read-only session and the skill followed its documented Result Contract, correctly requesting the missing meeting-notes content rather than fabricating a plan. This confirms runtime skill loading/execution, not unrestricted availability of operation-specific tools or permissions.", "verified_on": "2026-09-09" }
           ]
         },
         "claude-code": {
@@ -307,7 +314,8 @@
           "status": "SUPPORTED",
           "reason": "Same reasoning as codex — read-only planning skill, repository cross-check optional.",
           "evidence": [
-            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" }
+            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" },
+            { "source_type": "local_runtime_test", "source": "Phase 1.3 authenticated Cursor Agent CLI live test on Windows: stream-json showed a direct readToolCall on the exact installed ~/.cursor/skills/ush-game-meeting-plan/SKILL.md during explicit invocation, followed by behavior matching the skill's documented workflow; Ask mode produced no filesystem mutation. This confirms explicit runtime load only, not implicit semantic routing.", "verified_on": "2026-09-06" }
           ]
         },
         "opencode": {
@@ -370,7 +378,8 @@
           "status": "SUPPORTED_WITH_RESTRICTIONS",
           "reason": "The default analyze operation over already-supplied Discord evidence needs nothing generally at runtime; discord_send is required only for the separately-gated send operation, tracked entirely by operationGates.send (not a general runtime requirement, so it is intentionally absent from requires_at_runtime here).",
           "evidence": [
-            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex reads skills from .agents/skills at repo/user/admin scope", "verified_on": "2026-09-05" }
+            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex reads skills from .agents/skills at repo/user/admin scope", "verified_on": "2026-09-05" },
+            { "source_type": "local_runtime_test", "source": "Phase 1.3 project-scoped Codex live test: the exact installed SKILL.md was explicitly loaded in a real codex exec -s read-only session; the skill remained read-only, sent no messages, and correctly declined to fabricate a cross-reference result when no real Discord connector or Git remote was available. This confirms runtime skill loading/execution, not that discord_send or any operation-gated capability was available.", "verified_on": "2026-09-09" }
           ]
         },
         "claude-code": {
@@ -384,7 +393,8 @@
           "status": "SUPPORTED_WITH_RESTRICTIONS",
           "reason": "Same reasoning as codex.",
           "evidence": [
-            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" }
+            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" },
+            { "source_type": "local_runtime_test", "source": "Phase 1.3 authenticated Cursor Agent CLI live test on Windows: stream-json showed a direct readToolCall on the exact installed ~/.cursor/skills/ush-discord-repo-cross-reference/SKILL.md during explicit invocation, followed by behavior matching the skill's documented workflow; Ask mode produced no filesystem mutation. This confirms explicit runtime load only, not implicit semantic routing.", "verified_on": "2026-09-06" }
           ]
         },
         "opencode": {
@@ -455,7 +465,8 @@
           "reason": "Drafting from supplied/live repository evidence is a general runtime requirement (repository_evidence) for this skill's default draft operation. publish is a separate, operation-gated capability/permission (message_publish, tracked entirely by operationGates.publish) the deployment may or may not have configured — not a general runtime requirement, so it is intentionally absent from requires_at_runtime here.",
           "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
           "evidence": [
-            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex reads skills from .agents/skills at repo/user/admin scope", "verified_on": "2026-09-05" }
+            { "source_type": "official_docs", "source": "developers.openai.com/codex/skills — Codex reads skills from .agents/skills at repo/user/admin scope", "verified_on": "2026-09-05" },
+            { "source_type": "local_runtime_test", "source": "Phase 1.3 project-scoped Codex live test: the exact installed SKILL.md was explicitly loaded in a real codex exec -s read-only session; the skill drafted (but did not publish) an announcement and correctly flagged the missing Git remote needed to verify real merged PRs. This confirms runtime skill loading/execution, not that message_publish was available or granted.", "verified_on": "2026-09-09" }
           ]
         },
         "claude-code": {
@@ -471,7 +482,8 @@
           "reason": "Same reasoning as codex.",
           "requires_at_runtime": [{ "kind": "capability", "id": "repository_evidence" }],
           "evidence": [
-            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" }
+            { "source_type": "official_docs", "source": "cursor.com/docs/skills — Cursor automatically loads skills from .cursor/skills/ and .agents/skills/", "verified_on": "2026-09-06" },
+            { "source_type": "local_runtime_test", "source": "Phase 1.3 authenticated Cursor Agent CLI live test on Windows: stream-json showed a direct readToolCall on the exact installed ~/.cursor/skills/ush-work-announcement/SKILL.md during explicit invocation, followed by behavior matching the skill's documented workflow; Ask mode produced no filesystem mutation. This confirms explicit runtime load only, not implicit semantic routing.", "verified_on": "2026-09-06" }
           ]
         },
         "opencode": {

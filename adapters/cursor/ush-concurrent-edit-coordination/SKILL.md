@@ -1,11 +1,3 @@
-<!--
-GENERATED — DO NOT EDIT
-Rendered from canonical skill "ush-concurrent-edit-coordination" for platform "cursor".
-canonical_content_sha256: a8b83254c1eaffb35c15222ec1bb5227f0c00725111ea44a76e364f1bb2d3728
-source_commit: 4b8cf8b0faa7e1d7dc195984dcb66fc468b3157f
-Edit the canonical SKILL.md under skills/ and re-run scripts/render-adapters.mjs instead.
--->
-
 ---
 name: ush-concurrent-edit-coordination
 description: Determine whether two currently-active pieces of work actually overlap on the same implementation source — the same checkout, the same file hunks, or the same public contract — before treating them as needing coordination. Use when asked to check collision risk between two agents or workstreams actively editing code, or when a task-flow skill needs to decide whether to pause for another in-flight change. Do not use to compare plans, backlogs, or open issues/PRs alone, and do not use to reach out to work that has already finished.
@@ -18,6 +10,14 @@ metadata:
   source_path: .codex/skills/coordinate-github-tasks/SKILL.md
   source_commit: 4b8cf8b0faa7e1d7dc195984dcb66fc468b3157f
 ---
+
+<!--
+GENERATED — DO NOT EDIT
+Rendered from canonical skill "ush-concurrent-edit-coordination" for platform "cursor".
+canonical_content_sha256: a8b83254c1eaffb35c15222ec1bb5227f0c00725111ea44a76e364f1bb2d3728
+source_commit: 4b8cf8b0faa7e1d7dc195984dcb66fc468b3157f
+Edit the canonical SKILL.md under skills/ and re-run scripts/render-adapters.mjs instead.
+-->
 
 # Concurrent Edit Coordination
 

@@ -1,11 +1,3 @@
-<!--
-GENERATED — DO NOT EDIT
-Rendered from canonical skill "ush-game-meeting-plan" for platform "cursor".
-canonical_content_sha256: 8834cc8d711e89f14521d8e45b3735f17eeb75f8e7cddf1b0d9829e4d5a79e13
-source_commit: 983005fc41b22cb0efc76fb4b529df8ef6c6d6d8
-Edit the canonical SKILL.md under skills/ and re-run scripts/render-adapters.mjs instead.
--->
-
 ---
 name: ush-game-meeting-plan
 description: Convert bounded meeting notes, a chat transcript, or a decision log into a read-only game-development implementation plan, keeping decisions separate from discussion. Use when asked to turn game design meeting notes or discussion evidence into a scoped plan, priorities, or next steps without changing any files. Do not use to record a decision that was never actually approved, to summarize an unrelated article, or to plan work outside game development.
@@ -18,6 +10,14 @@ metadata:
   source_path: .codex/skills/meeting-to-game-plan/SKILL.md
   source_commit: 983005fc41b22cb0efc76fb4b529df8ef6c6d6d8
 ---
+
+<!--
+GENERATED — DO NOT EDIT
+Rendered from canonical skill "ush-game-meeting-plan" for platform "cursor".
+canonical_content_sha256: 8834cc8d711e89f14521d8e45b3735f17eeb75f8e7cddf1b0d9829e4d5a79e13
+source_commit: 983005fc41b22cb0efc76fb4b529df8ef6c6d6d8
+Edit the canonical SKILL.md under skills/ and re-run scripts/render-adapters.mjs instead.
+-->
 
 # Game Meeting Plan
 

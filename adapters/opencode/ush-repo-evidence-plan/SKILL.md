@@ -1,11 +1,3 @@
-<!--
-GENERATED — DO NOT EDIT
-Rendered from canonical skill "ush-repo-evidence-plan" for platform "opencode".
-canonical_content_sha256: 352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688
-source_commit: 983005fc41b22cb0efc76fb4b529df8ef6c6d6d8
-Edit the canonical SKILL.md under skills/ and re-run scripts/render-adapters.mjs instead.
--->
-
 ---
 name: ush-repo-evidence-plan
 description: Inspect the current repository and produce a bounded, evidence-backed implementation plan without changing files. Use before scoping any change to confirm it fits the repository's actual architecture, tests, decisions, and constraints.
@@ -19,6 +11,14 @@ metadata:
   source_path: .codex/skills/repo-task-plan/SKILL.md
   source_commit: 983005fc41b22cb0efc76fb4b529df8ef6c6d6d8
 ---
+
+<!--
+GENERATED — DO NOT EDIT
+Rendered from canonical skill "ush-repo-evidence-plan" for platform "opencode".
+canonical_content_sha256: 352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688
+source_commit: 983005fc41b22cb0efc76fb4b529df8ef6c6d6d8
+Edit the canonical SKILL.md under skills/ and re-run scripts/render-adapters.mjs instead.
+-->
 
 # Repo Evidence Plan
 
