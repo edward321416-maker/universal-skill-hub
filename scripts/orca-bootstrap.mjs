@@ -113,7 +113,7 @@ async function acquireLock(file) {
   }
 }
 
-export async function deploy({ release, target, platform, approvedPolicyHashes = [], gateCommand }) {
+export async function deploy({ release, target, platform, approvedPolicyHashes = [], gateCommand, legacyGateCommands = [] }) {
   const registry = verifyRelease(release);
   if (!['codex', 'claude-code'].includes(platform)) fail('PLATFORM_UNSUPPORTED');
   safePath(target);
@@ -130,7 +130,10 @@ export async function deploy({ release, target, platform, approvedPolicyHashes =
   const block = policyBlock(release, platform, gateCommand);
   const before = fs.existsSync(policyFile) ? fs.readFileSync(policyFile) : Buffer.alloc(0);
   const text = before.toString('utf8');
-  if (text.includes(start) && (!text.endsWith(block + '\n') || text.split(start).length !== 2)) fail('POLICY_CONFLICT');
+  // Only operator-computed legacy commands for the same deployment may match.
+  // Compare the entire block exactly; never normalize policy or skill bytes.
+  const acceptedBlocks = [block, ...legacyGateCommands.map(command => policyBlock(release, platform, command))];
+  if (text.includes(start) && (!acceptedBlocks.some(candidate => text.endsWith(candidate + '\n')) || text.split(start).length !== 2)) fail('POLICY_CONFLICT');
   const already = text.includes(start);
   if (!already && before.length && !approvedPolicyHashes.includes(digest(before))) fail('POLICY_REVIEW');
   const after = already ? before : Buffer.concat([before, Buffer.from((before.length ? '\n\n' : '') + block + '\n')]);
@@ -191,10 +194,14 @@ export async function bridgeEligibility(release, input) {
 }
 
 export async function launch({ executable, args, prepare, cwd = process.cwd(), env = process.env }) {
+  if (env.USH_BOOTSTRAP_ACTIVE) fail('EXECUTABLE_RECURSION');
   if (!path.isAbsolute(executable) || !fs.existsSync(executable)) fail('EXECUTABLE');
-  if (!(args.length === 1 && ['--help', '-h', '--version', '-V'].includes(args[0]))) await prepare();
+  if (!(args.length === 1 && ['--help', '-h', '--version', '-V'].includes(args[0]))) {
+    const readiness = await prepare();
+    if (readiness?.ready !== true) fail('NOT_READY');
+  }
   return await new Promise((resolve, reject) => {
-    const child = spawn(executable, args, { cwd, env, stdio: 'inherit', shell: false });
+    const child = spawn(executable, args, { cwd, env: { ...env, USH_BOOTSTRAP_ACTIVE: '1' }, stdio: 'inherit', shell: false });
     const forward = (signal) => { if (process.platform !== 'win32') child.kill(signal); };
     const onInt = () => forward('SIGINT'); const onTerm = () => forward('SIGTERM');
     process.on('SIGINT', onInt); process.on('SIGTERM', onTerm);

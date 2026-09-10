@@ -32,8 +32,14 @@ async function main() {
   }
   const prepare = async () => {
     const ctx = context();
-    const gateCommand = (process.platform === 'win32' ? '& ' : '') + JSON.stringify(process.execPath) + ' ' + JSON.stringify(fileURLToPath(import.meta.url)) + ' gate ' + JSON.stringify(configPath);
-    const result = await deploy({ release, ...ctx, platform: 'codex', gateCommand,
+    const canonicalConfig = safePath(configPath);
+    const commandPrefix = (process.platform === 'win32' ? '& ' : '') + JSON.stringify(process.execPath) + ' ' + JSON.stringify(fileURLToPath(import.meta.url)) + ' gate ';
+    const gateCommand = commandPrefix + JSON.stringify(canonicalConfig);
+    // Retain exact previously installed blocks for either Windows separator
+    // spelling. These alternatives are derived here, never read from project data.
+    const legacyGateCommands = process.platform === 'win32'
+      ? [commandPrefix + JSON.stringify(canonicalConfig.replaceAll('\\', '/'))] : [];
+    const result = await deploy({ release, ...ctx, platform: 'codex', gateCommand, legacyGateCommands,
       approvedPolicyHashes: [...(config.approvedPolicyHashes?.[ctx.target] ?? []),
         ...(config.approvedRepoPolicyHashes?.[ctx.repoId] ?? [])] });
     const receiptDir = safePath(config.receiptDirectory);

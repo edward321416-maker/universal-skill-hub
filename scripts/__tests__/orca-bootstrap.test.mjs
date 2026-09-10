@@ -33,6 +33,30 @@ test('deployment reuses installer, preserves exact adapters and is idempotent', 
   assert.equal((await deploy(f)).changed, 0);
 });
 
+test('known legacy command spelling is accepted without rewriting any policy bytes', async t => {
+  const f = fixture(t);
+  const legacy = 'node launcher gate C:/approved/config.json';
+  await deploy({ ...f, gateCommand: legacy });
+  const policy = path.join(f.target, 'AGENTS.md');
+  const before = fs.readFileSync(policy);
+  const result = await deploy({ ...f, gateCommand: 'node launcher gate canonical-config', legacyGateCommands: [legacy] });
+  assert.equal(result.changed, 0);
+  assert.deepEqual(fs.readFileSync(policy), before);
+  await assert.rejects(deploy({ ...f, gateCommand: 'different command', legacyGateCommands: [] }), /POLICY_CONFLICT/);
+  fs.appendFileSync(policy, 'user edit');
+  const edited = fs.readFileSync(policy);
+  await assert.rejects(deploy({ ...f, gateCommand: legacy, legacyGateCommands: [legacy] }), /POLICY_CONFLICT/);
+  assert.deepEqual(fs.readFileSync(policy), edited);
+});
+
+test('nested launcher invocation is rejected before preparation', async () => {
+  let prepared = false;
+  await assert.rejects(launch({ executable: process.execPath, args: ['--version'],
+    env: { ...process.env, USH_BOOTSTRAP_ACTIVE: '1' },
+    prepare: async () => { prepared = true; return { ready: true }; } }), /EXECUTABLE_RECURSION/);
+  assert.equal(prepared, false);
+});
+
 test('context requires registered actual cwd, consistent local host and approved owner', t => {
   const f = fixture(t);
   const input = { cwd: f.target, repos: [{ id: 'repo' }], worktrees: [{ id: 'tree', repoId: 'repo', path: f.target, hostId: 'local' }], allowedRepoIds: ['repo'] };
@@ -87,6 +111,41 @@ test('concurrent preparations serialize and do not duplicate policy', async t =>
   assert.deepEqual(results.map(x => x.changed).sort(), [0, 7]);
 });
 
+test('user policy edit while waiting for preparation lock is retained', async t => {
+  const f = fixture(t);
+  await deploy(f);
+  const lock = path.join(f.target, '.agents/.ush-bootstrap.lock');
+  const fd = fs.openSync(lock, 'wx');
+  const pending = deploy(f);
+  const policy = path.join(f.target, 'AGENTS.md');
+  fs.appendFileSync(policy, 'later user edit\n');
+  const edited = fs.readFileSync(policy);
+  fs.closeSync(fd);
+  fs.unlinkSync(lock);
+  await assert.rejects(pending, /POLICY_CONFLICT/);
+  assert.deepEqual(fs.readFileSync(policy), edited);
+});
+
+test('documented exact-preimage policy recovery preserves subsequent edits', async t => {
+  const f = fixture(t);
+  const policy = path.join(f.target, 'AGENTS.md');
+  const original = Buffer.from('Original policy\r\n');
+  fs.writeFileSync(policy, original);
+  await deploy({ ...f, approvedPolicyHashes: [digest(original)] });
+  const installed = fs.readFileSync(policy);
+  // Synthetic operator procedure, NOT an automatically invoked production rollback.
+  const restore = () => {
+    if (!fs.readFileSync(policy).equals(installed)) throw Error('RECOVERY_CONFLICT');
+    fs.writeFileSync(policy, original);
+  };
+  restore();
+  assert.deepEqual(fs.readFileSync(policy), original);
+  fs.writeFileSync(policy, Buffer.concat([installed, Buffer.from('later edit')]));
+  const edited = fs.readFileSync(policy);
+  assert.throws(restore, /RECOVERY_CONFLICT/);
+  assert.deepEqual(fs.readFileSync(policy), edited);
+});
+
 test('bridge skips neutral tasks and is explicitly advisory', async t => {
   const f = fixture(t);
   const result = await bridgeEligibility(f.release, { skillId: null });
@@ -116,10 +175,17 @@ test('bridge retains EXPERIMENTAL L3 automatic-write gate with synthetic grants'
 
 test('launcher diagnostic bypass is only for standalone diagnostics', async () => {
   let prepared = 0;
-  const prepare = async () => { prepared++; };
+  const prepare = async () => { prepared++; return { ready: true }; };
   assert.equal(await launch({ executable: process.execPath, args: ['--version'], prepare }), 0);
   assert.equal(prepared, 0);
   assert.equal(await launch({ executable: process.execPath, args: ['-e', 'process.exit(7)', '--', '--help'], prepare }), 7);
   assert.equal(prepared, 1);
   await assert.rejects(launch({ executable: process.execPath, args: ['-e', 'process.exit(0)'], prepare: async () => { throw new Error('not ready'); } }), /not ready/);
 });
+
+for (const readiness of [undefined, null, {}, { ready: false }]) {
+  test('launcher rejects non-ready preparation: ' + JSON.stringify(readiness), async () => {
+    await assert.rejects(launch({ executable: process.execPath, args: ['-e', 'process.exit(0)'],
+      prepare: async () => readiness }), /NOT_READY/);
+  });
+}
