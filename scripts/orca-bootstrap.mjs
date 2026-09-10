@@ -5,6 +5,13 @@ import { spawn, execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
 export const digest = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
+export function formatShellCommand(argv, platform = process.platform) {
+  // This formats fixed executable/script/config paths, not arbitrary task text.
+  // Double quotes are illegal in Windows paths and PS5 native argv drops them.
+  if (platform === 'win32' && argv.some(value => value.includes('"'))) throw new Error('UNSUPPORTED_WINDOWS_PATH_QUOTE');
+  const quote = value => "'" + value.replaceAll("'", platform === 'win32' ? "''" : "'\\''") + "'";
+  return (platform === 'win32' ? '& ' : '') + argv.map(quote).join(' ');
+}
 const fail = (code, detail = '') => { throw new Error(code + ': ' + detail); };
 const json = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
