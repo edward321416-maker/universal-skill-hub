@@ -1,8 +1,13 @@
 # Phase 1.4-B follow-up — partial, not production complete
 
-This supplements the initial rollout receipt. Issue #9 / Draft PR #10 remain
-stacked on unmerged PR #8, source pin
-`463446ae2372161dd9431c96bcb52bdfab024001`. No merge or canonical change.
+This supplements the initial rollout receipt. No canonical change.
+
+> **Superseded header (2026-09-12).** Written while Draft PR #10 was stacked on
+> the then-unmerged PR #8 at source pin
+> `463446ae2372161dd9431c96bcb52bdfab024001`. Both PRs are now merged into
+> `main` (`744a8ecc0ce36528a8da550d6f954446b11b1071`). Issue #9 stays open.
+> Observations below were recorded under **ORCA 1.4.198**, not the currently
+> installed 1.4.200.
 
 ## Corrections and contract tests
 

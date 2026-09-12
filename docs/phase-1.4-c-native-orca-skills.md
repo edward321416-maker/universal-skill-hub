@@ -1,0 +1,997 @@
+# Phase 1.4-C: native ORCA skills integration
+
+Status: independent-review Important fix implemented and locally verified. Completion candidacy is conditional on delivered-head Windows/Ubuntu CI recorded in PR #12. Earlier final-review judgments are retained history. PR #12 remains OPEN/DRAFT.
+merged). No merge is performed or authorized in this phase. Canonical bodies,
+registered hashes, EXPERIMENTAL lifecycle and Phase 1.3 routing evidence are
+unchanged.
+
+> History boundary: sections from Runtime audit through the HEAD 52100cb boundary
+> audit retain their original, stricter acceptance judgments. They are dated
+> evidence, not the final disposition under the user-approved final-review criteria.
+> Raw PARTIAL/BLOCKED records are intentionally not rewritten as PASS.
+
+## Runtime audit
+
+The installed runtime is **ORCA 1.4.200**, already the target version, so no
+update, reinstall or restart was performed and no active session was touched.
+`ORCA_CLI_COMMAND` is unset and this is not an Orca dev checkout, so the
+executable resolves to the installed CLI at
+`…/Programs/orca/resources/bin/orca.exe`. `orca status --json` reports app
+running, runtime `ready`/`connected`, `appVersion 1.4.200`, host `local`
+(win32). Windows only; nothing here is evidence about WSL, SSH or remote hosts.
+
+Unlike the Phase 1.4-B Codex sandbox, which could not even stat this executable
+(EPERM, `engineEntered:false`), the Claude Code session running this phase can
+execute it. That is a difference in execution environment, not a fix to the
+1.4-B bridge, which remains blocked from inside Codex.
+
+Native skill surfaces actually present: `skills installed`, `skills list`,
+`skills get`, `skills install`, `skills update`, `skills share`. Publication via
+`skills share` was never invoked and no sharing permission was enabled.
+
+## The native installer contract — DIRECT_COMPATIBLE
+
+`orca skills install` is a thin wrapper. Its `--dry-run --json` resolves to:
+
+```
+npx --yes skills add https://github.com/stablyai/orca --skill <name> --global \
+  --agent claude-code --agent codex --agent cursor --agent universal -y
+```
+
+`--skill` is restricted to Orca's own bundled registry, so `orca skills install`
+cannot install Hub skills. The mechanism underneath it — the community `skills`
+CLI, installing from a repository — can.
+
+Probed against the local checkout at this phase's base SHA,
+`skills add <hub> --list` reports **Found 6 skills**: exactly the six `ush-*`
+ids with their canonical names and descriptions. The 24 generated adapter
+`SKILL.md` files and every internal directory are **not** exposed as skills.
+
+**Result: DIRECT_COMPATIBLE. No export surface was added** and no canonical
+directory was restructured.
+
+### What the native path installs
+
+It installs the **canonical** body, not the generated adapter. Measured against
+`registry/skills-index.json`, a native install is byte-equal to the registered
+`content_sha256` for **6/6** skills, LF preserved, no BOM or newline rewriting.
+
+That is a stronger provenance anchor than the Hub's own installer output for
+this purpose — the registry already tracks canonical hashes authoritatively —
+but it is a real divergence: `scripts/install-skills.mjs` places **adapters**,
+which carry generated provenance (`canonical_content_sha256`, `source_commit`,
+the GENERATED banner). The two paths therefore produce different bytes by
+design, and a target deployed by one is "drifted" from the other's expectation.
+
+The CLI also writes a project `skills-lock.json` recording per-skill `source`,
+`sourceType` and a `computedHash`.
+
+### Conflict behavior — the gap the Hub must keep
+
+The native installer is a **sync-to-source** operation:
+
+- Reinstalling an unchanged target is genuinely idempotent: content and mtime
+  both unchanged, no rewrite.
+- A target whose bytes differ is **rewritten to canonical**. A local edit is
+  destroyed. The plan output does print `overwrites: <target>`, but Orca's own
+  resolved command passes `--yes` and `-y`, so that disclosure is auto-confirmed
+  on the non-interactive path Orca actually uses.
+
+Hub `deploy()` refuses the same situation with `CONFLICT` and changes nothing.
+Native removal is likewise not preimage-exact: `skills remove --skill '*'`
+removed all six but left an empty `.agents/` and `skills-lock.json` behind.
+
+## Placement and discovery
+
+Global scope was validated in an **isolated HOME**, leaving the real home
+directory untouched (verified: real `~/.agents` mtime unchanged). Passing Orca's
+exact agent list:
+
+| Provider folder | ush-* placed | canonical byte parity |
+| --- | --- | --- |
+| `.agents` (shared) | 6 | 6/6 |
+| `.claude` | 6 | 6/6 |
+| `.codex` | 0 | — |
+| `.cursor` | 0 | — |
+
+So **codex and cursor are served by the shared `.agents/skills` directory and
+only claude-code receives a separate placement**, even when named explicitly.
+
+Workspace scope was validated in a disposable project and in the ORCA-registered
+synthetic probe project: exactly six placements, no unrelated file modified, and
+the fixture was afterwards restored to its exact preimage (0 dirty entries).
+
+`orca skills installed` is **context-scoped**, not a global inventory. From the
+Hub worktree it reports `repo :: Repo …universal-skill-hub.git .agents (6)`;
+from the synthetic project's cwd the same command reports
+`repo :: Repo new-project .agents (6)` instead. Home-scope entries
+(`Agent skills home`, `Cursor home`, `Claude home`) appear in both. A
+workspace-scope install is therefore only discoverable from inside that
+workspace's context.
+
+Recorded separately, never collapsed into one flag:
+
+| Dimension | Result |
+| --- | --- |
+| Installed | ACTUAL — 6/6, global (isolated HOME) and workspace |
+| Byte parity | ACTUAL — 6/6 against registered canonical `content_sha256` |
+| Discovered | ACTUAL — native `orca skills installed`, context-scoped |
+| Model-visible | ACTUAL for Claude Code (this session lists the six ush-* skills) |
+| Explicitly loaded | ACTUAL — exact installed `SKILL.md` read and hash-matched |
+| Implicitly selected | NOT TESTED — deferred, Codex quota exhausted |
+
+## Existing-project and new-project E2E
+
+| Target | Outcome |
+| --- | --- |
+| Synthetic ORCA-registered project (`probes/new-project`) | ACTUAL. Clean before; six installed; discovery confirmed from its own context; native removal tested; restored to exact preimage. |
+| Existing project `final-check` | READ-ONLY AUDIT ONLY. Holds **codex-adapter** bytes for 6/6, so a native install would rewrite all six. Working tree was already dirty (3 entries). Not installed. |
+| Existing project `decode` | **BLOCKED_PROJECT_LOCK**. Carries its own `AGENTS.md` and `CLAUDE.md` (the locked D021 thin-router policy) and a dirty tree (4 entries). Not touched. |
+
+Only one of the two requested existing projects was even safe to audit, and
+neither received a native install. This is not two existing-project E2Es.
+
+**Worktree inheritance: NO.** A git worktree created manually from the same repo
+is not auto-registered with ORCA — `orca worktree list` knows four Hub worktrees
+and not this phase's — and the new worktree contained no `.agents/` at all.
+Repository scope does not imply worktree scope.
+
+**New-repo auto-enrollment: NOT OBSERVED.** Nothing was inherited automatically;
+every placement in this phase required an explicit install command.
+
+## Bootstrap disposition
+
+Native parity is proven for placement, discovery and update only. Nothing is
+deleted in this phase.
+
+| Component | Disposition | Basis |
+| --- | --- | --- |
+| `orca-bootstrap.mjs` placement/install | DEPRECATE_AFTER_PARITY | Native install covers placement and is idempotent, but installs canonical where this installs adapters. Migration from already-deployed adapter state is unproven. |
+| `orca-bootstrap.mjs` conflict detection (`CONFLICT`) | KEEP_AUTHORITATIVE | Native rewrites differing targets under `-y`. No equivalent refusal exists. |
+| `orca-bootstrap.mjs` policy handling (`POLICY_REVIEW`/`POLICY_CONFLICT`) | KEEP_AUTHORITATIVE | The native CLI has no project-policy concept at all. |
+| `orca-launcher.mjs` | KEEP_FALLBACK | Its in-agent ORCA bridge is still blocked from the Codex sandbox; unchanged by this phase. |
+| `orca-seal-release.mjs` + release manifest/version validation | KEEP_AUTHORITATIVE | `skills-lock.json` records a source and a computed hash but does not pin an approved release, verify origin/cleanliness, or fail closed on an uninterpretable format. |
+| UTF-8 selected-skill reader | KEEP_FALLBACK | Fixes a Codex-sandbox transport defect that native placement does not address. |
+| Preimage rollback | KEEP_AUTHORITATIVE | Native removal left residue and restores nothing. |
+| Eligibility bridge | KEEP_AUTHORITATIVE | ORCA exposes no eligibility contract. Still **ADVISORY**, not host-enforced. |
+| Local receipts | KEEP_AUTHORITATIVE | The only artifact carrying the preimage needed to undo a deployment. |
+
+## Routing policy after native installation
+
+Native discovery exposes each skill's `name` and `description` (verified in
+`orca skills installed --json`), which is what semantic selection needs. No
+additional router is warranted, no LLM router was added, and no skill body is
+injected into prompts.
+
+The existing rule is preserved unchanged: the user need not name a Hub skill;
+only materially relevant candidates are considered; the selected `SKILL.md` must
+actually be read successfully before its workflow is claimed; and an unrelated
+task uses no Hub skill.
+
+Deterministic eligibility and semantic selection stay conceptually separate —
+eligibility decides whether a candidate *may* be considered, semantic matching
+decides relevance among eligible candidates. ORCA provides no hook to run the
+Hub evaluator before selection, so at the host level this remains
+**INSTRUCTION_ONLY**; the evaluator is enforceable only where a caller invokes
+it. No project policy was mass-edited and the DECODE lock was not modified.
+
+## `scripts/native-parity.mjs`
+
+The one Hub-side addition, built RED→GREEN from the evidence above. It answers,
+before the native installer runs, what that installer would rewrite:
+
+- `inspectNativePlacement({ targetRoot, registry, folder })` classifies every
+  registered skill as `MATCH_CANONICAL`, `DRIFTED` or `ABSENT`, and reports
+  unmanaged sibling directories.
+- `planNativeInstall(...)` returns `willCreate` / `willRewrite` / `unchanged`
+  and `safe`, which is false whenever anything would be rewritten. It has no
+  removal plan at all — unmanaged siblings are reported, never scheduled.
+
+It reuses the existing `safePath`/`digest` rather than duplicating them, so path
+escape and symlink redirection are refused on the existing contract.
+
+Applied to actually observed state: the real global `~/.agents` reports
+`safe=false, willRewrite=6` with 207 unmanaged siblings untouched; `final-check`
+reports `safe=false, willRewrite=6`; natively installed targets report
+`safe=true, unchanged=6`; a clean project reports `safe=true, willCreate=6`.
+
+**Known limitation:** on this host `~/.claude` is itself a symlink, so
+inspecting the claude-code global folder raises `SYMLINK` from the inherited
+guard. The guard was deliberately not weakened; that global folder is simply not
+inspectable under the current contract.
+
+## Settings audit
+
+**UNASSESSED for this phase.** The 312-row denominator and its outcomes live in
+local redacted receipts outside Git, and that artifact was not available to this
+session, so no row was re-evaluated and no count is restated here. The prior
+1.4-B totals are dated history, not a current claim. What is established is only
+that the runtime moved 1.4.198 → 1.4.200 and that the `orca skills *` surfaces
+listed above are present — which is the input a future re-run needs, not a
+re-run. Re-evaluating rows previously marked UNSUPPORTED because 1.4.198 lacked
+a surface remains open work; none were flipped automatically.
+
+## Open
+
+- Codex implicit-selection gaps remain historical. The later, explicitly authorized Codex follow-up below supersedes the earlier Claude-pass quota restriction; Phase 1.3 evidence stays immutable.
+- Two existing-project native E2Es; one is blocked by a project lock.
+- Migration from already-deployed adapter state to canonical native state.
+- The 312-row settings audit re-run against 1.4.200.
+- `~/.claude` global inspection under the symlink guard.
+- In-agent ORCA bridge access from the Codex sandbox, unchanged from 1.4-B.
+
+## Skill Context Budget and Dynamic Project Scoping
+
+### Decision 17 — acceptance amendment
+
+This amendment supersedes any interpretation of the earlier six-skill global
+installation experiment as the production architecture. Earlier runtime results
+above remain dated evidence, not proof of this amendment. Keep Draft PR #12;
+do not create another phase/PR, merge, or promote any lifecycle state.
+
+```text
+Hub Library
+→ Project Scoper
+→ Native ORCA Local Placement
+→ Runtime-visible Candidate Set
+→ Native Task Selection
+→ SKILL.md Load
+```
+
+`INSTALLED`, `MODEL_VISIBLE`, and `SELECTED/LOADED` are independent. Installing
+the entire library, or requiring the user to name a skill every time, does not
+satisfy automatic-use acceptance. Global placement is only a compatibility
+control, explicitly user-selected global installation, or a separately approved
+universal skill. Project-local materialization is a generated view; canonical
+Hub files and hashes remain authoritative.
+
+### Baseline and quota-free diagnostics
+
+Preserve the exact user-supplied historical Claude warning:
+
+```text
+Exceeded skills context budget.
+All skill descriptions were removed and 66 additional skills were not included in the model-visible skills list.
+```
+
+The available previous transcript contains this text in a **user message** at
+2026-09-12T09:21:49.247Z, not a recovered runtime warning event. Historical
+exclusions reported: 66. Historical discovered/visible totals and exact
+reproduction: **UNVERIFIED**. Do not relabel this as a fresh reproduction.
+
+Fresh quota-free commands on 2026-09-12: `claude --version` reports 2.1.225;
+`claude doctor` reports installation health only, without a discovery/budget
+denominator. `orca status --json` reports 1.4.200 ready/connected.
+`orca skills install --skill orca-cli --local --agent claude-code --dry-run --json`
+reports `global:false`, `executed:false`. The native bundled-skill wrapper still
+does not accept arbitrary Hub IDs. No new installer or account was acquired.
+
+The [official Claude skills documentation](https://code.claude.com/docs/en/skills)
+describes project `.claude/skills`, user and managed roots, plugin discovery,
+`--debug`, `/context`, and version-dependent listing truncation. Current online
+documentation is not proof of installed-version behavior. No undocumented
+numeric runtime limit is embedded in the scoper; no budget setting was raised.
+Codex Phase 1.3 overflow/alphabetical-truncation history remains unchanged and
+is not extrapolated to Claude. No Codex inference subprocess was run.
+
+Disk inventory and runtime discovery have different denominators. Direct home
+folders contained 145 Claude skill files (63,263 description bytes), and 213
+shared `.agents` skill files (92,871 bytes). Recursive disk searches found 203,
+279 and 4,135 `SKILL.md` paths under Claude skills, shared skills and the plugin
+tree respectively, including nested/cache copies; these are **not** active skill
+counts. Duplicate direct Claude names included `gstack` and `open-gstack-browser`.
+Third-party files were not deleted, overwritten, disabled or reorganized.
+
+### Deterministic startup scoper
+
+`scripts/project-scoping.mjs` exports `scopeProject()` and a read-only JSON CLI:
+
+```text
+node scripts/project-scoping.mjs <project-context.json>
+```
+
+Input includes identity, `project_scope`, detected runtime, policy, available
+inputs/tools/capabilities, known granted permissions, and optional observed
+budget signal. It checks registry runtime support/exclusions, required inputs,
+tools, capabilities, permissions, runtime requirements, risk and lifecycle.
+Unknown runtime support or availability fails closed. Existing
+`evaluateEligibility()` and conflicts remain authoritative. No task intent or
+permission is invented at startup. A high-risk candidate is `RESTRICTED`, never
+automatically authorized. All task operations must later be evaluated again,
+including merge/send/publish and the approved-content hash gate.
+
+Project-wide `required_permissions` still exclude a skill when unavailable.
+An operation-only merge permission does not remove an otherwise usable skill.
+For the real GitHub workflow, `github_write` is currently a general registry
+prerequisite; this amendment does not quietly reclassify it as operation-only.
+Protected-resource operation conflicts and project denials exclude candidates.
+DECODE's review-pending audit restriction is explicit input, not an assertion
+that its policy literally denies all six Hub skills.
+
+Domain skills need declared project scope or a project allow/enable list;
+descriptions are never used to guess project semantics. Existing metadata has
+no sufficiently rich domain taxonomy, so no speculative LLM/embedding router
+is introduced. Priority: explicit enable, exact scope, full runtime support,
+unrestricted requirements, declared domain applicability, then general fallback.
+ID ordering is only a deterministic final tie-break. Duplicate IDs are all
+excluded rather than selecting an arbitrary definition.
+
+Project policy may set `maxCandidates` or `maxDescriptionBytes`. These are
+explicit project allocations, **not Claude limits**. Accounting includes Unicode
+characters and UTF-8 description bytes. Budget exclusions are reported. Without
+a runtime observation the status is `UNVERIFIED`, even if all local checks pass;
+the original implementation used `BLOCKED_OVERFLOW` to prevent apply. This
+historical behavior is superseded by the review fix below: generic overflow
+now produces `OVERFLOW_OBSERVED` and does not block materialization.
+
+### Placement and reconciliation
+
+`reconcileProject()` places only candidates in the official local root:
+`.claude/skills` for Claude or `.agents/skills` for Codex. This phase exercised
+Claude placement only. Because native sync overwrites edits, the implementation
+uses an exact-canonical-file fallback to the same native filesystem convention;
+it does not claim an ORCA Hub-install API or automatic startup integration.
+
+The sidecar `.ush-project-scope.json` records owner, version, project, runtime,
+skill ID and exact installed hash. This reuses the installer ID/platform
+ownership contract and bootstrap's exact-preimage principle plus `safePath()`
+and `digest()`. Native canonical files have no adapter marker, so a receipt is
+required: existing copies without one are not adopted, even when byte-identical.
+No canonical text or registered hash is changed to add a marker.
+
+Every reconciliation recomputes from current Hub metadata, policy, runtime and
+availability. All source hashes and existing preimages are checked before writes.
+Managed unchanged/stale copies can remain/update; edited or missing owned files,
+extra user files, symlink redirection and unmanaged collisions fail closed.
+No-longer-eligible exact managed files require explicit removal confirmation;
+removal is one known file plus an empty directory, never recursive cleanup.
+Unrelated unmanaged siblings remain untouched. The lock serializes cooperating
+scopers; this is not an OS security boundary. An I/O failure midway through apply
+can leave partial placement; the next run conflicts against the old receipt.
+Transactional recovery and supporting-file tree ownership remain limitations;
+skills with supporting files are explicitly refused, not incompletely copied.
+
+### Real project calculations and fresh Claude sessions
+
+Reproduce the read-only existing-project audit and new synthetic fixture with:
+
+```text
+node scripts/project-scoping-audit.mjs <final-check-root> <decode-root> <output.json>
+```
+
+The command parses available manifests without executing scripts. It never
+changes either existing project. Machine-readable inputs, exclusions, inventory
+and metrics are in `phase-1.4-c-decision17-evidence.json`.
+
+| Project | Hub total | Candidates | Claude local Hub files | Reduction | Result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Phase 1.4-C Hub worktree | 6 | 2 | 0 | 66.67% | Read-only calculation |
+| Actual FINAL CHECK checkout | 6 | 2 | 0 | 66.67% | Read-only; existing shared adapters preserved |
+| Actual DECODE checkout | 6 | 0 | 0 | 100% | Restricted pending project policy review; not a success score |
+| New synthetic project | 6 | 1 | 1 | 83.33% | Exact canonical local fallback applied |
+
+Fresh positive/negative sessions used the existing Claude subscription, native
+selection, plan permission mode, and only Read/Skill tools. Prompts contain no
+skill names. No custom router, account connection or Codex inference was used.
+Normal Claude startup hooks/session bookkeeping ran; this is not an isolated
+host-settings experiment. Raw logs remain local; bounded extracted evidence
+with raw-file digests is tracked alongside the calculations.
+
+Observed startup: 146 directory skills (145 user, 1 project), 130 plugin skills,
+37 bundled skills; `getSkills` returned those categories and the attachment
+reported 292 skills. That is not proof all 313 discovered entries retained
+descriptions. Exact post-budget descriptions/omissions remain **UNVERIFIED**.
+Actual roots: managed `C:/Program Files/ClaudeCode/.claude/skills` (absent),
+user `.claude/skills`, synthetic project `.claude/skills`, enabled plugin paths.
+The shared `.agents` root was not listed by this Claude startup trace.
+
+Both fresh sessions reported this newer warning:
+
+```text
+Skill listing over budget: 292 skills, 107759 chars > 30000 budget — descriptions will be truncated. Run /skills to disable some, or raise skillListingBudgetFraction in settings.
+```
+
+These numbers are observed for this session/model only, not hardcoded policy.
+`HOST_GLOBAL_BUDGET_CONFOUND` remains: one local candidate cannot establish
+whole-host budget success. No global skills were removed to improve the result.
+All six registry Hub names appeared in startup slash-command discovery; that
+alone does not confirm all six descriptions were model-visible.
+
+The positive prompt automatically called `Skill(ush-repo-evidence-plan)`.
+The runtime-injected content reported **the global `.claude/skills` adapter
+path**, not the synthetic canonical local path. This is direct automatic load
+evidence for the global copy, and **GLOBAL_COPY_SELECTED** blocks the required
+project-local exact-load claim. No precedence theory is substituted for the
+observed path. The arithmetic negative case completed with no tool calls and
+no Hub load. Neither model narrative nor the local file's existence upgrades
+the positive case to project-local success.
+
+### Regression matrix, metrics and completion gate
+
+The tests cover all 18 requested cases: runtime/scope/requirements/policy
+exclusions, unrestricted inclusion, operation-only permissions, unmanaged
+preservation, duplicate IDs, small and oversized candidate sets, irrelevant
+additions, long descriptions, input ordering, safe stale updates, modified
+managed conflicts and confirmed-only removals. Additional cases cover canonical
+integrity, extra user files, frontmatter budget accounting and lifecycle gates.
+The first run failed on the missing module before implementation (RED).
+Final local Windows `npm run verify`: **346 passed, 0 failed, 0 skipped**,
+including 26 new scoping/reconciliation tests; 6 registry entries with zero
+inconsistencies and 24 adapters with zero drift. This is local verification;
+new-head hosted CI is a separate result. Existing Phase 1.3 routing fixtures,
+canonical bodies, registry and adapter bytes have no diff.
+
+Metrics: `hubSkillsTotal`, `projectCandidates`, `materializedHubSkills`,
+`candidateReductionRatio`, `requirementsExcluded`, `policyExcluded`,
+`runtimeExcluded`, `scopeExcluded`, `budgetExcluded`, `unmanagedPreserved`,
+`visibilityConfirmed`, `visibilityUnknown`, `overflowObserved`. Unobserved
+numeric values remain JSON `null`, never invented zeroes. Filesystem counts
+refer to their stated root, not all runtime/global placements.
+
+Decision 17 is **PARTIAL**, not a completion candidate. Synthetic scoping and
+local placement have passed; fresh local exact-load, complete visibility,
+historical-warning reproduction and host budget attribution remain blocked or
+unverified. Native install/update/discovery evidence above remains separate from
+the new fallback. Actual project-local ORCA placement parity must be evaluated
+before claiming native end-to-end integration. Preserve canonical/hash/safety
+layers, unmanaged files, positive and negative direct evidence, and fail-closed
+operation gates as mandatory acceptance criteria.
+
+Out of scope: custom LLM router, vectors/embeddings, cloud routing, third-party
+marketplace cleanup, global skill deletion, lifecycle promotion, numeric
+promotion thresholds, OpenCode installation, Codex paid/live routing reruns.
+
+## Authorized Codex follow-up — 2026-09-12
+
+This follow-up was explicitly authorized after the Claude pass. It does not
+retroactively change its quota restriction or results. It continues issue #11,
+branch `phase/1.4-c-native-orca-skills`, Draft PR #12, with #9 OPEN and no merge.
+Initial local and remote head both matched
+`b6de9da68df9ba69410086f5924505485fffbfa3`; base remained
+`744a8ecc0ce36528a8da550d6f954446b11b1071`. The authoritative worktree had no
+uncommitted changes before this follow-up. No new branch, issue or PR was made.
+
+### Code review and corrections
+
+The intent is to reduce project-visible candidates without weakening ownership,
+policy, or operation gates. A fresh code review found concrete failures in the
+previous implementation; the earlier green tests were not treated as proof of
+these missing cases. This is a documented self-review with observed regressions,
+not an independent external approval or a merge authorization.
+
+| Severity | Root cause at initial head | RED evidence | Correction |
+| --- | --- | --- | --- |
+| Critical | Truthy `confirmRemoval` accepted the string `"false"` | Removal occurred instead of rejecting the flag | Require actual booleans for apply/removal |
+| Critical | Directory preflight was outside the lock | A new user file caused removal to unlink SKILL.md before rmdir failed | Repeat path/body/directory checks under the lock and before mutations |
+| Major | Updated files preceded a non-atomic receipt write | Injected receipt failure left new skill bytes with old ownership state | Atomic per-file/receipt replacement; preimage journal and guarded rollback |
+| Major | Unknown policy keys were ignored | A misspelled block field silently admitted the skill | Reject unknown policy fields |
+| Major | Missing canonical frontmatter description became empty text | Invalid metadata bypassed budget accounting | Require matching name and nonempty description before placement |
+| Major | Unknown scope was treated as global | `scope: domian` was included | Exclude unknown/incomplete scope |
+| Major | Failed initial write left an unmanaged empty directory | Injected first-write failure left the skill directory | Roll back created empty directories |
+
+The first review run recorded 5 failing regressions; the second recorded two
+additional failures before their fixes. Focused coverage is now **38 passing
+tests**, including symlink redirection, source traversal, lock contention,
+supporting-file refusal, pending-journal refusal and exact previous-byte rollback.
+The stale-update fixture now has valid frontmatter; malformed metadata has its
+own rejection test. Existing evaluator/operation gates and canonical hashes were
+not changed. Specific strengths retained: exact-byte canonical checks, no
+unmanaged adoption, explicit removal confirmation and separate visibility metrics.
+No minor style changes or unresolved author questions were required.
+
+`scripts/scoping-transaction.mjs` journals preimages before mutation. A caught
+failure rolls back only when current bytes still match the transaction's own
+postimage. A crash, rollback conflict or journal cleanup failure leaves evidence
+and requires review; subsequent reconciliation refuses `RECOVERY_REQUIRED`.
+There is no automatic destructive recovery. It protects cooperating reconcilers;
+it is not an OS-level defense against an arbitrary concurrent process changing
+paths between checks. Supporting-file trees remain explicitly unsupported.
+Review verdict for phase acceptance: **Request Changes / PARTIAL**, because the
+runtime limitations below remain despite the corrected local regressions.
+
+### Codex discovery and context budget
+
+Installed binary: **codex-cli 0.154.0**. Persisted `turn_context` metadata from
+each actual run reports **gpt-5.6-sol**, reasoning effort **high**, sandbox
+**read-only**, approval policy **never**. Model/effort were inherited, not
+overridden or inferred from the supervising model. No unrestricted mode,
+sandbox bypass, credential extraction or global configuration edits were used.
+
+Quota-free installed mechanisms were inspected through `--help` first:
+`codex debug prompt-input`, and app-server `initialize` → `skills/list` using
+the installed generated JSON schema. `scripts/codex-skill-inventory.mjs` makes
+only those two RPC requests and starts no model turn. Its result contains
+**368 enabled skill entries**: 2 repo, 360 user (including plugin entries),
+6 system. It also reports one third-party `schedule/SKILL.md` invalid-YAML error;
+that skill was not edited or deleted.
+
+The six existing global Hub adapters remained on disk. Both local and global
+copies of the two selected IDs appeared in `skills/list`; it did not merge them.
+Before local placement, the rendered prompt listed **338 paths, 0 Hub names**.
+After placement, it listed **337 paths, 2 Hub names**, both pointing at this
+worktree's `.agents/skills`. Rendered entries contained names/paths without
+descriptions in both snapshots. These are direct prompt-input observations, not
+a universal precedence rule or a promised numeric limit.
+
+Comparing the enabled discovery path set with the after-placement prompt gives
+**31 discovered paths absent from the rendered catalog**. This is a computed
+cross-diagnostic difference, not a runtime-issued omitted counter. Runtime exact
+omitted count and numeric budget are `null`; no context-budget warning was
+exposed by these Codex diagnostics. Therefore attribution remains
+**OVERFLOW_ATTRIBUTION_UNVERIFIED**. Large host inventory is observed, but neither
+`HUB_SCOPING_OVERFLOW` nor complete host overflow isolation is claimed. Historical
+Claude warnings and Codex Phase 1.3 crowding/truncation evidence remain unchanged.
+
+### Scoper → local placement → implicit cases
+
+The actual Hub worktree project policy enabled/allowed repository evidence
+planning and merged-work announcements. The latter's general
+`repository_evidence` capability was available through local Git; publish
+permission was not granted. `scopeProject()` selected exactly **2/6**, and
+`reconcileProject()` placed those two canonical bodies in `.agents/skills` with
+the ownership receipt. The other four Hub skills were not copied locally.
+Local placement hashes matched the registry before use and after the runs;
+all six global adapter snapshot hashes remained unchanged over the subsequent
+control/extraction interval (the first global snapshot was after the implicit
+cases, not before them). The hardened reconciler was also run against the real
+two-candidate placement and reported both files unchanged. Local deployment
+files remain untracked, separate from this PR's code and evidence.
+
+All three routing prompts omit skill IDs. Results are separate from Phase 1.3:
+
+| Case | Request | Direct tool evidence | Result |
+| --- | --- | --- | --- |
+| P1 | Repository-evidence plan for malformed policy handling | Reads local repo-evidence-plan **and** local work-announcement | Expected local selection observed; 1 unnecessary candidate read |
+| P2 | Draft a development announcement from merged 1.4-B Git history/docs | Reads local work-announcement | Expected local selection observed |
+| N1 | `What is 7 plus 5? Answer briefly.` | No command/tool calls | No Hub load |
+
+P1's batch returned exit 1 because a later memory-file read failed; both preceding
+local SKILL.md bodies were present in its output. That is not described as a
+successful whole command. P2's local read command exited 0. Neither final model
+narrative was used as load evidence. No model-generated mutation/network command
+was observed in the audited case commands.
+
+**Exact transport limitation:** returned implicit stdout did not exactly match
+the canonical UTF-8 text. Verified filesystem hashes identify the files read;
+they do not prove byte-identical model-visible injected content. A separate
+explicit byte control failed on .NET method restrictions. A safe cmdlet control
+also found `Get-FileHash` unavailable; `Get-Content -Encoding UTF8 -Raw` completed
+but still did not yield an exact text match. No restriction was relaxed. These
+controls do not count as pure implicit successes or upgrade the two positives
+to exact-body confirmation. Strict positives: **0 exact-transport confirmed,
+2 unconfirmed**, not two fabricated false negatives. Local path selections: 2/2.
+Negative false loads: 0/1. Unexpected positive-case loads: 1 (P1).
+
+### Native ORCA reassessment
+
+Installed ORCA remained **1.4.200**. The version-matched `orca-cli` guide and
+installed help were used, rather than assuming documentation described the host.
+Native install dry-runs resolve Codex local scope without `--global`, and global
+scope with it. Update local scope resolves `skills update ... --project -y`.
+`orca skills install` **and** `orca skills update` reject the external Hub ID as
+unknown: their selector remains restricted to bundled ORCA skills.
+
+The already available community CLI **skills 1.5.26** was exercised with
+`npx --no-install` in a disposable local control under `dist/decision17-codex`.
+Selected single-skill Codex installation placed canonical bytes in `.agents/skills`.
+Reinstall preserved bytes/mtime, but after a synthetic user edit it overwrote the
+edit. No real user/global skill was touched. `skills update <id> --project -y`
+reported **No installed skills found matching** for this local-source install.
+Provider `skills list --agent codex --json` and ORCA discovery were captured;
+ORCA inventory is not model-visibility proof and can resolve the enclosing
+registered repository rather than the nested disposable directory.
+
+| Responsibility | Classification | Evidence |
+| --- | --- | --- |
+| Selected canonical Codex local copy | NATIVE_REPLACES | Community installer actual one-skill copy; bounded compatibility control |
+| Arbitrary Hub install/update via ORCA wrapper | GAP | Both wrapper selectors reject Hub IDs |
+| Global placement | UNVERIFIED for fresh mutation | Dry-run supported; existing historical control preserved; no new global install |
+| Safe updates, ownership, policy and preimages | HUB_REMAINS_REQUIRED | Native reinstall overwrites edits; local-source update not tracked |
+| Current production materialization entrypoint | FALLBACK_ONLY | Guarded filesystem fallback retained; no native startup integration hook |
+| Native discovery → actual model selection | UNVERIFIED as ORCA end-to-end | Codex observations are separate from ORCA discovery |
+
+### Verification and independent acceptance dimensions
+
+Local Windows `npm run verify`: **358 passed / 0 failed / 0 skipped**, registry
+6 with 0 inconsistencies, adapters 24 with 0 drift. The installer dry-run smoke
+correctly labels the two canonical local copies UNMANAGED relative to its
+adapter-marker contract and does not overwrite them; the command exits 0.
+`git diff --check` passed; canonical/registry/adapter/Phase 1.3 fixture diffs are
+empty. `npm run routing-eval` was run separately for the stored real and project
+cases, and `npm run routing-eval:cursor` for stored Cursor cases, with outputs
+redirected by their existing positional arguments into `dist/decision17-codex`.
+Those historical metrics are not recomputed from the new live cases.
+
+| Acceptance dimension | Result | Boundary |
+| --- | --- | --- |
+| Deterministic project scoping | PASS | Local regression coverage; unknown policy/scope fails closed |
+| Project-local materialization | PASS | Exactly 2 candidates, canonical byte parity |
+| Codex model visibility | PASS | Both local paths directly rendered |
+| Project-local exact Skill load | PARTIAL | Direct local reads; exact UTF-8 runtime transport unconfirmed |
+| Pure implicit positive routing | PARTIAL | Expected paths read in 2/2; P1 over-load and transport limits |
+| Negative no-load | PASS | N1 has zero tool calls |
+| Hub overflow attribution | UNVERIFIED | Catalog omissions observed; runtime counter/cause unavailable |
+| Native ORCA integration | PARTIAL | Local copy compatibility; wrapper/update/guard gaps remain |
+| Unmanaged preservation | PASS | Regression tests and unchanged global snapshots |
+| Safety/operation gates | PASS within tested layer | Existing evaluator retained; actual cases read-only; no host-enforcement claim |
+
+Overall Decision 17 remains **PARTIAL**. Hosted Windows/Ubuntu CI on the follow-up
+head is reported separately in PR #12. Full production startup integration,
+crash-journal manual recovery, exact sandbox text/hash transport, exhaustive
+routing coverage and whole-host overflow attribution remain unproven. No
+third-party cleanup, alphabetical renaming, description shortening, custom LLM
+router, embedding service, lifecycle promotion, OpenCode install, or merge occurred.
+
+Reproducible extraction:
+
+```text
+node scripts/codex-skill-inventory.mjs <absolute-codex.js> <absolute-worktree> <local-raw-inventory.json>
+node scripts/codex-scoping-evidence.mjs <probe-directory> <session-day-directory> <evidence.json>
+```
+
+Bounded evidence and raw-receipt digests are in
+`phase-1.4-c-codex-scoping-evidence.json`; raw prompts, streams and generated
+protocol schemas stay under the ignored probe directory. The tools do not read
+auth stores or modify global configuration.
+
+### Decision 17 remaining-boundary audit (HEAD 52100cb)
+
+This follow-up preserves the passing scoper/materializer and all canonical,
+registry, adapter and Phase 1.3 raw evidence. The new bounded evidence is
+`phase-1.4-c-codex-boundary-evidence.json`; its raw input streams remain local.
+
+#### Exact body transport: BLOCKED
+
+The first **observable** mismatch is between filesystem bytes and persisted tool
+response text. In P1/P2, the first differing Unicode sequence is `U+2014 U+0020`
+(em dash and space) becoming `U+003F U+003F`. Offsets after `name:` are 933 for
+repository planning and 984 for work announcement, after CRLF alignment solely
+for locating the difference. The UTF-8 read control instead returns `U+003F
+U+0020`. This is not a newline-only mismatch.
+
+The audit records original UTF-8 byte counts, UTF-16 units, code-point counts and
+SHA-256 for each observable text stage. P1/P2 persisted tool-response text equals
+the CLI command output exactly. The UTF-8 control uses a JSON output envelope;
+decoding that envelope is recorded separately from its raw serialized text.
+The extractor does not repair characters or substitute normalized hashes.
+
+Raw process stdout bytes before runtime decoding, pre-serialization runtime
+text, and actual model-input wire bytes are not exposed by these records. Their
+values are null. Consequently, the exact first internal corruption boundary
+cannot be assigned to PowerShell decoding, stdout encoding or runtime
+serialization. No speculative encoding change is justified. Final disposition:
+**TRANSPORT_EXACTNESS_BLOCKED**. Verified local filesystem hashes and direct
+local read paths remain separate evidence, not proof of exact model transport.
+
+#### P1 extra candidate read: PARTIAL
+
+The historical P1 command really read both local candidates. Its subsequent
+public statement that the announcement skill was unrelated does not undo that
+body read and does not prove why it happened. Descriptions exist in canonical
+frontmatter, but the captured rendered catalog has zero descriptions: overlap
+of descriptions is not demonstrated as the selection input responsible here.
+
+Fresh controls use the identical implicit prompt, same checkout and inherited
+read-only/never Codex configuration. No Skill ID occurs in the user prompt.
+One local candidate exposes only the planning entry; two expose both entries.
+The global adapters remain installed. The captured project-instruction SHA-256
+is identical: `8618d0e759d2e6f9e83e655dd5946a24d73595d8389caf8c89d2de78eda97eac`.
+
+P1_ONE and P1_TWO each read only the expected local planning body. The first
+control overlapped creation of the audit script, so a further P1_ONE_REPEAT
+control follows P1_TWO with that script unchanged. These are observations, not
+a deterministic routing guarantee. The runtime exposes command events and public
+statements, not a causal semantic-selection trace. No project-instruction
+ablation was performed; its effect remains unverified. No metadata/scoping
+change or regression fixture pretending to explain the historical extra read
+was made. An extractor regression separately ensures that reading an old JSONL
+containing a Skill body is not counted as a new direct Skill read.
+
+#### Context-budget attribution: UNVERIFIED
+
+The preserved paired diagnostics contain 368 enabled discovered entries and
+337 rendered paths. Each of the 31 absent paths is enumerated with classification
+`unknown` and runtime reason null. Same-name rendered copies are recorded as
+facts, not assigned as causes. The invalid-YAML discovery error is separate
+from the enabled-entry difference; it cannot explain one of those 31 entries.
+No invalid/duplicate/unsupported/filtered/budget cause is officially reported
+for an absent enabled path. There is no runtime-issued omitted counter or budget
+warning in these Codex captures. Thus **OVERFLOW_ATTRIBUTION_UNVERIFIED** remains
+appropriate. Both Hub local candidates are visible; this does not turn host-wide
+omission into a Hub failure or prove a host-global budget cause. The historical
+Claude warning and Phase 1.3 Codex crowding evidence remain unchanged.
+
+#### Native ORCA final disposition: PASS for classification, integration PARTIAL
+
+Installed versions remain ORCA 1.4.200 and community skills CLI 1.5.26. The actual
+controls already recorded on this branch, rather than advertised parity, support:
+
+| Function | Disposition | Proven boundary |
+| --- | --- | --- |
+| Selected local install/copy | NATIVE_REPLACES | Community CLI copies one selected canonical Hub skill exactly |
+| External Hub install through ORCA wrapper | GAP | Bundled selector rejects the Hub ID |
+| External local-source update | GAP | Wrapper rejects ID; community update reports no matching installed skill |
+| Ownership | HUB_REMAINS_REQUIRED | Native copy has no demonstrated equivalent to Hub receipt/preimage checks |
+| Conflict protection | HUB_REMAINS_REQUIRED | Reinstall overwrote the disposable synthetic edit |
+| Native rollback | UNVERIFIED | No demonstrated native preimage restoration contract; Hub guarded transaction retained |
+| Installed inventory discovery | NATIVE_REPLACES | Provider/ORCA inventory commands work within their observed scope |
+| Discovery through model-visible selection | UNVERIFIED | Inventory alone does not establish runtime task selection |
+| Production guarded local materialization | FALLBACK_ONLY | Existing Hub entrypoint retained; no native startup hook demonstrated |
+| Fresh global mutation | UNVERIFIED | Not repeated; dry-run and earlier dated controls remain separate |
+
+The final architecture is mixed: Hub canonical registry, eligibility, candidate
+budget allocation and ownership/transaction guards remain authoritative; native
+selected local copying and inventory are usable where verified. The existing
+fallback remains the production entrypoint. Native-only parity is not claimed.
+
+Issue #11 retains its original quota-free scope text and now contains an explicit
+superseding note recording the user's later approval of Decision 17 Codex live
+validation. Issues #11 and #9 remain OPEN; PR #12 remains DRAFT; no merge.
+
+Decision 17 remains **PARTIAL**, not a phase completion candidate. Exact transport,
+historical P1 causal attribution and whole-host omission causes remain limited
+by the evidence boundaries above.
+
+P1_ONE_REPEAT also completed with only the expected direct local read. All three
+new controls therefore have expected-path evidence and remain UNCONFIRMED for
+exact body transport. The two-candidate managed view was restored; both local
+hashes match the registry and all six global adapter snapshot hashes are unchanged.
+
+Follow-up verification: focused scoping/evidence tests **43/43**; local Windows
+`npm run verify` **363 passed / 0 failed / 0 skipped**; stored real/project/Cursor
+routing evaluators passed with separate ignored output files. `git diff --check`
+passed. Hosted CI for the delivered head is reported in PR #12. The five new
+evidence-helper tests cover historical-log false positives and exact JSON-envelope
+handling; no passing scoper/materializer behavior was reimplemented.
+
+## Final review — classification before changes
+
+Review baseline: 513c7cae3684fc91a5324643f25b54bf20b70926 against main
+744a8ecc0ce36528a8da550d6f954446b11b1071. This is a fresh full-diff review
+by the current agent, not a separate-agent or external-review signoff.
+
+| Changed file | Classification | Why retain / native overlap |
+| --- | --- | --- |
+| scripts/project-scoping.mjs | CORE_REQUIRED / SAFETY_REQUIRED | Startup filtering and canonical managed view; native copying does not preserve ownership |
+| scripts/scoping-transaction.mjs | SAFETY_REQUIRED | Small local preimage/rollback fallback; no daemon or recovery service |
+| scripts/native-parity.mjs | EVIDENCE_ONLY / DEFER_DELETE | Read-only native-copy comparison; only tests call it; its safe field is not an ownership or install authorization |
+| scripts/project-scoping-audit.mjs | EVIDENCE_ONLY | Four-project audit, explicit disposable fixture only; not startup provisioning |
+| scripts/claude-scoping-evidence.mjs | EVIDENCE_ONLY | Historical Claude receipt extractor, not routing |
+| scripts/codex-scoping-evidence.mjs | EVIDENCE_ONLY | Historical bounded Codex extractor, not a general runtime SDK |
+| scripts/codex-boundary-audit.mjs | EVIDENCE_ONLY | Fixed-case transport/omission audit; not production telemetry |
+| scripts/codex-evidence-text.mjs | EVIDENCE_ONLY | Bounded output-envelope helpers; not a command parser or authorization gate |
+| scripts/codex-skill-inventory.mjs | EVIDENCE_ONLY | Explicit quota-free native skills/list client; no model turn or background loop |
+| scripts/__tests__/project-scoping.test.mjs | TEST_ONLY | Behavior and ownership/failure regression |
+| scripts/__tests__/native-parity.test.mjs | TEST_ONLY | Historical native-copy compatibility observations, including fixed six-skill fixtures |
+| scripts/__tests__/codex-evidence-text.test.mjs | TEST_ONLY | Historical-log false-load and serialization regressions |
+| docs/phase-1.4-c-decision17-evidence.json | EVIDENCE_ONLY | Dated four-project/Claude baseline |
+| docs/phase-1.4-c-claude-scoping-evidence.json | EVIDENCE_ONLY | Dated Claude live receipts |
+| docs/phase-1.4-c-codex-scoping-evidence.json | EVIDENCE_ONLY | Dated Codex live receipts; not latest acceptance authority |
+| docs/phase-1.4-c-codex-boundary-evidence.json | EVIDENCE_ONLY | Dated remaining-boundary receipts |
+| docs/phase-1.4-c-native-orca-skills.md | EVIDENCE_ONLY | Architecture, authority and acceptance record |
+| docs/phase-1.4-b-followup.md | EVIDENCE_ONLY | Corrected historical header only |
+| docs/phase-1.4-b-orca-bootstrap.md | EVIDENCE_ONLY | Corrected historical header only |
+| docs/phase-1.4-b-runtime-blockers.md | EVIDENCE_ONLY | Corrected historical header only |
+
+Inherited modules, unchanged by this PR:
+
+| Module/function | Classification | Runtime need / native replacement / safety |
+| --- | --- | --- |
+| orca-bootstrap: safePath, digest | SAFETY_REQUIRED | Reused by the scoped materializer; no native ownership parity |
+| orca-bootstrap: deploy, resolveContext, launch, policyBlock | FALLBACK_ONLY / DEFER_DELETE | Legacy opt-in all-six adapter path, not the Decision 17 production path; native launches/discovery belong to ORCA |
+| orca-bootstrap: release verification, rollback, bridgeEligibility | SAFETY_REQUIRED / FALLBACK_ONLY | Pinned legacy deployment contract and existing evaluator bridge, not host enforcement |
+| orca-launcher.mjs | FALLBACK_ONLY / DEFER_DELETE | Existing explicit wrapper, not automatically registered; retain for Issue #9 |
+| orca-seal-release.mjs | FALLBACK_ONLY / DEFER_DELETE | Operator-only legacy release sealing, no startup repair |
+| install-skills.mjs | FALLBACK_ONLY | Existing adapter distribution; do not use it to populate the full library as Decision 17 defaults |
+
+No file is safe to delete merely because its name resembles native behavior.
+Native selected copying replaces only copying, not receipt ownership, user-edit
+conflicts or safe updates. Evidence helpers can be archived after retention and
+reproduction requirements are separately agreed. No immediate REDUNDANT production
+module was established. FUTURE_SIMPLIFICATION: archive fixed-case diagnostics;
+separate shared path/hash utilities from legacy bootstrap when needed; retire the
+legacy wrapper only after native startup/update parity. None is implemented here.
+
+### Final defect review and minimal correction
+
+One major Hub-controlled defect was reproduced: scopeProject forwarded task-only
+requestedOperations, targetResources and selectedSkillIds into the startup
+eligibility call. A merge-only permission failure, a protected write, or a prior
+task selection could remove an otherwise usable project candidate. Existing
+operation-only coverage passed only because it supplied no requested operation.
+
+RED: three new regressions failed with candidate count 0 instead of 1 (38 existing
+scoper tests passed). Fix: the startup evaluator receives empty task-selection,
+operation and target lists. Its known project-wide requirements, grants, lifecycle,
+risk and explicit skill policy checks are unchanged. The actual task evaluator
+still receives the real operation/target/selection and returns the same three
+BLOCK reason codes. High-risk placement remains RESTRICTED. No task permission
+or approval is fabricated. One old combined assertion was moved to this two-stage
+contract rather than preserving the now-superseded startup/task conflation.
+
+No other blocking Hub-controlled defect was established in this review. In
+particular, an untyped policy reason is diagnostic text, not an authorization
+input: cosmetic/schema tightening alone does not meet this final-review fix gate.
+No metadata, description, router, installer, runtime or background system was added.
+
+Correctness/security review covered preflight and under-lock receipt checks,
+canonical digest verification, stale updates, explicit removal confirmation,
+extra user files, journal refusal, guarded rollback and atomic replacement.
+Path escape and symlink/junction checks are reused; shell execution is absent
+from scoping/reconciliation. Explicit diagnostics use argument arrays and do not
+supply external-write permissions. No newly discovered command-injection or
+permission-fabrication path was established. Locks serialize cooperating Hub
+writers; this is not an adversarial host filesystem monitor or an OS security
+boundary. Crash recovery remains manual and fail-closed, not a new recovery service.
+
+Positive architecture findings: a single existing evaluator owns operation gates;
+canonical bytes are copied unchanged; receipt authority is separate from native
+inventory; unmanaged same-name files are never adopted by the scoped materializer.
+Review verdict after regression validation: approve the bounded phase completion
+candidate, not a merge approval or a claim of universal runtime completeness.
+
+### Minimum production responsibility contract
+
+Hub Library -> Canonical Skills -> deterministic Project Scoper -> project-local
+candidate view -> native discovery -> native semantic selection and execution.
+
+| Responsibility | Owner |
+| --- | --- |
+| Canonical source, hashes/provenance | HUB |
+| Project candidates and project-wide eligibility | HUB |
+| Project policy and L3/L4 operation safety contracts | HUB |
+| Skill discovery, model-visible listing, semantic selection, execution | NATIVE |
+| Local filesystem convention | NATIVE |
+| Ownership and unmanaged conflicts | HUB |
+| Safe update until demonstrated parity | HUB |
+| Rollback/recovery | Minimal Hub fallback only |
+| Global/third-party cleanup | OUT OF SCOPE |
+
+The optional maxCandidates and maxDescriptionBytes fields remain explicit project
+allocation policies, with no default numeric cap. They count candidates and UTF-8
+description bytes; they do not estimate model tokens, predict native truncation,
+or guarantee visibility. Their names are retained to avoid an unnecessary API
+migration. runtimeLimit remains null. An observed overflow flag is evidence, not
+an automatic host-budget probe; an unattributed host warning is not evidence that
+a Hub project allocation caused overflow. There is no description optimizer.
+
+Explicit project preparation through reconcileProject is the tested entrypoint.
+No automatic ORCA registration/startup hook is claimed. The old all-six launcher
+is retained for Issue #9 and is not the new default candidate preparation path.
+Completion of this bounded phase does not complete universal ORCA onboarding.
+
+### Test proportionality and code size
+
+| Tests | Primary role | Coupling / disposition |
+| --- | --- | --- |
+| Scoper filtering, deterministic order, allocation and task separation | Behavior regression | Assert external candidate/gate outcomes; retain |
+| Ownership, modified copy, removal, integrity, extra files | Safety regression | Core data-preservation requirements; retain |
+| Symlink/junction and path fixtures | Platform compatibility / safety | OS-specific fixture construction, same preservation outcome |
+| Receipt/body write failures, lock timing, pending journal | Safety regression with implementation-detail injection | Coupled to write/lock boundaries and journal names; adapt in future refactor, do not treat internal names as product UX |
+| Native parity fixtures | Historical evidence / compatibility | Fixed six-skill and adapter/canonical expectations are historical controls, not a full-library production default |
+| Codex evidence text tests | Evidence regression | Bounded PowerShell/JSON shapes; no general runtime parser claim |
+
+Some hash assertions overlap installer tests but cover different contracts
+(canonical view versus generated adapters). No demonstrably duplicate test needs
+immediate deletion. Test count is not an acceptance target. No wholesale test or
+legacy-code deletion passes the migration/parity gate in this review.
+
+Relative to main, the PR adds 17 files and modifies 3 existing history documents.
+This final-review pass adds no files. New production modules total 262 physical
+lines (178 scoper/materializer + 84 transaction, including comments/blanks).
+Test code totals 340 lines; evidence-helper code totals 436 lines, or 776 combined.
+Markdown/JSON evidence is counted separately, not presented as production LOC.
+Immediately removable production code: none proven. Deferred cleanup: the legacy
+wrapper/bootstrap/sealing path and fixed-case evidence helpers after their
+callers, migration and historical reproducibility requirements are resolved.
+
+### Final acceptance under the revised phase criteria
+
+The user's final-review instruction supersedes the earlier requirement to prove
+exact model-input bytes and assign every host omission reason. It does not turn
+those observations into PASS. Phase completion and runtime completeness are
+separate. No fresh live inference was launched in this final-review pass.
+
+| MUST PASS | Evidence / result |
+| --- | --- |
+| Deterministic project scoping | PASS: focused behavior regressions, including corrected startup/task boundary |
+| Project-local materialization | PASS: actual view remains exactly 2/6 candidates; reconciliation reports both unchanged |
+| Canonical integrity | PASS: local canonical hashes match; skills/registry/adapters have no diff from main |
+| Unmanaged preservation | PASS: same-name and unrelated-copy regression; no third-party changes |
+| User-modified conflict | PASS: exact receipt mismatch and extra-file refusal before mutation |
+| Codex local visibility | PASS: fresh quota-free prompt diagnostic still renders both project-local paths |
+| Implicit positive local selection | PASS for revised path/behavior criterion: P1 planning and P2 announcement tool reads, plus three planning controls; no exact wire-byte claim |
+| Negative no unnecessary Hub load | PASS: preserved N1 arithmetic case has zero tool calls; raw stream hash rechecked |
+| Project policy preservation | PASS: explicit project blocks retained; protected operations still BLOCK in the actual task evaluator |
+| L3/L4 safety | PASS within Hub contract: high-risk candidates remain restricted, actual gates unchanged; not host enforcement |
+| Windows CI | Delivered-head required; final exact-head result/link recorded in PR #12 |
+| Ubuntu CI | Delivered-head required; final exact-head result/link recorded in PR #12 |
+
+Local verification after the correction: focused **54/54**, full verify
+**366 passed / 0 failed / 0 skipped**. Registry 6/inconsistency 0 and adapters
+24/drift 0. Stored real/project/Cursor evaluators ran to separate ignored outputs.
+Their old metrics were not relabeled as new live results. Diff checks preserve
+canonical skills, registry, adapters and Phase 1.3 evidence.
+
+| Known limitation | Final treatment |
+| --- | --- |
+| Exact body transport | KNOWN_RUNTIME_LIMITATION; TRANSPORT_EXACTNESS_BLOCKED remains factual; punctuation loss is observed and internal first boundary is unknown |
+| Undocumented omission | HOST_RUNTIME_VISIBILITY_LIMITATION / OVERFLOW_ATTRIBUTION_UNVERIFIED; no asserted omitted cause |
+| Historical P1 extra read | HISTORICAL_NON_REPRODUCIBLE in three subsequent controls; retained history, not a new correctness failure |
+| Host global budget | Claude HOST_GLOBAL_BUDGET_CONFOUND retained; Codex attribution unverified; no pruning or implied host-wide fix |
+| Native update parity | Known gap; Hub ownership/update protection retained |
+| WSL and remote hosts | NOT TESTED; no cross-host inference |
+| Claude exact local precedence | GLOBAL_COPY_SELECTED remains separately documented; Codex results do not upgrade it |
+| Host-enforced eligibility | Not implemented; existing advisory/model contract only |
+| Automatic universal project onboarding | Not claimed; explicit preparation API and bounded local proof only; Issue #9 remains open |
+| Crash/manual recovery and adversarial writers | Fail-closed journal and cooperative locking only; no native atomic filesystem security boundary claim |
+
+Final recommendation: **COMPLETE_WITH_KNOWN_LIMITATIONS**, conditional only on
+both final delivered-head CI jobs passing. This is a Phase 1.4-C completion
+candidate under the revised MUST PASS list, not universal ORCA runtime completion.
+No unresolved Hub-controlled defect was established after the minimal correction.
+The latest PR #12 report binds the delivered SHA and CI result; the preceding
+PARTIAL/BLOCKED evidence sections remain dated history. PR #12 stays OPEN/DRAFT;
+Issues #11 and #9 stay OPEN. MERGE NOT PERFORMED.
+
+## Independent review Important fix — generic overflow observation
+
+Reviewed starting HEAD: dc07072a79d9a140c93931c2cbacbbbd06a460fb. The independent
+REQUEST_CHANGES verdict reopened Phase 1.4-C as PARTIAL until this correction
+and verification. This section supersedes the preceding completion recommendation.
+
+Root cause: overflowObserved contains no cause attribution, but reconcileProject
+used it as an unconditional filesystem placement gate. Even a valid two-candidate
+view was blocked by a generic host/global warning. Observation, cause and
+materialization authorization are separate facts.
+
+**Generic host/runtime overflow observation is evidence, not sufficient cause to block Hub project-local materialization.**
+
+Minimal correction:
+
+- Remove the unconditional overflowObserved apply gate.
+- Report OVERFLOW_OBSERVED instead of BLOCKED_OVERFLOW for the generic observation.
+- Preserve metrics.overflowObserved exactly, including true. Unobserved values
+  remain null and visibility is not inferred from successful placement.
+- Keep maxCandidates, maxDescriptionBytes and deterministic exclusions unchanged.
+  These are project allocations, not native runtime token limits.
+
+Repository-wide consumer search found the status in the implementation, its test
+and this documentation; no separate runtime consumer branches on BLOCKED_OVERFLOW.
+Evidence helpers read/report the observation independently. No attribution service,
+monitor, token estimator, description optimizer or native runtime change was added.
+
+TDD: the existing observation test was corrected, not deleted, and three placement
+regressions were added. Before the fix: 40 passed, 4 failed; the normal candidate
+placement and both allocation fixtures failed at BLOCKED_OVERFLOW. After the fix:
+44 focused tests passed. The new tests verify exact canonical placement with
+observation true, deterministic exclusion for maxCandidates and maxDescriptionBytes,
+and retention of the overflow observation when a candidate is excluded.
+
+The permitted Minor correction only narrows comments from durable preimage/receipt
+to preimage journal/completed receipt replacement. There is no new flush or recovery
+implementation. Power-loss durability via fsync/FlushFileBuffers is not claimed.
+
+OVERFLOW_ATTRIBUTION_UNVERIFIED and unresolved host-global budget remain known
+limitations. Successful materialization neither clears the warning nor proves
+runtime visibility or native budget success. Canonical bodies, registry, adapters,
+Phase 1.3 evidence, native integration, historical P1/transport/Claude observations,
+global skills, lifecycle and onboarding are outside this correction and unchanged.
+
+Review-fix validation: scoping focused **44/44**, full verify **369 passed / 0
+failed / 0 skipped**, stored real/project/Cursor routing evaluators and diff
+checks passed. Canonical/registry/adapters/Phase 1.3 evidence remain unchanged.
+
+| Re-evaluated acceptance | Result |
+| --- | --- |
+| Project scoping | PASS: deterministic candidates unchanged by observation |
+| Materialization | PASS: valid candidate copies exactly with overflow true |
+| Host overflow separation | PASS: generic warning cannot veto placement |
+| Candidate budget enforcement | PASS: both existing allocation limits still exclude |
+| Overflow observation preservation | PASS: true remains true; attribution not invented |
+
+The Important is resolved by the minimal code correction and regressions. Restore
+**COMPLETE_WITH_KNOWN_LIMITATIONS — completion candidate** only after both delivered-head
+CI jobs pass; until then retain PARTIAL. The exact delivered SHA and CI result are
+reported in PR #12. Host-global budget remains unresolved and attribution remains
+OVERFLOW_ATTRIBUTION_UNVERIFIED. No new independent reviewer signoff is implied.

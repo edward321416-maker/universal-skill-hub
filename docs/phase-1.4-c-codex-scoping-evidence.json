@@ -1,0 +1,643 @@
+{
+  "observedAt": "2026-09-12T10:16:17.832Z",
+  "headBefore": "b6de9da68df9ba69410086f5924505485fffbfa3",
+  "codexVersion": "0.154.0",
+  "project": {
+    "identity": "universal-skill-hub-phase-1.4-c",
+    "project_scope": "universal-skill-hub",
+    "runtime": "codex",
+    "policy": {
+      "allowedSkillIds": [
+        "ush-repo-evidence-plan",
+        "ush-work-announcement"
+      ],
+      "enabledSkillIds": [
+        "ush-repo-evidence-plan",
+        "ush-work-announcement"
+      ]
+    },
+    "availableInputs": [
+      "repository"
+    ],
+    "availableTools": [
+      "git_diff_read"
+    ],
+    "availableCapabilities": [
+      "repository_evidence"
+    ],
+    "grantedPermissions": []
+  },
+  "localSnapshots": [
+    {
+      "id": "ush-repo-evidence-plan",
+      "path": "C:\\Users\\admin\\orca\\workspaces\\edward321416-makeruniversal-skill-hub\\phase-1.4-c-native-orca-skills\\.agents\\skills\\ush-repo-evidence-plan\\SKILL.md",
+      "sha256": "352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688",
+      "expectedSha256": "352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688"
+    },
+    {
+      "id": "ush-work-announcement",
+      "path": "C:\\Users\\admin\\orca\\workspaces\\edward321416-makeruniversal-skill-hub\\phase-1.4-c-native-orca-skills\\.agents\\skills\\ush-work-announcement\\SKILL.md",
+      "sha256": "20d3266b52477c344cc07a1b1586a0e6820b4b3cd2629652d00fe46f4d1c6a12",
+      "expectedSha256": "20d3266b52477c344cc07a1b1586a0e6820b4b3cd2629652d00fe46f4d1c6a12"
+    }
+  ],
+  "globalDuplicateSnapshots": [
+    {
+      "id": "ush-repo-evidence-plan",
+      "present": true,
+      "sha256": "59f182bfde941549ae001a3036bb9418f06b327e0a589bf82f79ce2628609155"
+    },
+    {
+      "id": "ush-github-task-flow",
+      "present": true,
+      "sha256": "b76bf49249f541b861c3fa54da6d016f833cf32d9adb90a281945cd44428c59f"
+    },
+    {
+      "id": "ush-concurrent-edit-coordination",
+      "present": true,
+      "sha256": "3ff7931ae9fbd941a66e5c442d8687b896bd2142c5b6732d7a8b290a12c88398"
+    },
+    {
+      "id": "ush-game-meeting-plan",
+      "present": true,
+      "sha256": "5beb883becd8490a477ccf46aec04a3edb4a3454358f347ba06144b9357f7f3e"
+    },
+    {
+      "id": "ush-discord-repo-cross-reference",
+      "present": true,
+      "sha256": "fe9b6d8b12c9b933c4d960e276f45d11053a929b8a48c09ced1e477432f7938c"
+    },
+    {
+      "id": "ush-work-announcement",
+      "present": true,
+      "sha256": "68fbdb4fd9c85c602f5ffc1294b2093b52eb57cbff9b13442885507397d6cbc6"
+    }
+  ],
+  "globalUnchanged": true,
+  "globalSnapshotInterval": "After initial implicit cases through final extraction; not a pre-case snapshot",
+  "hardenedReconciliation": {
+    "actions": [
+      {
+        "id": "ush-repo-evidence-plan",
+        "action": "unchanged"
+      },
+      {
+        "id": "ush-work-announcement",
+        "action": "unchanged"
+      }
+    ],
+    "metrics": {
+      "hubSkillsTotal": 6,
+      "projectCandidates": 2,
+      "materializedHubSkills": 2,
+      "candidateReductionRatio": 0.6666666666666667,
+      "requirementsExcluded": 0,
+      "policyExcluded": 4,
+      "runtimeExcluded": 0,
+      "scopeExcluded": 0,
+      "budgetExcluded": 0,
+      "unmanagedPreserved": 0,
+      "visibilityConfirmed": null,
+      "visibilityUnknown": null,
+      "overflowObserved": null
+    }
+  },
+  "contextBudget": {
+    "discovered": 368,
+    "enabled": 368,
+    "discoveryErrors": [
+      {
+        "path": "C:\\Users\\admin\\.codex\\plugins\\cache\\claude-cowork\\anthropic-skills\\1.0.0\\skills\\schedule\\SKILL.md",
+        "message": "invalid YAML: did not find expected key at line 2 column 110, while parsing a block mapping"
+      }
+    ],
+    "raw": {
+      "file": "dist\\decision17-codex\\skills-list.json",
+      "sha256": "7d48002c063214fcba0688fd7ab677920db297a76edccdee8a3638e4c5c818f8"
+    },
+    "baseline": {
+      "visible": 338,
+      "hub": [],
+      "descriptionsPresent": 0,
+      "warning": false,
+      "raw": {
+        "file": "dist\\decision17-codex\\baseline-prompt.json",
+        "sha256": "cf2728b1ed489a7f69518db229a27999ebfbb40717a47fac2ad5e8d92fcefcd3"
+      }
+    },
+    "afterLocal": {
+      "visible": 337,
+      "hub": [
+        {
+          "name": "ush-repo-evidence-plan",
+          "description": "",
+          "path": "C:/Users/admin/orca/workspaces/edward321416-makeruniversal-skill-hub/phase-1.4-c-native-orca-skills/.agents/skills/ush-repo-evidence-plan/SKILL.md"
+        },
+        {
+          "name": "ush-work-announcement",
+          "description": "",
+          "path": "C:/Users/admin/orca/workspaces/edward321416-makeruniversal-skill-hub/phase-1.4-c-native-orca-skills/.agents/skills/ush-work-announcement/SKILL.md"
+        }
+      ],
+      "descriptionsPresent": 0,
+      "warning": false,
+      "raw": {
+        "file": "dist\\decision17-codex\\local-prompt.json",
+        "sha256": "0a60016e5773df20119df2ee2f850e2f340be0c9527eea7dea01883c38b876ee"
+      }
+    },
+    "discoveredPathsAbsentFromRenderedPrompt": 31,
+    "absentPaths": [
+      "C:\\Users\\admin\\.codex\\plugins\\cache\\claude-plugins-official\\superpowers\\6.3.0\\skills\\using-git-worktrees\\SKILL.md",
+      "C:\\Users\\admin\\.codex\\plugins\\cache\\claude-plugins-official\\superpowers\\6.3.0\\skills\\using-superpowers\\SKILL.md",
+      "C:\\Users\\admin\\.codex\\plugins\\cache\\claude-plugins-official\\superpowers\\6.3.0\\skills\\verification-before-completion\\SKILL.md",
+      "C:\\Users\\admin\\.codex\\plugins\\cache\\claude-plugins-official\\superpowers\\6.3.0\\skills\\writing-plans\\SKILL.md",
+      "C:\\Users\\admin\\.codex\\plugins\\cache\\claude-plugins-official\\superpowers\\6.3.0\\skills\\writing-skills\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\react-native-best-practices\\references\\svg\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\gstack\\sync-gbrain\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\gstack-sync-gbrain\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\sync-gbrain\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\team-update\\SKILL.md",
+      "C:\\Users\\admin\\.codex\\plugins\\cache\\openai-primary-runtime\\template-creator\\26.909.12148\\skills\\template-creator\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\terraform-engineer\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\test-master\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\the-fool\\SKILL.md",
+      "C:\\Users\\admin\\.codex\\plugins\\cache\\claude-design-skillstack\\threejs-webgl\\1.0.0\\skills\\threejs-webgl\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\typegpu\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\typescript-pro\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\gstack\\unfreeze\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\gstack-unfreeze\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\unfreeze\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\ush-concurrent-edit-coordination\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\ush-discord-repo-cross-reference\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\ush-game-meeting-plan\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\ush-github-task-flow\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\ush-repo-evidence-plan\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\ush-work-announcement\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\vue-expert\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\vue-expert-js\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\websocket-engineer\\SKILL.md",
+      "C:\\Users\\admin\\.agents\\skills\\wordpress-pro\\SKILL.md",
+      "C:\\Users\\admin\\AppData\\Roaming\\orca\\codex-accounts\\c6b599b0-0bc9-4998-adfd-2d0db1170f16\\home\\skills\\.system\\review-agent\\SKILL.md"
+    ],
+    "runtimeReportedOmittedCount": null,
+    "runtimeNumericBudget": null,
+    "attribution": "OVERFLOW_ATTRIBUTION_UNVERIFIED",
+    "note": "Path-set difference is computed from separate quota-free diagnostics, not a runtime-issued omitted counter. No numeric budget is inferred."
+  },
+  "cases": [
+    {
+      "name": "P1",
+      "kind": "PURE_IMPLICIT",
+      "thread": "01a0950b-35c8-72d0-bb1c-d3ec2b2e2c17",
+      "completed": true,
+      "runtime": {
+        "version": "0.154.0",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "high",
+        "sandbox": {
+          "type": "read-only"
+        },
+        "approvalPolicy": "never"
+      },
+      "projectCandidates": [
+        "ush-repo-evidence-plan",
+        "ush-work-announcement"
+      ],
+      "modelVisible": [
+        {
+          "name": "ush-repo-evidence-plan",
+          "description": "",
+          "path": "C:/Users/admin/orca/workspaces/edward321416-makeruniversal-skill-hub/phase-1.4-c-native-orca-skills/.agents/skills/ush-repo-evidence-plan/SKILL.md"
+        },
+        {
+          "name": "ush-work-announcement",
+          "description": "",
+          "path": "C:/Users/admin/orca/workspaces/edward321416-makeruniversal-skill-hub/phase-1.4-c-native-orca-skills/.agents/skills/ush-work-announcement/SKILL.md"
+        }
+      ],
+      "actualSkillIds": [
+        "ush-repo-evidence-plan",
+        "ush-work-announcement"
+      ],
+      "exactLoadedPaths": [
+        "C:\\Users\\admin\\orca\\workspaces\\edward321416-makeruniversal-skill-hub\\phase-1.4-c-native-orca-skills\\.agents\\skills\\ush-repo-evidence-plan\\SKILL.md",
+        "C:\\Users\\admin\\orca\\workspaces\\edward321416-makeruniversal-skill-hub\\phase-1.4-c-native-orca-skills\\.agents\\skills\\ush-work-announcement\\SKILL.md"
+      ],
+      "exactLoadedHashes": [
+        {
+          "hash": "352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688",
+          "basis": "VERIFIED_PLACEMENT_AND_POST_RUN_FILE_SNAPSHOT",
+          "runtimeTextExact": false
+        },
+        {
+          "hash": "20d3266b52477c344cc07a1b1586a0e6820b4b3cd2629652d00fe46f4d1c6a12",
+          "basis": "VERIFIED_PLACEMENT_AND_POST_RUN_FILE_SNAPSHOT",
+          "runtimeTextExact": false
+        }
+      ],
+      "selectionEvidence": [
+        {
+          "skillId": "ush-repo-evidence-plan",
+          "path": "C:\\Users\\admin\\orca\\workspaces\\edward321416-makeruniversal-skill-hub\\phase-1.4-c-native-orca-skills\\.agents\\skills\\ush-repo-evidence-plan\\SKILL.md",
+          "fileSnapshotSha256": "352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688",
+          "eventId": "item_3",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command '$paths = @('\"'C:\\\\Users\\\\admin\\\\orca\\\\workspaces\\\\edward321416-makeruniversal-skill-hub\\\\phase-1.4-c-native-orca-skills\\\\.agents\\\\skills\\\\ush-repo-evidence-plan\\\\SKILL.md','C:\\\\Users\\\\admin\\\\orca\\\\workspaces\\\\edward321416-makeruniversal-skill-hub\\\\phase-1.4-c-native-orca-skills\\\\.agents\\\\skills\\\\ush-work-announcement\\\\SKILL.md','C:\\\\Users\\\\admin\\\\AppData\\\\Roaming\\\\orca\\\\codex-accounts\\\\c6b599b0-0bc9-4998-adfd-2d0db1170f16\\\\home\\\\memories\\\\MEMORY.md'); foreach (\"'$p in $paths) { Write-Output \"FILE $p\"; Get-Content -LiteralPath $p }'",
+          "commandExitCode": 1,
+          "returnedBody": true,
+          "exactReturnedTextMatchesFile": false,
+          "returnedOutputSha256": "c00a403b756824ea7b2cea2a02fd352165e76eb70ae7d19940cd11ab4ba94a9a",
+          "runtimeReportedHash": null
+        },
+        {
+          "skillId": "ush-work-announcement",
+          "path": "C:\\Users\\admin\\orca\\workspaces\\edward321416-makeruniversal-skill-hub\\phase-1.4-c-native-orca-skills\\.agents\\skills\\ush-work-announcement\\SKILL.md",
+          "fileSnapshotSha256": "20d3266b52477c344cc07a1b1586a0e6820b4b3cd2629652d00fe46f4d1c6a12",
+          "eventId": "item_3",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command '$paths = @('\"'C:\\\\Users\\\\admin\\\\orca\\\\workspaces\\\\edward321416-makeruniversal-skill-hub\\\\phase-1.4-c-native-orca-skills\\\\.agents\\\\skills\\\\ush-repo-evidence-plan\\\\SKILL.md','C:\\\\Users\\\\admin\\\\orca\\\\workspaces\\\\edward321416-makeruniversal-skill-hub\\\\phase-1.4-c-native-orca-skills\\\\.agents\\\\skills\\\\ush-work-announcement\\\\SKILL.md','C:\\\\Users\\\\admin\\\\AppData\\\\Roaming\\\\orca\\\\codex-accounts\\\\c6b599b0-0bc9-4998-adfd-2d0db1170f16\\\\home\\\\memories\\\\MEMORY.md'); foreach (\"'$p in $paths) { Write-Output \"FILE $p\"; Get-Content -LiteralPath $p }'",
+          "commandExitCode": 1,
+          "returnedBody": true,
+          "exactReturnedTextMatchesFile": false,
+          "returnedOutputSha256": "c00a403b756824ea7b2cea2a02fd352165e76eb70ae7d19940cd11ab4ba94a9a",
+          "runtimeReportedHash": null
+        }
+      ],
+      "commandCount": 9,
+      "failedCommandCount": 3,
+      "toolCalls": [
+        {
+          "eventId": "item_3",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command '$paths = @('\"'C:\\\\Users\\\\admin\\\\orca\\\\workspaces\\\\edward321416-makeruniversal-skill-hub\\\\phase-1.4-c-native-orca-skills\\\\.agents\\\\skills\\\\ush-repo-evidence-plan\\\\SKILL.md','C:\\\\Users\\\\admin\\\\orca\\\\workspaces\\\\edward321416-makeruniversal-skill-hub\\\\phase-1.4-c-native-orca-skills\\\\.agents\\\\skills\\\\ush-work-announcement\\\\SKILL.md','C:\\\\Users\\\\admin\\\\AppData\\\\Roaming\\\\orca\\\\codex-accounts\\\\c6b599b0-0bc9-4998-adfd-2d0db1170f16\\\\home\\\\memories\\\\MEMORY.md'); foreach (\"'$p in $paths) { Write-Output \"FILE $p\"; Get-Content -LiteralPath $p }'",
+          "exitCode": 1
+        },
+        {
+          "eventId": "item_5",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command \"git rev-parse --show-toplevel; git rev-parse --verify HEAD; git branch --show-current; git status --short --branch; rg --files -g 'AGENTS.md' -g '\"'!node_modules'\"' -g '\"'!vendor'\"'; rg --files | rg '(?i)(policy|decision|architecture|contributing|readme|scope|scoping|project)'\"",
+          "exitCode": 1
+        },
+        {
+          "eventId": "item_7",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command '$files = git ls-files; $files | Select-String -Pattern '\"'(\"'^|/)(AGENTS'\"\\\\.md|README[\"'^/]*|CONTRIBUTING[''^/]*|.*(?:policy|decision|architecture|scope|scoping|project).*)$'\"' -CaseSensitive:\"'$false; Get-ChildItem -LiteralPath . -Force | Select-Object Mode,Name'",
+          "exitCode": 0
+        },
+        {
+          "eventId": "item_8",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command '$inspect = @('\"'README.md','policies/global/README.md','policies/projects/README.md','scripts/project-scoping.mjs','scripts/project-scoping-audit.mjs','scripts/__tests__/project-scoping.test.mjs','scripts/__tests__/project-policy-fixtures.test.mjs','package.json'); foreach (\"'$p in $inspect) { $count = (Get-Content -LiteralPath $p).Count; Write-Output \"$p`t$count lines\" }; Write-Output '\"'POLICY DOCS'; Get-Content -LiteralPath 'policies/global/README.md'; Get-Content -LiteralPath 'policies/projects/README.md'; Write-Output 'README RELEVANT LINES'; Select-String -LiteralPath 'README.md' -Pattern '\"'^(#|##|###)|project scop|policy|precedence|malform|validat'\"' -CaseSensitive:\"'$false; Write-Output '\"'PACKAGE RELEVANT LINES'; Select-String -LiteralPath 'package.json' -Pattern 'scripts|test|scop|policy|audit' -CaseSensitive:\"'$false'",
+          "exitCode": 0
+        },
+        {
+          "eventId": "item_9",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command \"Write-Output 'DESIGN POLICY LINES'; Select-String -LiteralPath 'docs/DESIGN.md' -Pattern '\"'^(#|##|###)|Project Policy|precedence|scope|policy'\"' -CaseSensitive:\"'$false -Context 1,3; Write-Output '\"'SCOPING SYMBOLS AND VALIDATION'; Select-String -LiteralPath 'scripts/project-scoping.mjs' -Pattern '\"'^(export )?(async )?function|''^export |JSON'\"\\\\.parse|readFile|existsSync|project|policy|scope|throw|return' -CaseSensitive:\"'$false -Context 2,3; Write-Output '\"'AUDIT CALLERS'; Select-String -LiteralPath 'scripts/project-scoping-audit.mjs' -Pattern 'import|project|policy|scope|JSON|process\\\\.argv|try|catch|throw' -CaseSensitive:\"'$false -Context 2,3; Write-Output '\"'TEST NAMES AND MALFORMED CASES'; Select-String -LiteralPath 'scripts/__tests__/project-scoping.test.mjs','scripts/__tests__/project-policy-fixtures.test.mjs' -Pattern '\"'^test'\"\\\\(|malform|invalid|project|policy|reject|throw|assert\\\\.rejects|assert\\\\.throws' -CaseSensitive:\"'$false -Context 1,3; Write-Output '\"'UNCOMMITTED TEST DIFF'; git diff -- scripts/__tests__/project-scoping.test.mjs\"",
+          "exitCode": 0
+        },
+        {
+          "eventId": "item_10",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command \"Write-Output 'PROJECT SCOPING 1-45'; \"'$s = Get-Content -LiteralPath '\"'scripts/project-scoping.mjs'; for (\"'$i=0; $i -lt 45; $i++) { '\"'{0}:{1}' -f (\"'$i+1),$s[$i] }; Write-Output '\"'PROJECT SCOPING 95-130'; for (\"'$i=94; $i -lt 130; $i++) { '\"'{0}:{1}' -f (\"'$i+1),$s[$i] }; Write-Output '\"'AUDIT FULL'; \"'$a = Get-Content -LiteralPath '\"'scripts/project-scoping-audit.mjs'; for (\"'$i=0; $i -lt $a.Count; $i++) { '\"'{0}:{1}' -f (\"'$i+1),$a[$i] }; Write-Output '\"'PROJECT POLICY REFERENCES'; git grep -n -E 'projectPolicy|project\\\\.policy|denyAll|blockedSkillIds|allowedSkillIds|enabledSkillIds|maxCandidates|maxDescriptionBytes|UNKNOWN_PROJECT_POLICY|INVALID_PROJECT_POLICY' -- '*.mjs' '*.md' '*.json'\"",
+          "exitCode": 0
+        },
+        {
+          "eventId": "item_12",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command \"Write-Output 'RECENT HISTORY'; git log -5 --oneline --decorate; Write-Output 'VALIDATION BLAME'; git blame -L 18,34 -- scripts/project-scoping.mjs; Write-Output 'POLICY DESIGN CONTRACT'; \"'$d = Get-Content -LiteralPath '\"'docs/phase-1.4-c-native-orca-skills.md'; foreach (\"'$range in @(@(285,330),@(360,390))) { for ($i=$range[0]-1; $i -lt [Math]::Min($range[1],$d.Count); $i++) { '\"'{0}:{1}' -f (\"'$i+1),$d[$i] } }; Write-Output '\"'ELIGIBILITY POLICY CONSUMPTION'; \"'$e = Get-Content -LiteralPath '\"'scripts/eligibility.mjs'; for (\"'$i=42; $i -lt 80; $i++) { '\"'{0}:{1}' -f (\"'$i+1),$e[$i] }; Write-Output '\"'HEAD TEST TAIL'; \"'$h = git show HEAD:scripts/__tests__/project-scoping.test.mjs; $lines = $h -split \"`n\"; for ($i=[Math]::Max(0,$lines.Count-30); $i -lt $lines.Count; $i++) { '\"'{0}:{1}' -f (\"'$i+1),$lines[$i] }'",
+          "exitCode": 1
+        },
+        {
+          "eventId": "item_14",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command \"Write-Output 'INDEX FLAGS'; git ls-files -v -- scripts/project-scoping.mjs scripts/__tests__/project-scoping.test.mjs; Write-Output 'SOURCE DIFF FROM HEAD'; git diff HEAD -- scripts/project-scoping.mjs; Write-Output 'SOURCE HEAD VALIDATION'; git show HEAD:scripts/project-scoping.mjs | Select-Object -First 38; Write-Output 'TEST HEAD TAIL'; git show HEAD:scripts/__tests__/project-scoping.test.mjs | Select-Object -Last 30; Write-Output 'POLICY DESIGN 285-330'; Get-Content -LiteralPath 'docs/phase-1.4-c-native-orca-skills.md' | Select-Object -Skip 284 -First 46; Write-Output 'POLICY DESIGN 360-390'; Get-Content -LiteralPath 'docs/phase-1.4-c-native-orca-skills.md' | Select-Object -Skip 359 -First 31\"",
+          "exitCode": 0
+        },
+        {
+          "eventId": "item_15",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command 'git status --short --untracked-files=all; git diff --name-status HEAD -- scripts/project-scoping.mjs scripts/__tests__/project-scoping.test.mjs scripts/scoping-transaction.mjs'",
+          "exitCode": 0
+        }
+      ],
+      "usage": {
+        "input_tokens": 409083,
+        "cached_input_tokens": 360064,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 6865,
+        "reasoning_output_tokens": 3520
+      },
+      "raw": {
+        "file": "dist\\decision17-codex\\P1.jsonl",
+        "sha256": "3a55aabf0a25708995af0a693a2f66d312247a7175eca99d8036b2ca3462db75"
+      },
+      "stderr": {
+        "file": "dist\\decision17-codex\\P1-stderr.txt",
+        "sha256": "7e26001ca4941a1dc9c2ef5a8feaacde6aa0b469fa69a49b601962ca8957e9a3"
+      }
+    },
+    {
+      "name": "P2",
+      "kind": "PURE_IMPLICIT",
+      "thread": "01a0950d-72cf-75f1-8d54-9a257077e6df",
+      "completed": true,
+      "runtime": {
+        "version": "0.154.0",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "high",
+        "sandbox": {
+          "type": "read-only"
+        },
+        "approvalPolicy": "never"
+      },
+      "projectCandidates": [
+        "ush-repo-evidence-plan",
+        "ush-work-announcement"
+      ],
+      "modelVisible": [
+        {
+          "name": "ush-repo-evidence-plan",
+          "description": "",
+          "path": "C:/Users/admin/orca/workspaces/edward321416-makeruniversal-skill-hub/phase-1.4-c-native-orca-skills/.agents/skills/ush-repo-evidence-plan/SKILL.md"
+        },
+        {
+          "name": "ush-work-announcement",
+          "description": "",
+          "path": "C:/Users/admin/orca/workspaces/edward321416-makeruniversal-skill-hub/phase-1.4-c-native-orca-skills/.agents/skills/ush-work-announcement/SKILL.md"
+        }
+      ],
+      "actualSkillIds": [
+        "ush-work-announcement"
+      ],
+      "exactLoadedPaths": [
+        "C:\\Users\\admin\\orca\\workspaces\\edward321416-makeruniversal-skill-hub\\phase-1.4-c-native-orca-skills\\.agents\\skills\\ush-work-announcement\\SKILL.md"
+      ],
+      "exactLoadedHashes": [
+        {
+          "hash": "20d3266b52477c344cc07a1b1586a0e6820b4b3cd2629652d00fe46f4d1c6a12",
+          "basis": "VERIFIED_PLACEMENT_AND_POST_RUN_FILE_SNAPSHOT",
+          "runtimeTextExact": false
+        }
+      ],
+      "selectionEvidence": [
+        {
+          "skillId": "ush-work-announcement",
+          "path": "C:\\Users\\admin\\orca\\workspaces\\edward321416-makeruniversal-skill-hub\\phase-1.4-c-native-orca-skills\\.agents\\skills\\ush-work-announcement\\SKILL.md",
+          "fileSnapshotSha256": "20d3266b52477c344cc07a1b1586a0e6820b4b3cd2629652d00fe46f4d1c6a12",
+          "eventId": "item_3",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command \"rg -n -i \\\"phase 1\\\\.4-b|orca bootstrap|bootstrap|universal-skill-hub\\\" \\\"C:\\\\Users\\\\admin\\\\AppData\\\\Roaming\\\\orca\\\\codex-accounts\\\\c6b599b0-0bc9-4998-adfd-2d0db1170f16\\\\home\\\\memories\\\\MEMORY.md\\\"; Get-Content -Raw \\\"C:\\\\Users\\\\admin\\\\orca\\\\workspaces\\\\edward321416-makeruniversal-skill-hub\\\\phase-1.4-c-native-orca-skills\\\\.agents\\\\skills\\\\ush-work-announcement\\\\SKILL.md\\\"\"",
+          "commandExitCode": 0,
+          "returnedBody": true,
+          "exactReturnedTextMatchesFile": false,
+          "returnedOutputSha256": "d2c225f813cfdb75ab877af5d6d8bca30fd87183e5b07ca6cbf94e3f2a450ae9",
+          "runtimeReportedHash": null
+        }
+      ],
+      "commandCount": 4,
+      "failedCommandCount": 0,
+      "toolCalls": [
+        {
+          "eventId": "item_3",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command \"rg -n -i \\\"phase 1\\\\.4-b|orca bootstrap|bootstrap|universal-skill-hub\\\" \\\"C:\\\\Users\\\\admin\\\\AppData\\\\Roaming\\\\orca\\\\codex-accounts\\\\c6b599b0-0bc9-4998-adfd-2d0db1170f16\\\\home\\\\memories\\\\MEMORY.md\\\"; Get-Content -Raw \\\"C:\\\\Users\\\\admin\\\\orca\\\\workspaces\\\\edward321416-makeruniversal-skill-hub\\\\phase-1.4-c-native-orca-skills\\\\.agents\\\\skills\\\\ush-work-announcement\\\\SKILL.md\\\"\"",
+          "exitCode": 0
+        },
+        {
+          "eventId": "item_5",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command '$mem = '\"'C:\\\\Users\\\\admin\\\\AppData\\\\Roaming\\\\orca\\\\codex-accounts\\\\c6b599b0-0bc9-4998-adfd-2d0db1170f16\\\\home\\\\memories\\\\MEMORY.md'; Select-String -LiteralPath \"'$mem -Pattern '\"'Phase 1.4-B','ORCA bootstrap','bootstrap','universal-skill-hub' -CaseSensitive:\"'$false -Context 2,3; git rev-parse --show-toplevel; git status --short --branch; git log --all --date=iso-strict --pretty=format:'\"'%H%x09%ad%x09%an%x09%P%x09%s' -n 80; Get-Content -Raw -LiteralPath 'docs\\\\phase-1.4-b-orca-bootstrap.md'\"",
+          "exitCode": 0
+        },
+        {
+          "eventId": "item_6",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command \"git log --reverse --date=iso-strict --pretty=format:'COMMIT %H%nDATE %ad%nAUTHOR %an%nPARENTS %P%nSUBJECT %s%nBODY%n%b%nEND' 463446ae2372161dd9431c96bcb52bdfab024001..9c327044dd3d00047e720a8ed184638c87da7a78; git diff --stat c07b31daa353107f672efd568b366656e6f1abf8..9c327044dd3d00047e720a8ed184638c87da7a78; git diff --name-status c07b31daa353107f672efd568b366656e6f1abf8..9c327044dd3d00047e720a8ed184638c87da7a78; git show --stat --summary --format='MERGE %H%nDATE %aI%nAUTHOR %an%nSUBJECT %s%nBODY%n%b' 744a8ecc0ce36528a8da550d6f954446b11b1071; git show --format='DOC UPDATE %H%nDATE %aI%nAUTHOR %an%nSUBJECT %s' -- docs/phase-1.4-b-orca-bootstrap.md 34b613659f9b0b6dd03802a90b11d6b8105e286a -1\"",
+          "exitCode": 0
+        },
+        {
+          "eventId": "item_8",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command \"git branch --all --contains 744a8ecc0ce36528a8da550d6f954446b11b1071; git show --date=iso-strict --format='COMMIT %H%nDATE %aI%nAUTHOR %an%nSUBJECT %s%nBODY%n%b' --stat 1f071e929026d5b43b56041394bc4a3490bd19c3 648e7e87421c3825d5074339fff0581a38513d53 b5b5c9696ddc1645b10c8ed48e830f983c438cc9; git show --date=iso-strict --format='COMMIT %H%nDATE %aI%nAUTHOR %an%nSUBJECT %s%nBODY%n%b' 34b613659f9b0b6dd03802a90b11d6b8105e286a -- docs/phase-1.4-b-orca-bootstrap.md\"",
+          "exitCode": 0
+        }
+      ],
+      "usage": {
+        "input_tokens": 163258,
+        "cached_input_tokens": 148864,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 3925,
+        "reasoning_output_tokens": 2120
+      },
+      "raw": {
+        "file": "dist\\decision17-codex\\P2.jsonl",
+        "sha256": "8c328a0095c8c1bd628028b55dc3b550b4848f0681e3559a1ddeb39bcce2ee85"
+      },
+      "stderr": {
+        "file": "dist\\decision17-codex\\P2-stderr.txt",
+        "sha256": "926ec685ca59ada90c3a7e74cc9e4b5c020381d24dcf25cb782831f6b6f942e6"
+      }
+    },
+    {
+      "name": "N1",
+      "kind": "PURE_IMPLICIT",
+      "thread": "01a0950e-4b61-7482-8f0c-baea2c814eb7",
+      "completed": true,
+      "runtime": {
+        "version": "0.154.0",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "high",
+        "sandbox": {
+          "type": "read-only"
+        },
+        "approvalPolicy": "never"
+      },
+      "projectCandidates": [
+        "ush-repo-evidence-plan",
+        "ush-work-announcement"
+      ],
+      "modelVisible": [
+        {
+          "name": "ush-repo-evidence-plan",
+          "description": "",
+          "path": "C:/Users/admin/orca/workspaces/edward321416-makeruniversal-skill-hub/phase-1.4-c-native-orca-skills/.agents/skills/ush-repo-evidence-plan/SKILL.md"
+        },
+        {
+          "name": "ush-work-announcement",
+          "description": "",
+          "path": "C:/Users/admin/orca/workspaces/edward321416-makeruniversal-skill-hub/phase-1.4-c-native-orca-skills/.agents/skills/ush-work-announcement/SKILL.md"
+        }
+      ],
+      "actualSkillIds": [],
+      "exactLoadedPaths": [],
+      "exactLoadedHashes": [],
+      "selectionEvidence": [],
+      "commandCount": 0,
+      "failedCommandCount": 0,
+      "toolCalls": [],
+      "usage": {
+        "input_tokens": 25905,
+        "cached_input_tokens": 11392,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "raw": {
+        "file": "dist\\decision17-codex\\N1.jsonl",
+        "sha256": "98d7027f8e05216926ebf09da9d2560ce5d7a0ea4806b9f191283a56bbbe5e39"
+      },
+      "stderr": {
+        "file": "dist\\decision17-codex\\N1-stderr.txt",
+        "sha256": "dcc5fc1090414c42639a524b030b9c5b7496e07338f04a07a2995a78c01315e2"
+      }
+    },
+    {
+      "name": "CONTROL",
+      "kind": "EXPLICIT_DIAGNOSTIC_NOT_ROUTING",
+      "thread": "01a09516-09d9-79a0-b608-f144384e46b0",
+      "completed": true,
+      "runtime": {
+        "version": "0.154.0",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "high",
+        "sandbox": {
+          "type": "read-only"
+        },
+        "approvalPolicy": "never"
+      },
+      "projectCandidates": [
+        "ush-repo-evidence-plan",
+        "ush-work-announcement"
+      ],
+      "modelVisible": [
+        {
+          "name": "ush-repo-evidence-plan",
+          "description": "",
+          "path": "C:/Users/admin/orca/workspaces/edward321416-makeruniversal-skill-hub/phase-1.4-c-native-orca-skills/.agents/skills/ush-repo-evidence-plan/SKILL.md"
+        },
+        {
+          "name": "ush-work-announcement",
+          "description": "",
+          "path": "C:/Users/admin/orca/workspaces/edward321416-makeruniversal-skill-hub/phase-1.4-c-native-orca-skills/.agents/skills/ush-work-announcement/SKILL.md"
+        }
+      ],
+      "actualSkillIds": [],
+      "exactLoadedPaths": [],
+      "exactLoadedHashes": [],
+      "selectionEvidence": [],
+      "commandCount": 1,
+      "failedCommandCount": 1,
+      "toolCalls": [
+        {
+          "eventId": "item_3",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command '$skillRoot = Join-Path (Get-Location) '\"'.agents\\\\skills'; \"'$sha256 = [System.Security.Cryptography.SHA256]::Create(); try { $items = @(Get-ChildItem -LiteralPath $skillRoot -Directory | ForEach-Object { $skillFile = Join-Path $_.FullName '\"'SKILL.md'; if (Test-Path -LiteralPath \"'$skillFile -PathType Leaf) { $bytes = [System.IO.File]::ReadAllBytes($skillFile); [pscustomobject]@{ path = [System.IO.Path]::GetFullPath($skillFile); sha256 = [System.Convert]::ToHexString($sha256.ComputeHash($bytes)).ToLowerInvariant(); base64 = [System.Convert]::ToBase64String($bytes) } } }); [System.Text.Json.JsonSerializer]::Serialize($items) } finally { $sha256.Dispose() }'",
+          "exitCode": 1
+        }
+      ],
+      "usage": {
+        "input_tokens": 52890,
+        "cached_input_tokens": 37120,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 669,
+        "reasoning_output_tokens": 292
+      },
+      "raw": {
+        "file": "dist\\decision17-codex\\CONTROL.jsonl",
+        "sha256": "c3acfebe16fd7e59d772727e5e3a18b729ba5b8d04e8a2caf39485b8d23d15ec"
+      },
+      "stderr": {
+        "file": "dist\\decision17-codex\\CONTROL-stderr.txt",
+        "sha256": "f2888b1b70bf4e8cf04027a19fa5862910574817b52bad4475258b609e196ba6"
+      }
+    },
+    {
+      "name": "CONTROL_UTF8",
+      "kind": "EXPLICIT_DIAGNOSTIC_NOT_ROUTING",
+      "thread": "01a09517-a6c8-7d92-b200-7addb45366a7",
+      "completed": true,
+      "runtime": {
+        "version": "0.154.0",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "high",
+        "sandbox": {
+          "type": "read-only"
+        },
+        "approvalPolicy": "never"
+      },
+      "projectCandidates": [
+        "ush-repo-evidence-plan",
+        "ush-work-announcement"
+      ],
+      "modelVisible": [
+        {
+          "name": "ush-repo-evidence-plan",
+          "description": "",
+          "path": "C:/Users/admin/orca/workspaces/edward321416-makeruniversal-skill-hub/phase-1.4-c-native-orca-skills/.agents/skills/ush-repo-evidence-plan/SKILL.md"
+        },
+        {
+          "name": "ush-work-announcement",
+          "description": "",
+          "path": "C:/Users/admin/orca/workspaces/edward321416-makeruniversal-skill-hub/phase-1.4-c-native-orca-skills/.agents/skills/ush-work-announcement/SKILL.md"
+        }
+      ],
+      "actualSkillIds": [],
+      "exactLoadedPaths": [],
+      "exactLoadedHashes": [],
+      "selectionEvidence": [],
+      "commandCount": 3,
+      "failedCommandCount": 1,
+      "toolCalls": [
+        {
+          "eventId": "item_3",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command 'Get-Content -Encoding UTF8 -Raw -Path .agents/skills/ush-repo-evidence-plan/SKILL.md'",
+          "exitCode": 0
+        },
+        {
+          "eventId": "item_5",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command 'Get-FileHash -Algorithm SHA256 -Path .agents/skills/*/SKILL.md'",
+          "exitCode": 1
+        },
+        {
+          "eventId": "item_7",
+          "command": "\"C:\\\\Program Files\\\\WindowsApps\\\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\\\pwsh.exe\" -NoProfile -Command 'Get-Content -Encoding UTF8 -Raw -Path .agents/skills/*/SKILL.md'",
+          "exitCode": 0
+        }
+      ],
+      "usage": {
+        "input_tokens": 111164,
+        "cached_input_tokens": 92032,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1461,
+        "reasoning_output_tokens": 791
+      },
+      "raw": {
+        "file": "dist\\decision17-codex\\CONTROL_UTF8.jsonl",
+        "sha256": "7853bb82cbb791b1d5d88e65d1e8594efc65e8acb70c6d2cd9ae6ac5670c532d"
+      },
+      "stderr": {
+        "file": "dist\\decision17-codex\\CONTROL_UTF8-stderr.txt",
+        "sha256": "1758417136bb1b6a8fbfde26bcc388a5b6602c02dbbccdfd137e3f5a8f6cf387"
+      }
+    }
+  ],
+  "native": {
+    "communityCli": "1.5.26",
+    "idempotence": {
+      "sameBytes": true,
+      "sameMtime": true
+    },
+    "syntheticEditOverwritten": true,
+    "localUpdateOutput": "\u001b[38;5;145mUpdating ush-repo-evidence-plan…\u001b[0m\r\n\r\n\u001b[38;5;102mNo installed skills found matching: ush-repo-evidence-plan\u001b[0m",
+    "receipts": [
+      {
+        "file": "dist\\decision17-codex\\native-install.json",
+        "sha256": "c0704957050d484009b5f246c61d16a499a9035758d57e77456071e5a797fa2a"
+      },
+      {
+        "file": "dist\\decision17-codex\\native-conflict.json",
+        "sha256": "c0704957050d484009b5f246c61d16a499a9035758d57e77456071e5a797fa2a"
+      },
+      {
+        "file": "dist\\decision17-codex\\native-list.json",
+        "sha256": "6037060a3cc7fc0b41c1f37d69aaf3d6b40084da3e71ea983c7ec484c9df5636"
+      },
+      {
+        "file": "dist\\decision17-codex\\orca-discovery.json",
+        "sha256": "af5645695ef6c5788cdd16ca31e9c2d7b029033f716a4fb6bd9cd5770d6d1abd"
+      }
+    ]
+  },
+  "outcome": "PARTIAL",
+  "caveats": [
+    "P1 reads both candidates",
+    "implicit stdout does not byte-match the canonical UTF-8 file",
+    "explicit diagnostics do not upgrade pure implicit cases",
+    "one third-party invalid-YAML discovery error preserved"
+  ]
+}

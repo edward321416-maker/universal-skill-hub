@@ -1,10 +1,18 @@
 # Phase 1.4-B: ORCA bootstrap — experimental integration
 
 Status: partial implementation; not a production-ready universal startup hook.
-Tracks issue #9. This branch is stacked on the unmerged Phase 1.4-A revision
-`463446ae2372161dd9431c96bcb52bdfab024001`; PR #8 must be reviewed independently.
-No merge is authorized. Canonical skills, registry hashes, lifecycle and Phase 1.3
+Tracks issue #9. Canonical skills, registry hashes, lifecycle and Phase 1.3
 routing evidence are unchanged.
+
+> **Superseded header (2026-09-12).** This document was written while PR #10 was
+> stacked on the then-unmerged Phase 1.4-A revision
+> `463446ae2372161dd9431c96bcb52bdfab024001`. PR #8 and PR #10 have since been
+> merged into `main` (`744a8ecc0ce36528a8da550d6f954446b11b1071`) with
+> post-merge CI green. Issue #9 remains open because Phase 1.4-B is still
+> partial. Every observation below was recorded under **ORCA 1.4.198**; the
+> installed runtime is now 1.4.200 — see
+> `docs/phase-1.4-c-native-orca-skills.md`. Statements here are dated history,
+> not current claims about the 1.4.200 runtime.
 
 ## Implemented boundary
 
