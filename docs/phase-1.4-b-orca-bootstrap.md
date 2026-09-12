@@ -16,6 +16,26 @@ routing evidence are unchanged.
   policy by exact hash, and serializes cooperating preparations. It invokes the
   existing installer against the actual destination in dry-run mode and uses the
   same installer in a unique staging directory before verified per-skill moves.
+- The sealed manifest declares `manifestVersion: 1`. `verifyRelease` refuses any
+  manifest it cannot fully interpret — absent or future version, an unrecognized
+  top-level key, a relative root, a non-map `files`, or a non-hex digest value —
+  as UNKNOWN_MANIFEST_FORMAT before making any integrity claim, rather than
+  enforcing only the parts this revision recognizes and reporting the release as
+  verified. Such a manifest previously surfaced as INTEGRITY, which misdirects an
+  operator to hunt for a tampered file. Manifests sealed before this revision
+  carry no version and must be re-sealed; `orca-seal-release.mjs` still writes
+  with `wx`, so re-sealing writes a new path and never overwrites an existing one.
+- `deploy` returns a `preimage` recording only what that invocation changed: the
+  policy file's exact prior bytes and the skill directories it created. A
+  no-change deployment records nothing. The launcher's existing receipt retains
+  it. `rollback(preimage)` is an operator action never called by startup: under
+  the same cooperating lock it first verifies every recorded unit still holds
+  exactly what was written, then removes only those directories and restores the
+  exact prior policy bytes. A later policy edit, a managed-skill edit, or an
+  unmanaged file added inside a created directory refuses the whole rollback as
+  ROLLBACK_CONFLICT without changing anything. Shared parents such as
+  `.agents/skills` are never removed, and a preimage format this revision cannot
+  interpret is refused as UNKNOWN_PREIMAGE_FORMAT.
 - `orca-launcher.mjs prepare <absolute-config.json>` queries the live ORCA
   repository/worktree inventory, requires an explicitly enrolled repository or
   configured approved remote owner, and deploys into the exact registered CWD.
@@ -55,6 +75,17 @@ commands were not replaced. The test resources and failed attempt are retained.
 
 ## Verification and evidence limits
 
+RED preceded both gates above. Seven manifest-format cases initially reported
+INTEGRITY or an absent version instead of UNKNOWN_MANIFEST_FORMAT; nine rollback
+cases could not even resolve the export. Both are GREEN with the existing 21
+focused bootstrap tests unchanged. A separate live host observation — not a
+committed test, because the launcher receipt already carries whatever `deploy`
+returns — ran `orca-launcher.mjs prepare` against the fake-executable fixture with
+an approved pre-existing policy, then called `rollback` on the receipt JSON alone:
+`changed: 7` deployed, `restored: 7` undone, six created directories removed, the
+empty `.agents/skills` parent kept, and the prior policy bytes restored exactly.
+
+
 Initial restored tests: 9 pass / 2 fail, demonstrating inconsistent-host acceptance
 and an argv-triggered preparation bypass. Both corrected; focused suite expanded
 to 13 deterministic filesystem/process/engine tests. An additional test initially
@@ -82,8 +113,12 @@ EXPERIMENTAL L3 and merge/send/publish gates.
   agent-start E2Es; synthetic project auto-enrollment without manual configuration.
 - Native interactive TTY/stdio/signals/resume/fork tests on each supported host.
 - Compatible thin-router integration for DECODE; do not append conflicting policy.
-- Complete settings/policy audit, unknown manifest formats, and full preimage-based
-  rollback tests. Local audit uses UNASSESSED rather than fabricated success.
+- Complete settings/policy audit; the local audit uses UNASSESSED rather than
+  fabricated success. Unknown manifest formats and preimage-based rollback are now
+  implemented and covered by tests, but no launcher mode applies a retained
+  receipt — rollback stays a library call an operator runs deliberately. The
+  receipt is also written only after deployment succeeds, so a failed receipt
+  write leaves a completed deployment with no retained preimage.
 - Source and tool-cache trust assumes an operator-controlled local directory;
   this is not protection against a malicious process with the same OS identity.
 - Atomicity is per file/skill directory under a cooperating lock, not a global

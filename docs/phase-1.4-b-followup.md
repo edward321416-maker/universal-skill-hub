@@ -81,6 +81,8 @@ integration and installer support for that policy target are not implemented.
 
 Universal launch binding and unreviewed new-project enrollment; native setup
 success/failure ordering; new-project trust; actual Ctrl+C/resume/fork/remote and
-Claude contracts; complete rollback; unexposed live settings and full audit.
+Claude contracts; an operator rollback entrypoint; unexposed live settings and
+full audit. The synthetic in-test recovery closure above is superseded by the
+`rollback` implementation described in `docs/phase-1.4-b-orca-bootstrap.md`.
 Byte-mismatched managed files still fail CONFLICT: automatic updates are unsupported.
 Local sanitized receipts, not private inventory or account data, accompany delivery.

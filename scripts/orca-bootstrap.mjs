@@ -30,6 +30,26 @@ export function safePath(root, relative = '') {
   return absolute;
 }
 
+const MANIFEST_VERSION = 1;
+const MANIFEST_KEYS = ['manifestVersion', 'root', 'pin', 'files'];
+const PREIMAGE_VERSION = 1;
+const PREIMAGE_KEYS = ['preimageVersion', 'target', 'platform', 'folder', 'policy', 'createdSkillDirs'];
+
+// A manifest this revision cannot fully interpret is a format problem, not
+// tampering. Refusing it fail-closed prevents enforcing only the recognized
+// parts of a future format while reporting the whole release as verified.
+function verifyManifestFormat(release) {
+  if (!release || typeof release !== 'object' || Array.isArray(release)) fail('UNKNOWN_MANIFEST_FORMAT', 'not an object');
+  if (release.manifestVersion !== MANIFEST_VERSION) fail('UNKNOWN_MANIFEST_FORMAT', 'manifestVersion ' + JSON.stringify(release.manifestVersion ?? null));
+  const unknown = Object.keys(release).filter((key) => !MANIFEST_KEYS.includes(key));
+  if (unknown.length) fail('UNKNOWN_MANIFEST_FORMAT', 'unrecognized key(s) ' + unknown.join(', '));
+  if (typeof release.root !== 'string' || !path.isAbsolute(release.root)) fail('UNKNOWN_MANIFEST_FORMAT', 'root is not an absolute path');
+  if (!release.files || typeof release.files !== 'object' || Array.isArray(release.files)) fail('UNKNOWN_MANIFEST_FORMAT', 'files is not a map');
+  for (const [name, value] of Object.entries(release.files)) {
+    if (typeof value !== 'string' || !/^[a-f0-9]{64}$/.test(value)) fail('UNKNOWN_MANIFEST_FORMAT', 'digest for ' + name);
+  }
+}
+
 // Sealing is an operator action after source pin/origin/full verification.
 // Startup never regenerates the approved manifest to repair failed checks.
 export function createManifest(root, pin) {
@@ -47,11 +67,12 @@ export function createManifest(root, pin) {
     }
   }
   walk();
-  return { root: path.resolve(root), pin, files };
+  return { manifestVersion: MANIFEST_VERSION, root: path.resolve(root), pin, files };
 }
 
 export function verifyRelease(release) {
-  if (!release || !/^[a-f0-9]{40}$/.test(release.pin) || !release.files) fail('UNAPPROVED_RELEASE');
+  verifyManifestFormat(release);
+  if (!/^[a-f0-9]{40}$/.test(release.pin) || !release.files) fail('UNAPPROVED_RELEASE');
   for (const name of ['package.json', 'package-lock.json', 'registry/skills-index.json', 'registry/conflicts.json', 'scripts/install-skills.mjs', 'scripts/eligibility.mjs']) {
     if (!release.files[name]) fail('INTEGRITY', 'manifest omits ' + name);
   }
@@ -153,7 +174,9 @@ export async function deploy({ release, target, platform, approvedPolicyHashes =
   const fd = await acquireLock(lock);
   let stage;
   try {
-    const current = fs.existsSync(policyFile) ? fs.readFileSync(policyFile) : Buffer.alloc(0);
+    // The in-lock observation is the authoritative preimage for this invocation.
+    const currentExisted = fs.existsSync(policyFile);
+    const current = currentExisted ? fs.readFileSync(policyFile) : Buffer.alloc(0);
     if (!current.equals(before) && !current.equals(after)) fail('POLICY_CONFLICT', 'concurrent edit');
     for (const item of expected) {
       safePath(target, item.relative);
@@ -181,11 +204,67 @@ export async function deploy({ release, target, platform, approvedPolicyHashes =
       policyChanged = 1;
     }
     for (const item of expected) if (!fs.readFileSync(item.file).equals(item.bytes)) fail('INSTALL_PARITY', item.id);
-    return { ready: true, pin: release.pin, changed: missing.length + policyChanged, skills: expected.map((x) => ({ id: x.id, sha256: digest(x.bytes) })), enforcement: 'ADVISORY' };
+    // Retained so an operator can undo exactly this invocation later. It records
+    // only what this invocation changed; a no-change deployment records nothing.
+    const preimage = {
+      preimageVersion: PREIMAGE_VERSION,
+      target: path.resolve(target),
+      platform,
+      folder,
+      policy: {
+        relative: path.basename(policyFile),
+        changed: policyChanged === 1,
+        existed: currentExisted,
+        beforeBase64: policyChanged && currentExisted ? current.toString('base64') : null,
+        afterSha256: policyChanged ? digest(after) : null,
+      },
+      createdSkillDirs: missing.map((item) => ({ id: item.id, relative: folder + '/skills/' + item.id, sha256: digest(item.bytes) })),
+    };
+    return { ready: true, pin: release.pin, changed: missing.length + policyChanged, skills: expected.map((x) => ({ id: x.id, sha256: digest(x.bytes) })), preimage, enforcement: 'ADVISORY' };
   } finally {
     fs.closeSync(fd);
     fs.unlinkSync(lock); // Only this invocation's exclusively-created lock.
     if (stage) fs.rmSync(stage, { recursive: true, force: true }); // Unique owned staging.
+  }
+}
+
+// Operator-applied recovery from a retained preimage; never invoked by startup
+// and never a global transaction. Every recorded unit must still hold exactly
+// what the deployment wrote before anything is undone, so a later user edit or
+// an added unmanaged file refuses the whole rollback without changing files.
+// Only directories this deployment created are removed; shared parents stay.
+export async function rollback(preimage) {
+  if (!preimage || typeof preimage !== 'object' || Array.isArray(preimage)) fail('UNKNOWN_PREIMAGE_FORMAT', 'not an object');
+  if (preimage.preimageVersion !== PREIMAGE_VERSION) fail('UNKNOWN_PREIMAGE_FORMAT', 'preimageVersion ' + JSON.stringify(preimage.preimageVersion ?? null));
+  const unknown = Object.keys(preimage).filter((key) => !PREIMAGE_KEYS.includes(key));
+  if (unknown.length) fail('UNKNOWN_PREIMAGE_FORMAT', 'unrecognized key(s) ' + unknown.join(', '));
+  if (!['codex', 'claude-code'].includes(preimage.platform)) fail('UNKNOWN_PREIMAGE_FORMAT', 'platform');
+  if (preimage.folder !== (preimage.platform === 'codex' ? '.agents' : '.claude')) fail('UNKNOWN_PREIMAGE_FORMAT', 'folder');
+  if (!preimage.policy || typeof preimage.policy !== 'object' || !Array.isArray(preimage.createdSkillDirs)) fail('UNKNOWN_PREIMAGE_FORMAT', 'record shape');
+  const target = safePath(preimage.target);
+  const policyFile = safePath(target, preimage.policy.relative);
+  const fd = await acquireLock(safePath(target, preimage.folder + '/.ush-bootstrap.lock'));
+  try {
+    if (preimage.policy.changed) {
+      const now = fs.existsSync(policyFile) ? fs.readFileSync(policyFile) : null;
+      if (!now || digest(now) !== preimage.policy.afterSha256) fail('ROLLBACK_CONFLICT', preimage.policy.relative);
+    }
+    for (const entry of preimage.createdSkillDirs) {
+      const skillDir = safePath(target, entry.relative);
+      let names;
+      try { names = fs.readdirSync(skillDir); } catch { fail('ROLLBACK_CONFLICT', entry.relative); }
+      if (names.length !== 1 || names[0] !== 'SKILL.md') fail('ROLLBACK_CONFLICT', entry.relative);
+      if (digest(fs.readFileSync(path.join(skillDir, 'SKILL.md'))) !== entry.sha256) fail('ROLLBACK_CONFLICT', entry.relative);
+    }
+    for (const entry of preimage.createdSkillDirs) fs.rmSync(safePath(target, entry.relative), { recursive: true });
+    if (preimage.policy.changed) {
+      if (preimage.policy.existed) fs.writeFileSync(policyFile, Buffer.from(preimage.policy.beforeBase64, 'base64'));
+      else fs.unlinkSync(policyFile);
+    }
+    return { restored: preimage.createdSkillDirs.length + (preimage.policy.changed ? 1 : 0) };
+  } finally {
+    fs.closeSync(fd);
+    fs.unlinkSync(safePath(target, preimage.folder + '/.ush-bootstrap.lock'));
   }
 }
 

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createManifest, verifyRelease, resolveContext, deploy, bridgeEligibility, launch, digest } from '../orca-bootstrap.mjs';
+import { createManifest, verifyRelease, resolveContext, deploy, rollback, bridgeEligibility, launch, digest } from '../orca-bootstrap.mjs';
 
 const source = fileURLToPath(new URL('../../', import.meta.url));
 const pin = '463446ae2372161dd9431c96bcb52bdfab024001';
@@ -76,6 +76,30 @@ for (const relative of ['skills/global/ush-repo-evidence-plan/SKILL.md', 'adapte
   });
 }
 
+test('sealed manifests declare their own format version', t => {
+  assert.equal(fixture(t).release.manifestVersion, 1);
+});
+
+// A manifest this code cannot fully interpret must be refused as a format
+// problem, not reported as tampering and not partially enforced.
+const unknownFormats = [
+  ['absent format version', ({ manifestVersion, ...rest }) => rest],
+  ['future format version', r => ({ ...r, manifestVersion: 2 })],
+  ['unrecognized top-level key', r => ({ ...r, optionalFiles: { 'README.md': true } })],
+  ['relative release root', r => ({ ...r, root: path.basename(r.root) })],
+  ['files as an array', r => ({ ...r, files: Object.entries(r.files) })],
+  ['structured digest value', r => ({ ...r, files: { ...r.files, 'package.json': { sha256: r.files['package.json'] } } })],
+];
+for (const [label, mutate] of unknownFormats) {
+  test('unknown manifest format is refused before any target write: ' + label, async t => {
+    const f = fixture(t);
+    const release = mutate(f.release);
+    assert.throws(() => verifyRelease(release), /UNKNOWN_MANIFEST_FORMAT/);
+    await assert.rejects(deploy({ ...f, release }), /UNKNOWN_MANIFEST_FORMAT/);
+    assert.deepEqual(fs.readdirSync(f.target), []);
+  });
+}
+
 test('modified managed skills are never overwritten', async t => {
   const f = fixture(t);
   await deploy(f);
@@ -126,24 +150,92 @@ test('user policy edit while waiting for preparation lock is retained', async t 
   assert.deepEqual(fs.readFileSync(policy), edited);
 });
 
-test('documented exact-preimage policy recovery preserves subsequent edits', async t => {
+// Production rollback. It is never invoked automatically: only an operator
+// applies a retained preimage. This replaces an earlier test that exercised a
+// synthetic recovery closure defined inside the test itself.
+const skillsDir = f => path.join(f.target, '.agents/skills');
+
+test('deployment retains a preimage naming the policy and the directories it created', async t => {
+  const f = fixture(t);
+  const { preimage } = await deploy(f);
+  assert.equal(preimage.preimageVersion, 1);
+  assert.equal(preimage.target, f.target);
+  assert.equal(preimage.policy.existed, false);
+  assert.deepEqual(preimage.createdSkillDirs.map(d => d.relative).sort(),
+    verifyRelease(f.release).skills.map(s => '.agents/skills/' + s.skill_id).sort());
+});
+
+test('rollback restores the exact policy bytes that existed before deployment', async t => {
   const f = fixture(t);
   const policy = path.join(f.target, 'AGENTS.md');
-  const original = Buffer.from('Original policy\r\n');
+  const original = Buffer.from('Existing project lock\r\n');
   fs.writeFileSync(policy, original);
-  await deploy({ ...f, approvedPolicyHashes: [digest(original)] });
-  const installed = fs.readFileSync(policy);
-  // Synthetic operator procedure, NOT an automatically invoked production rollback.
-  const restore = () => {
-    if (!fs.readFileSync(policy).equals(installed)) throw Error('RECOVERY_CONFLICT');
-    fs.writeFileSync(policy, original);
-  };
-  restore();
+  const { preimage } = await deploy({ ...f, approvedPolicyHashes: [digest(original)] });
+  assert.equal((await rollback(preimage)).restored, 7);
   assert.deepEqual(fs.readFileSync(policy), original);
-  fs.writeFileSync(policy, Buffer.concat([installed, Buffer.from('later edit')]));
+});
+
+test('rollback deletes a policy file that did not exist before deployment', async t => {
+  const f = fixture(t);
+  await rollback((await deploy(f)).preimage);
+  assert.equal(fs.existsSync(path.join(f.target, 'AGENTS.md')), false);
+});
+
+test('rollback removes only the skill directories deployment created', async t => {
+  const f = fixture(t);
+  const { preimage } = await deploy(f);
+  fs.mkdirSync(path.join(skillsDir(f), 'third-party'));
+  fs.writeFileSync(path.join(skillsDir(f), 'third-party/SKILL.md'), 'unrelated');
+  await rollback(preimage);
+  assert.deepEqual(fs.readdirSync(skillsDir(f)), ['third-party']);
+});
+
+test('rollback refuses and changes nothing after a later policy edit', async t => {
+  const f = fixture(t);
+  const { preimage } = await deploy(f);
+  const policy = path.join(f.target, 'AGENTS.md');
+  fs.appendFileSync(policy, 'later user edit\n');
   const edited = fs.readFileSync(policy);
-  assert.throws(restore, /RECOVERY_CONFLICT/);
+  await assert.rejects(rollback(preimage), /ROLLBACK_CONFLICT/);
   assert.deepEqual(fs.readFileSync(policy), edited);
+  assert.equal(fs.readdirSync(skillsDir(f)).length, 6);
+});
+
+test('rollback refuses and changes nothing after a later managed skill edit', async t => {
+  const f = fixture(t);
+  const { preimage } = await deploy(f);
+  const file = path.join(skillsDir(f), 'ush-repo-evidence-plan/SKILL.md');
+  fs.appendFileSync(file, '\nuser edit');
+  const edited = fs.readFileSync(file);
+  await assert.rejects(rollback(preimage), /ROLLBACK_CONFLICT/);
+  assert.deepEqual(fs.readFileSync(file), edited);
+  assert.equal(fs.existsSync(path.join(f.target, 'AGENTS.md')), true);
+});
+
+test('rollback refuses to remove a created directory that gained an unmanaged file', async t => {
+  const f = fixture(t);
+  const { preimage } = await deploy(f);
+  const extra = path.join(skillsDir(f), 'ush-repo-evidence-plan/notes.md');
+  fs.writeFileSync(extra, 'user notes');
+  await assert.rejects(rollback(preimage), /ROLLBACK_CONFLICT/);
+  assert.equal(fs.existsSync(extra), true);
+});
+
+test('rollback of a no-change deployment removes nothing', async t => {
+  const f = fixture(t);
+  await deploy(f);
+  const second = await deploy(f);
+  assert.equal(second.changed, 0);
+  assert.equal((await rollback(second.preimage)).restored, 0);
+  assert.equal(fs.readdirSync(skillsDir(f)).length, 6);
+  assert.equal(fs.existsSync(path.join(f.target, 'AGENTS.md')), true);
+});
+
+test('rollback refuses a preimage format it cannot interpret', async t => {
+  const f = fixture(t);
+  const { preimage } = await deploy(f);
+  await assert.rejects(rollback({ ...preimage, preimageVersion: 2 }), /UNKNOWN_PREIMAGE_FORMAT/);
+  assert.equal(fs.readdirSync(skillsDir(f)).length, 6);
 });
 
 test('bridge skips neutral tasks and is explicitly advisory', async t => {
