@@ -209,7 +209,7 @@ a surface remains open work; none were flipped automatically.
 
 ## Open
 
-- Codex implicit-selection gaps remain historical; Decision 17 prohibits live/paid Codex reruns in this phase.
+- Codex implicit-selection gaps remain historical. The later, explicitly authorized Codex follow-up below supersedes the earlier Claude-pass quota restriction; Phase 1.3 evidence stays immutable.
 - Two existing-project native E2Es; one is blocked by a project lock.
 - Migration from already-deployed adapter state to canonical native state.
 - The 312-row settings audit re-run against 1.4.200.
@@ -434,3 +434,196 @@ operation gates as mandatory acceptance criteria.
 Out of scope: custom LLM router, vectors/embeddings, cloud routing, third-party
 marketplace cleanup, global skill deletion, lifecycle promotion, numeric
 promotion thresholds, OpenCode installation, Codex paid/live routing reruns.
+
+## Authorized Codex follow-up — 2026-09-12
+
+This follow-up was explicitly authorized after the Claude pass. It does not
+retroactively change its quota restriction or results. It continues issue #11,
+branch `phase/1.4-c-native-orca-skills`, Draft PR #12, with #9 OPEN and no merge.
+Initial local and remote head both matched
+`b6de9da68df9ba69410086f5924505485fffbfa3`; base remained
+`744a8ecc0ce36528a8da550d6f954446b11b1071`. The authoritative worktree had no
+uncommitted changes before this follow-up. No new branch, issue or PR was made.
+
+### Code review and corrections
+
+The intent is to reduce project-visible candidates without weakening ownership,
+policy, or operation gates. A fresh code review found concrete failures in the
+previous implementation; the earlier green tests were not treated as proof of
+these missing cases. This is a documented self-review with observed regressions,
+not an independent external approval or a merge authorization.
+
+| Severity | Root cause at initial head | RED evidence | Correction |
+| --- | --- | --- | --- |
+| Critical | Truthy `confirmRemoval` accepted the string `"false"` | Removal occurred instead of rejecting the flag | Require actual booleans for apply/removal |
+| Critical | Directory preflight was outside the lock | A new user file caused removal to unlink SKILL.md before rmdir failed | Repeat path/body/directory checks under the lock and before mutations |
+| Major | Updated files preceded a non-atomic receipt write | Injected receipt failure left new skill bytes with old ownership state | Atomic per-file/receipt replacement; preimage journal and guarded rollback |
+| Major | Unknown policy keys were ignored | A misspelled block field silently admitted the skill | Reject unknown policy fields |
+| Major | Missing canonical frontmatter description became empty text | Invalid metadata bypassed budget accounting | Require matching name and nonempty description before placement |
+| Major | Unknown scope was treated as global | `scope: domian` was included | Exclude unknown/incomplete scope |
+| Major | Failed initial write left an unmanaged empty directory | Injected first-write failure left the skill directory | Roll back created empty directories |
+
+The first review run recorded 5 failing regressions; the second recorded two
+additional failures before their fixes. Focused coverage is now **38 passing
+tests**, including symlink redirection, source traversal, lock contention,
+supporting-file refusal, pending-journal refusal and exact previous-byte rollback.
+The stale-update fixture now has valid frontmatter; malformed metadata has its
+own rejection test. Existing evaluator/operation gates and canonical hashes were
+not changed. Specific strengths retained: exact-byte canonical checks, no
+unmanaged adoption, explicit removal confirmation and separate visibility metrics.
+No minor style changes or unresolved author questions were required.
+
+`scripts/scoping-transaction.mjs` journals preimages before mutation. A caught
+failure rolls back only when current bytes still match the transaction's own
+postimage. A crash, rollback conflict or journal cleanup failure leaves evidence
+and requires review; subsequent reconciliation refuses `RECOVERY_REQUIRED`.
+There is no automatic destructive recovery. It protects cooperating reconcilers;
+it is not an OS-level defense against an arbitrary concurrent process changing
+paths between checks. Supporting-file trees remain explicitly unsupported.
+Review verdict for phase acceptance: **Request Changes / PARTIAL**, because the
+runtime limitations below remain despite the corrected local regressions.
+
+### Codex discovery and context budget
+
+Installed binary: **codex-cli 0.154.0**. Persisted `turn_context` metadata from
+each actual run reports **gpt-5.6-sol**, reasoning effort **high**, sandbox
+**read-only**, approval policy **never**. Model/effort were inherited, not
+overridden or inferred from the supervising model. No unrestricted mode,
+sandbox bypass, credential extraction or global configuration edits were used.
+
+Quota-free installed mechanisms were inspected through `--help` first:
+`codex debug prompt-input`, and app-server `initialize` → `skills/list` using
+the installed generated JSON schema. `scripts/codex-skill-inventory.mjs` makes
+only those two RPC requests and starts no model turn. Its result contains
+**368 enabled skill entries**: 2 repo, 360 user (including plugin entries),
+6 system. It also reports one third-party `schedule/SKILL.md` invalid-YAML error;
+that skill was not edited or deleted.
+
+The six existing global Hub adapters remained on disk. Both local and global
+copies of the two selected IDs appeared in `skills/list`; it did not merge them.
+Before local placement, the rendered prompt listed **338 paths, 0 Hub names**.
+After placement, it listed **337 paths, 2 Hub names**, both pointing at this
+worktree's `.agents/skills`. Rendered entries contained names/paths without
+descriptions in both snapshots. These are direct prompt-input observations, not
+a universal precedence rule or a promised numeric limit.
+
+Comparing the enabled discovery path set with the after-placement prompt gives
+**31 discovered paths absent from the rendered catalog**. This is a computed
+cross-diagnostic difference, not a runtime-issued omitted counter. Runtime exact
+omitted count and numeric budget are `null`; no context-budget warning was
+exposed by these Codex diagnostics. Therefore attribution remains
+**OVERFLOW_ATTRIBUTION_UNVERIFIED**. Large host inventory is observed, but neither
+`HUB_SCOPING_OVERFLOW` nor complete host overflow isolation is claimed. Historical
+Claude warnings and Codex Phase 1.3 crowding/truncation evidence remain unchanged.
+
+### Scoper → local placement → implicit cases
+
+The actual Hub worktree project policy enabled/allowed repository evidence
+planning and merged-work announcements. The latter's general
+`repository_evidence` capability was available through local Git; publish
+permission was not granted. `scopeProject()` selected exactly **2/6**, and
+`reconcileProject()` placed those two canonical bodies in `.agents/skills` with
+the ownership receipt. The other four Hub skills were not copied locally.
+Local placement hashes matched the registry before use and after the runs;
+all six global adapter snapshot hashes remained unchanged over the subsequent
+control/extraction interval (the first global snapshot was after the implicit
+cases, not before them). The hardened reconciler was also run against the real
+two-candidate placement and reported both files unchanged. Local deployment
+files remain untracked, separate from this PR's code and evidence.
+
+All three routing prompts omit skill IDs. Results are separate from Phase 1.3:
+
+| Case | Request | Direct tool evidence | Result |
+| --- | --- | --- | --- |
+| P1 | Repository-evidence plan for malformed policy handling | Reads local repo-evidence-plan **and** local work-announcement | Expected local selection observed; 1 unnecessary candidate read |
+| P2 | Draft a development announcement from merged 1.4-B Git history/docs | Reads local work-announcement | Expected local selection observed |
+| N1 | `What is 7 plus 5? Answer briefly.` | No command/tool calls | No Hub load |
+
+P1's batch returned exit 1 because a later memory-file read failed; both preceding
+local SKILL.md bodies were present in its output. That is not described as a
+successful whole command. P2's local read command exited 0. Neither final model
+narrative was used as load evidence. No model-generated mutation/network command
+was observed in the audited case commands.
+
+**Exact transport limitation:** returned implicit stdout did not exactly match
+the canonical UTF-8 text. Verified filesystem hashes identify the files read;
+they do not prove byte-identical model-visible injected content. A separate
+explicit byte control failed on .NET method restrictions. A safe cmdlet control
+also found `Get-FileHash` unavailable; `Get-Content -Encoding UTF8 -Raw` completed
+but still did not yield an exact text match. No restriction was relaxed. These
+controls do not count as pure implicit successes or upgrade the two positives
+to exact-body confirmation. Strict positives: **0 exact-transport confirmed,
+2 unconfirmed**, not two fabricated false negatives. Local path selections: 2/2.
+Negative false loads: 0/1. Unexpected positive-case loads: 1 (P1).
+
+### Native ORCA reassessment
+
+Installed ORCA remained **1.4.200**. The version-matched `orca-cli` guide and
+installed help were used, rather than assuming documentation described the host.
+Native install dry-runs resolve Codex local scope without `--global`, and global
+scope with it. Update local scope resolves `skills update ... --project -y`.
+`orca skills install` **and** `orca skills update` reject the external Hub ID as
+unknown: their selector remains restricted to bundled ORCA skills.
+
+The already available community CLI **skills 1.5.26** was exercised with
+`npx --no-install` in a disposable local control under `dist/decision17-codex`.
+Selected single-skill Codex installation placed canonical bytes in `.agents/skills`.
+Reinstall preserved bytes/mtime, but after a synthetic user edit it overwrote the
+edit. No real user/global skill was touched. `skills update <id> --project -y`
+reported **No installed skills found matching** for this local-source install.
+Provider `skills list --agent codex --json` and ORCA discovery were captured;
+ORCA inventory is not model-visibility proof and can resolve the enclosing
+registered repository rather than the nested disposable directory.
+
+| Responsibility | Classification | Evidence |
+| --- | --- | --- |
+| Selected canonical Codex local copy | NATIVE_REPLACES | Community installer actual one-skill copy; bounded compatibility control |
+| Arbitrary Hub install/update via ORCA wrapper | GAP | Both wrapper selectors reject Hub IDs |
+| Global placement | UNVERIFIED for fresh mutation | Dry-run supported; existing historical control preserved; no new global install |
+| Safe updates, ownership, policy and preimages | HUB_REMAINS_REQUIRED | Native reinstall overwrites edits; local-source update not tracked |
+| Current production materialization entrypoint | FALLBACK_ONLY | Guarded filesystem fallback retained; no native startup integration hook |
+| Native discovery → actual model selection | UNVERIFIED as ORCA end-to-end | Codex observations are separate from ORCA discovery |
+
+### Verification and independent acceptance dimensions
+
+Local Windows `npm run verify`: **358 passed / 0 failed / 0 skipped**, registry
+6 with 0 inconsistencies, adapters 24 with 0 drift. The installer dry-run smoke
+correctly labels the two canonical local copies UNMANAGED relative to its
+adapter-marker contract and does not overwrite them; the command exits 0.
+`git diff --check` passed; canonical/registry/adapter/Phase 1.3 fixture diffs are
+empty. `npm run routing-eval` was run separately for the stored real and project
+cases, and `npm run routing-eval:cursor` for stored Cursor cases, with outputs
+redirected by their existing positional arguments into `dist/decision17-codex`.
+Those historical metrics are not recomputed from the new live cases.
+
+| Acceptance dimension | Result | Boundary |
+| --- | --- | --- |
+| Deterministic project scoping | PASS | Local regression coverage; unknown policy/scope fails closed |
+| Project-local materialization | PASS | Exactly 2 candidates, canonical byte parity |
+| Codex model visibility | PASS | Both local paths directly rendered |
+| Project-local exact Skill load | PARTIAL | Direct local reads; exact UTF-8 runtime transport unconfirmed |
+| Pure implicit positive routing | PARTIAL | Expected paths read in 2/2; P1 over-load and transport limits |
+| Negative no-load | PASS | N1 has zero tool calls |
+| Hub overflow attribution | UNVERIFIED | Catalog omissions observed; runtime counter/cause unavailable |
+| Native ORCA integration | PARTIAL | Local copy compatibility; wrapper/update/guard gaps remain |
+| Unmanaged preservation | PASS | Regression tests and unchanged global snapshots |
+| Safety/operation gates | PASS within tested layer | Existing evaluator retained; actual cases read-only; no host-enforcement claim |
+
+Overall Decision 17 remains **PARTIAL**. Hosted Windows/Ubuntu CI on the follow-up
+head is reported separately in PR #12. Full production startup integration,
+crash-journal manual recovery, exact sandbox text/hash transport, exhaustive
+routing coverage and whole-host overflow attribution remain unproven. No
+third-party cleanup, alphabetical renaming, description shortening, custom LLM
+router, embedding service, lifecycle promotion, OpenCode install, or merge occurred.
+
+Reproducible extraction:
+
+```text
+node scripts/codex-skill-inventory.mjs <absolute-codex.js> <absolute-worktree> <local-raw-inventory.json>
+node scripts/codex-scoping-evidence.mjs <probe-directory> <session-day-directory> <evidence.json>
+```
+
+Bounded evidence and raw-receipt digests are in
+`phase-1.4-c-codex-scoping-evidence.json`; raw prompts, streams and generated
+protocol schemas stay under the ignored probe directory. The tools do not read
+auth stores or modify global configuration.

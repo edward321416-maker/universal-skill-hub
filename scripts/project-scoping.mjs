@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { load } from 'js-yaml';
 import { evaluateEligibility } from './eligibility.mjs';
 import { safePath, digest } from './orca-bootstrap.mjs';
+import { commitPlacement } from './scoping-transaction.mjs';
 
 const fail = (code) => { throw new Error(code); };
 const compare = (a, b) => a < b ? -1 : a > b ? 1 : 0;
@@ -18,6 +19,9 @@ export function scopeProject({ registry, project, conflicts = [] }) {
   if (!project?.identity || !project.runtime || !project.policy || !Array.isArray(registry?.skills)) fail('INVALID_PROJECT_CONTEXT');
   const policy = project.policy;
   if (typeof policy !== 'object' || Array.isArray(policy)) fail('INVALID_PROJECT_POLICY');
+  const policyKeys = ['enabledSkillIds', 'allowedSkillIds', 'blockedSkillIds', 'deniedOperations', 'protectedResources', 'maxCandidates', 'maxDescriptionBytes', 'denyAll', 'reason'];
+  if (Object.keys(policy).some(k => !policyKeys.includes(k))) fail('UNKNOWN_PROJECT_POLICY');
+  if (policy.denyAll !== undefined && typeof policy.denyAll !== 'boolean') fail('INVALID_PROJECT_POLICY');
   for (const key of ['availableInputs', 'availableTools', 'availableCapabilities', 'grantedPermissions', 'selectedSkillIds', 'requestedOperations', 'targetResources']) {
     if (project[key] !== undefined && (!Array.isArray(project[key]) || project[key].some(v => typeof v !== 'string'))) fail('INVALID_PROJECT_CONTEXT');
   }
@@ -44,6 +48,7 @@ export function scopeProject({ registry, project, conflicts = [] }) {
     requestedOperations: project.requestedOperations ?? [], targetResources: project.targetResources ?? [] };
   for (const s of registry.skills) {
     if (counts.get(s.skill_id) > 1) { reject(s, 'policyExcluded', 'DUPLICATE_ID'); continue; }
+    if (!['global', 'domain', 'project'].includes(s.scope) || (s.scope === 'project' && !s.project_scope)) { reject(s, 'scopeExcluded', 'UNKNOWN_OR_INCOMPLETE_SCOPE'); continue; }
     const rt = s.runtime_support?.[project.runtime];
     if (!s.platforms?.includes(project.runtime) || s.runtime_exclusions?.[project.runtime] || !['SUPPORTED', 'SUPPORTED_WITH_RESTRICTIONS'].includes(rt?.status)) {
       reject(s, 'runtimeExcluded', 'RUNTIME_UNSUPPORTED_OR_UNKNOWN'); continue;
@@ -97,9 +102,11 @@ export function scopeProject({ registry, project, conflicts = [] }) {
 // ownership dimensions (skill ID + platform) plus an exact preimage hash, as in
 // bootstrap rollback. Existing copies without this receipt are never adopted.
 export function reconcileProject({ sourceRoot, targetRoot, registry, project, conflicts = [], apply = false, confirmRemoval = false }) {
+  if (typeof apply !== 'boolean' || typeof confirmRemoval !== 'boolean') fail('INVALID_CONFIRMATION');
   const root = safePath(targetRoot), source = safePath(sourceRoot);
   const folder = { 'claude-code': '.claude', codex: '.agents' }[project.runtime];
   if (!folder) fail('UNSUPPORTED_LOCAL_PLACEMENT');
+  if (fs.existsSync(safePath(root, folder + '/.ush-project-scope.pending.json'))) fail('RECOVERY_REQUIRED');
   const receiptFile = safePath(root, folder + '/.ush-project-scope.json');
   const receiptBytes = read(receiptFile);
   const receipt = receiptBytes ? JSON.parse(receiptBytes) : { owner: 'universal-skill-hub', version: 1, platform: project.runtime, project: project.identity, files: {} };
@@ -110,7 +117,9 @@ export function reconcileProject({ sourceRoot, targetRoot, registry, project, co
     const body = read(safePath(source, s.path + '/SKILL.md'));
     if (!body || digest(body) !== s.content_sha256) fail('CANONICAL_INTEGRITY: ' + s.skill_id);
     const header = body.toString('utf8').match(/^---\r?\n([\s\S]*?)\r?\n---/);
-    return [s.skill_id, header ? load(header[1]).description ?? '' : ''];
+    const metadata = header ? load(header[1]) : null;
+    if (!metadata || metadata.name !== s.skill_id || typeof metadata.description !== 'string' || !metadata.description.trim()) fail('INVALID_CANONICAL_METADATA');
+    return [s.skill_id, metadata.description];
   }));
   const report = scopeProject({ registry: { ...registry, skills: registry.skills.map(s => descriptions.has(s.skill_id) ? { ...s, description: descriptions.get(s.skill_id) } : s) }, project, conflicts });
   const desired = new Map(report.candidates.map(s => [s.skill_id, s]));
@@ -144,19 +153,7 @@ export function reconcileProject({ sourceRoot, targetRoot, registry, project, co
   const lock = safePath(root, folder + '/.ush-project-scope.lock');
   const fd = fs.openSync(lock, 'wx');
   try {
-    const now = read(receiptFile);
-    if ((now === null) !== (receiptBytes === null) || (now && !now.equals(receiptBytes))) fail('CONCURRENT_RECEIPT_CHANGE');
-    // Preflight all files before the first mutation. Never recurse into siblings.
-    for (const a of actions) {
-      const current = read(safePath(root, path.relative(root, a.file)));
-      if ((current === null) !== (a.before === null) || (current && !current.equals(a.before))) fail('CONCURRENT_TARGET_CHANGE');
-    }
-    for (const a of actions) {
-      if (a.action === 'unchanged') continue;
-      if (a.action === 'remove') { fs.unlinkSync(a.file); fs.rmdirSync(path.dirname(a.file)); }
-      else { fs.mkdirSync(path.dirname(a.file), { recursive: true }); fs.writeFileSync(a.file, a.after, { flag: a.action === 'create' ? 'wx' : 'w' }); }
-    }
-    fs.writeFileSync(receiptFile, JSON.stringify({ ...receipt, files: next }, null, 2) + '\n');
+    commitPlacement({ root, folder, receiptFile, receiptBytes, actions, nextReceipt: JSON.stringify({ ...receipt, files: next }, null, 2) + '\n' });
   } finally { fs.closeSync(fd); fs.unlinkSync(lock); }
   report.metrics.materializedHubSkills = Object.keys(next).length;
   return report;

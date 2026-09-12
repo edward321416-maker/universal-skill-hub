@@ -75,7 +75,7 @@ test('unmanaged same-name skill is untouched and prevents adoption', t => {
   assert.throws(() => f.run(), /UNMANAGED/); assert.equal(fs.readFileSync(f.file, 'utf8'), 'user content');
 });
 test('managed stale skill safely updates with exact old receipt hash', t => {
-  const f = fixture(t); f.run(); const body = 'updated canonical'; fs.writeFileSync(path.join(f.source, 'relevant/SKILL.md'), body); f.skills[0].content_sha256 = digest(Buffer.from(body));
+  const f = fixture(t); f.run(); const body = '---\nname: relevant\ndescription: Updated evidence\n---\nupdated canonical'; fs.writeFileSync(path.join(f.source, 'relevant/SKILL.md'), body); f.skills[0].content_sha256 = digest(Buffer.from(body));
   f.run(); assert.equal(fs.readFileSync(f.file, 'utf8'), body);
 });
 test('user-modified managed skill conflicts before writes', t => {
@@ -115,4 +115,74 @@ test('unknown descriptions cannot masquerade as zero-cost candidates', () => {
 test('malformed context and observation types are refused', () => {
   assert.throws(() => scope([skill()], project({ grantedPermissions: 'merge' })), /INVALID_PROJECT_CONTEXT/);
   assert.throws(() => scope([skill()], project({ budgetSignal: { overflowObserved: 'false' } })), /INVALID_BUDGET_SIGNAL/);
+});
+test('string removal confirmation is not authorization', t => {
+  const f = fixture(t); f.run();
+  assert.throws(() => f.run({ project: project({ policy: { denyAll: true } }), confirmRemoval: 'false' }), /INVALID_CONFIRMATION/);
+  assert.ok(fs.existsSync(f.file));
+});
+test('unknown project policy fields cannot silently bypass denials', () => {
+  assert.throws(() => scope([skill()], project({ policy: { blockedSkills: ['relevant'] } })), /UNKNOWN_PROJECT_POLICY/);
+});
+test('missing canonical description fails closed before placement', t => {
+  const f = fixture(t); const body = '---\nname: relevant\n---\nDo something.\n';
+  fs.writeFileSync(path.join(f.source, 'relevant/SKILL.md'), body); f.skills[0].content_sha256 = digest(Buffer.from(body));
+  assert.throws(() => f.run(), /INVALID_CANONICAL_METADATA/); assert.equal(fs.existsSync(f.file), false);
+});
+test('extra user file arriving during lock acquisition blocks removal before unlink', t => {
+  const f = fixture(t); f.run(); const open = fs.openSync;
+  t.mock.method(fs, 'openSync', (...args) => {
+    const fd = open(...args);
+    if (String(args[0]).endsWith('.ush-project-scope.lock')) fs.writeFileSync(path.join(path.dirname(f.file), 'user.txt'), 'mine');
+    return fd;
+  });
+  assert.throws(() => f.run({ project: project({ policy: { denyAll: true } }), confirmRemoval: true }), /CONFLICT_EXTRA_FILES/);
+  assert.ok(fs.existsSync(f.file));
+});
+test('receipt write failure rolls back exact previous skill bytes', t => {
+  const f = fixture(t); f.run(); const original = fs.readFileSync(f.file);
+  const body = '---\nname: relevant\ndescription: Updated evidence plan\n---\nUpdated.\n';
+  fs.writeFileSync(path.join(f.source, 'relevant/SKILL.md'), body); f.skills[0].content_sha256 = digest(Buffer.from(body));
+  const write = fs.writeFileSync;
+  t.mock.method(fs, 'writeFileSync', (file, ...args) => {
+    if (String(file).includes('.ush-project-scope.json')) throw new Error('INJECTED_RECEIPT_IO');
+    return write(file, ...args);
+  });
+  assert.throws(() => f.run(), /INJECTED_RECEIPT_IO/);
+  assert.deepEqual(fs.readFileSync(f.file), original);
+});
+test('failed first atomic write does not leave an unmanaged empty skill directory', t => {
+  const f = fixture(t); const write = fs.writeFileSync;
+  t.mock.method(fs, 'writeFileSync', (file, ...args) => {
+    if (String(file).includes('SKILL.md.ush-tmp-')) throw new Error('INJECTED_BODY_IO');
+    return write(file, ...args);
+  });
+  assert.throws(() => f.run(), /INJECTED_BODY_IO/);
+  assert.equal(fs.existsSync(path.dirname(f.file)), false);
+});
+test('unknown skill scope is excluded rather than promoted to global', () => {
+  assert.equal(scope([skill('bad', { scope: 'domian' })]).candidates.length, 0);
+});
+test('an existing transaction journal blocks retry without deleting evidence', t => {
+  const f = fixture(t); const file = path.join(f.target, '.claude/.ush-project-scope.pending.json');
+  fs.mkdirSync(path.dirname(file)); fs.writeFileSync(file, '{"version":1}');
+  assert.throws(() => f.run(), /RECOVERY_REQUIRED/); assert.ok(fs.existsSync(file));
+});
+test('supporting files are refused before any target write', t => {
+  const f = fixture(t); fs.writeFileSync(path.join(f.source, 'relevant/helper.py'), 'print(1)');
+  assert.throws(() => f.run(), /UNSUPPORTED_SUPPORTING_FILES/); assert.equal(fs.existsSync(f.file), false);
+});
+test('symlink redirection preserves the file outside the project target', t => {
+  const f = fixture(t); const outside = path.join(f.source, 'outside'); fs.mkdirSync(outside); fs.writeFileSync(path.join(outside, 'SKILL.md'), 'mine');
+  fs.mkdirSync(path.dirname(path.dirname(f.file)), { recursive: true });
+  fs.symlinkSync(outside, path.dirname(f.file), process.platform === 'win32' ? 'junction' : 'dir');
+  assert.throws(() => f.run(), /SYMLINK/); assert.equal(fs.readFileSync(path.join(outside, 'SKILL.md'), 'utf8'), 'mine');
+});
+test('source path traversal is rejected', t => {
+  const f = fixture(t); f.skills[0].path = '../outside'; assert.throws(() => f.run(), /PATH_ESCAPE/);
+});
+test('concurrent project lock prevents writes', t => {
+  const f = fixture(t); f.run(); const original = fs.readFileSync(f.file);
+  const lock = path.join(f.target, '.claude/.ush-project-scope.lock'); fs.writeFileSync(lock, 'other reconciler');
+  assert.throws(() => f.run(), /EEXIST/); assert.deepEqual(fs.readFileSync(f.file), original); assert.ok(fs.existsSync(lock));
 });
