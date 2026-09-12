@@ -1,7 +1,14 @@
 # Runtime follow-up: exact text delivery and ORCA access boundary
 
-Issue #9 / Draft PR #10; still stacked on unmerged PR #8 at
-`463446ae2372161dd9431c96bcb52bdfab024001`. This is not universal startup completion.
+Issue #9. This is not universal startup completion.
+
+> **Superseded header (2026-09-12).** Written while Draft PR #10 was stacked on
+> the then-unmerged PR #8 at `463446ae2372161dd9431c96bcb52bdfab024001`; both
+> are now merged into `main` (`744a8ecc0ce36528a8da550d6f954446b11b1071`).
+> The sandbox findings below were recorded under **ORCA 1.4.198**. The installed
+> runtime is now 1.4.200, and a Claude Code session can execute the Orca CLI —
+> but the Codex-sandbox bridge block described here was **not** retested and
+> remains unresolved. See `docs/phase-1.4-c-native-orca-skills.md`.
 
 ## Bridge: cause confirmed, access remains blocked
 
