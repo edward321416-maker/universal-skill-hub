@@ -96,7 +96,7 @@ export function scopeProject({ registry, project, conflicts = [] }) {
   return { project: project.identity, runtime: project.runtime, candidates: selected,
     excluded: excluded.sort((a, b) => compare(a.skill_id, b.skill_id) || compare(a.reason, b.reason)), metrics,
     budget: { descriptionBytes: bytes, descriptionCharacters: characters, runtimeLimit: null,
-      status: metrics.overflowObserved === true ? 'BLOCKED_OVERFLOW' : 'UNVERIFIED',
+      status: metrics.overflowObserved === true ? 'OVERFLOW_OBSERVED' : 'UNVERIFIED',
       policyLimit: { candidates: policy.maxCandidates ?? null, descriptionBytes: policy.maxDescriptionBytes ?? null } } };
 }
 
@@ -149,7 +149,7 @@ export function reconcileProject({ sourceRoot, targetRoot, registry, project, co
   report.actions = actions.map(({ id, action }) => ({ id, action }));
   report.metrics.materializedHubSkills = actions.filter(a => a.before !== null && a.action !== 'create').length;
   if (!apply) return report;
-  if (report.metrics.overflowObserved === true) fail('BLOCKED_OVERFLOW');
+  // Generic runtime overflow is evidence, not a materialization authorization gate.
   if (actions.some(a => a.action === 'remove') && !confirmRemoval) fail('REMOVAL_CONFIRMATION_REQUIRED');
   const parent = safePath(root, folder); fs.mkdirSync(parent, { recursive: true });
   const lock = safePath(root, folder + '/.ush-project-scope.lock');

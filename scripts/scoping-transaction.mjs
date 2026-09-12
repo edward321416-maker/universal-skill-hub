@@ -31,7 +31,7 @@ function atomicReplace(root, file, bytes, expected) {
   }
 }
 
-// Caller holds the project lock. Journal is a durable preimage, not authority
+// Caller holds the project lock. The preimage journal is not authority
 // to overwrite later edits. A crash or conflicting rollback requires review;
 // the next reconciliation refuses a pending journal rather than adopting files.
 export function commitPlacement({ root, folder, receiptFile, receiptBytes, nextReceipt, actions }) {
@@ -61,7 +61,7 @@ export function commitPlacement({ root, folder, receiptFile, receiptBytes, nextR
     committed = true;
     fs.unlinkSync(journal);
   } catch (error) {
-    if (committed) throw error; // durable receipt is current; leave journal for review
+    if (committed) throw error; // receipt replacement completed; leave journal for review
     try {
       for (const a of attempted.reverse()) {
         const file = safePath(root, path.relative(root, a.file));

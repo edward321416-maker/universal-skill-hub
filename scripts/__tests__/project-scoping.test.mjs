@@ -42,9 +42,11 @@ test('explicit priority beats alphabetical truncation and order is stable', () =
   assert.deepEqual(scope([skill('a'), skill('z')], p), scope([skill('z'), skill('a')], p));
   assert.deepEqual(scope([skill('a'), skill('z')], p).candidates.map(s => s.skill_id), ['z']);
 });
-test('observed overflow blocks acceptance, unknown limit is never invented', () => {
+test('runtime overflow remains observation evidence, not placement authorization', () => {
   const r = scope([skill()], project({ budgetSignal: { overflowObserved: true } }));
-  assert.equal(r.budget.status, 'BLOCKED_OVERFLOW'); assert.equal(r.metrics.overflowObserved, true);
+  assert.equal(r.budget.status, 'OVERFLOW_OBSERVED'); assert.equal(r.metrics.overflowObserved, true);
+  assert.equal(r.budget.runtimeLimit, null); assert.equal(r.metrics.visibilityConfirmed, null);
+  assert.equal(r.candidates.length, 1);
 });
 test('runtime requirements and exclusion are fail closed', () => {
   assert.equal(scope([skill('x', { runtime_exclusions: { 'claude-code': { reason: 'unsupported' } } })]).candidates.length, 0);
@@ -78,6 +80,29 @@ function fixture(t) {
 test('small candidate set materializes only candidates with canonical bytes', t => {
   const f = fixture(t); const r = f.run(); assert.equal(r.metrics.materializedHubSkills, 1); assert.equal(digest(fs.readFileSync(f.file)), f.skills[0].content_sha256);
 });
+
+test('host or unattributed overflow does not block exact local materialization', t => {
+  const f = fixture(t);
+  const r = f.run({ project: project({ budgetSignal: { overflowObserved: true } }) });
+  assert.deepEqual(r.candidates.map(s => s.skill_id), ['relevant']);
+  assert.equal(r.metrics.materializedHubSkills, 1);
+  assert.deepEqual(fs.readFileSync(f.file), fs.readFileSync(path.join(f.source, 'relevant/SKILL.md')));
+  assert.equal(r.metrics.overflowObserved, true);
+  assert.equal(r.budget.status, 'OVERFLOW_OBSERVED');
+});
+
+for (const policy of [{ maxCandidates: 0 }, { maxDescriptionBytes: 1 }]) {
+  test(`project allocation ${Object.keys(policy)[0]} still excludes despite host overflow`, t => {
+    const f = fixture(t);
+    const r = f.run({ project: project({ policy, budgetSignal: { overflowObserved: true } }) });
+    assert.equal(r.candidates.length, 0);
+    assert.equal(r.metrics.budgetExcluded, 1);
+    assert.equal(r.excluded[0].reason, 'PROJECT_BUDGET_POLICY');
+    assert.equal(r.metrics.materializedHubSkills, 0);
+    assert.equal(fs.existsSync(f.file), false);
+    assert.equal(r.metrics.overflowObserved, true);
+  });
+}
 test('oversized synthetic Hub never copies the entire library', t => {
   const f = fixture(t); f.skills.push(...Array.from({ length: 500 }, (_, i) => skill('other-' + i, { project_scope: 'other' })));
   f.run(); assert.deepEqual(fs.readdirSync(path.dirname(path.dirname(f.file))), ['relevant']);

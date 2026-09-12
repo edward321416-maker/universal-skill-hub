@@ -1,6 +1,6 @@
 # Phase 1.4-C: native ORCA skills integration
 
-Status: final-review completion recommendation **COMPLETE_WITH_KNOWN_LIMITATIONS**, subject to the delivered-head CI recorded in PR #12. The final acceptance section is authoritative; earlier PARTIAL sections are retained history. Tracks issue #11; issue #9 remains open for the separate Phase 1.4-B limitations. Base `744a8ecc0ce36528a8da550d6f954446b11b1071` (PR #8 and #10
+Status: independent-review Important fix implemented and locally verified. Completion candidacy is conditional on delivered-head Windows/Ubuntu CI recorded in PR #12. Earlier final-review judgments are retained history. PR #12 remains OPEN/DRAFT.
 merged). No merge is performed or authorized in this phase. Canonical bodies,
 registered hashes, EXPERIMENTAL lifecycle and Phase 1.3 routing evidence are
 unchanged.
@@ -320,7 +320,9 @@ Project policy may set `maxCandidates` or `maxDescriptionBytes`. These are
 explicit project allocations, **not Claude limits**. Accounting includes Unicode
 characters and UTF-8 description bytes. Budget exclusions are reported. Without
 a runtime observation the status is `UNVERIFIED`, even if all local checks pass;
-an observed overflow produces `BLOCKED_OVERFLOW` and prevents apply.
+the original implementation used `BLOCKED_OVERFLOW` to prevent apply. This
+historical behavior is superseded by the review fix below: generic overflow
+now produces `OVERFLOW_OBSERVED` and does not block materialization.
 
 ### Placement and reconciliation
 
@@ -931,3 +933,65 @@ No unresolved Hub-controlled defect was established after the minimal correction
 The latest PR #12 report binds the delivered SHA and CI result; the preceding
 PARTIAL/BLOCKED evidence sections remain dated history. PR #12 stays OPEN/DRAFT;
 Issues #11 and #9 stay OPEN. MERGE NOT PERFORMED.
+
+## Independent review Important fix — generic overflow observation
+
+Reviewed starting HEAD: dc07072a79d9a140c93931c2cbacbbbd06a460fb. The independent
+REQUEST_CHANGES verdict reopened Phase 1.4-C as PARTIAL until this correction
+and verification. This section supersedes the preceding completion recommendation.
+
+Root cause: overflowObserved contains no cause attribution, but reconcileProject
+used it as an unconditional filesystem placement gate. Even a valid two-candidate
+view was blocked by a generic host/global warning. Observation, cause and
+materialization authorization are separate facts.
+
+**Generic host/runtime overflow observation is evidence, not sufficient cause to block Hub project-local materialization.**
+
+Minimal correction:
+
+- Remove the unconditional overflowObserved apply gate.
+- Report OVERFLOW_OBSERVED instead of BLOCKED_OVERFLOW for the generic observation.
+- Preserve metrics.overflowObserved exactly, including true. Unobserved values
+  remain null and visibility is not inferred from successful placement.
+- Keep maxCandidates, maxDescriptionBytes and deterministic exclusions unchanged.
+  These are project allocations, not native runtime token limits.
+
+Repository-wide consumer search found the status in the implementation, its test
+and this documentation; no separate runtime consumer branches on BLOCKED_OVERFLOW.
+Evidence helpers read/report the observation independently. No attribution service,
+monitor, token estimator, description optimizer or native runtime change was added.
+
+TDD: the existing observation test was corrected, not deleted, and three placement
+regressions were added. Before the fix: 40 passed, 4 failed; the normal candidate
+placement and both allocation fixtures failed at BLOCKED_OVERFLOW. After the fix:
+44 focused tests passed. The new tests verify exact canonical placement with
+observation true, deterministic exclusion for maxCandidates and maxDescriptionBytes,
+and retention of the overflow observation when a candidate is excluded.
+
+The permitted Minor correction only narrows comments from durable preimage/receipt
+to preimage journal/completed receipt replacement. There is no new flush or recovery
+implementation. Power-loss durability via fsync/FlushFileBuffers is not claimed.
+
+OVERFLOW_ATTRIBUTION_UNVERIFIED and unresolved host-global budget remain known
+limitations. Successful materialization neither clears the warning nor proves
+runtime visibility or native budget success. Canonical bodies, registry, adapters,
+Phase 1.3 evidence, native integration, historical P1/transport/Claude observations,
+global skills, lifecycle and onboarding are outside this correction and unchanged.
+
+Review-fix validation: scoping focused **44/44**, full verify **369 passed / 0
+failed / 0 skipped**, stored real/project/Cursor routing evaluators and diff
+checks passed. Canonical/registry/adapters/Phase 1.3 evidence remain unchanged.
+
+| Re-evaluated acceptance | Result |
+| --- | --- |
+| Project scoping | PASS: deterministic candidates unchanged by observation |
+| Materialization | PASS: valid candidate copies exactly with overflow true |
+| Host overflow separation | PASS: generic warning cannot veto placement |
+| Candidate budget enforcement | PASS: both existing allocation limits still exclude |
+| Overflow observation preservation | PASS: true remains true; attribution not invented |
+
+The Important is resolved by the minimal code correction and regressions. Restore
+**COMPLETE_WITH_KNOWN_LIMITATIONS — completion candidate** only after both delivered-head
+CI jobs pass; until then retain PARTIAL. The exact delivered SHA and CI result are
+reported in PR #12. Host-global budget remains unresolved and attribution remains
+OVERFLOW_ATTRIBUTION_UNVERIFIED. No new independent reviewer signoff is implied.
