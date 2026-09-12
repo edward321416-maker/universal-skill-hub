@@ -44,8 +44,10 @@ export function scopeProject({ registry, project, conflicts = [] }) {
   const reject = (s, category, reason) => { excluded.push({ skill_id: s.skill_id, category, reason }); metrics[category]++; };
   const task = { platform: project.runtime, project: project.project_scope, autoInvoke: true, explicitIntent: false, hasPermission: false,
     availableInputs: project.availableInputs ?? [], availableTools: project.availableTools ?? [], availableCapabilities: project.availableCapabilities ?? [],
-    grantedPermissions: project.grantedPermissions ?? [], selectedSkillIds: project.selectedSkillIds ?? [],
-    requestedOperations: project.requestedOperations ?? [], targetResources: project.targetResources ?? [] };
+    grantedPermissions: project.grantedPermissions ?? [],
+    // Startup has no selected task or target operation. These gates remain in
+    // evaluateEligibility for the actual task; placement grants no permission.
+    selectedSkillIds: [], requestedOperations: [], targetResources: [] };
   for (const s of registry.skills) {
     if (counts.get(s.skill_id) > 1) { reject(s, 'policyExcluded', 'DUPLICATE_ID'); continue; }
     if (!['global', 'domain', 'project'].includes(s.scope) || (s.scope === 'project' && !s.project_scope)) { reject(s, 'scopeExcluded', 'UNKNOWN_OR_INCOMPLETE_SCOPE'); continue; }

@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { scopeProject, reconcileProject } from '../project-scoping.mjs';
 import { digest } from '../orca-bootstrap.mjs';
+import { evaluateEligibility } from '../eligibility.mjs';
 
 const skill = (id = 'relevant', extra = {}) => ({ skill_id: id, scope: 'global', risk: 'L0', status: 'EXPERIMENTAL', platforms: ['claude-code'], runtime_support: { 'claude-code': { status: 'SUPPORTED' } }, description: 'Inspect repository evidence', ...extra });
 const project = (extra = {}) => ({ identity: 'test', project_scope: 'test', runtime: 'claude-code', policy: {}, availableInputs: [], availableTools: [], availableCapabilities: [], grantedPermissions: [], ...extra });
@@ -45,10 +46,21 @@ test('observed overflow blocks acceptance, unknown limit is never invented', () 
   const r = scope([skill()], project({ budgetSignal: { overflowObserved: true } }));
   assert.equal(r.budget.status, 'BLOCKED_OVERFLOW'); assert.equal(r.metrics.overflowObserved, true);
 });
-test('runtime requirements, exclusion and protected policy are fail closed', () => {
+test('runtime requirements and exclusion are fail closed', () => {
   assert.equal(scope([skill('x', { runtime_exclusions: { 'claude-code': { reason: 'unsupported' } } })]).candidates.length, 0);
   assert.equal(scope([skill('x', { runtime_support: { 'claude-code': { status: 'SUPPORTED_WITH_RESTRICTIONS', requires_at_runtime: [{ kind: 'tool', id: 'absent' }] } } })]).candidates.length, 0);
-  assert.equal(scope([skill()], project({ policy: { deniedOperations: ['read'], protectedResources: ['repo'] }, requestedOperations: ['read'], targetResources: ['repo'] })).candidates.length, 0);
+});
+
+for (const [name, s, p, conflicts, reason] of [
+  ['operation-only permission', skill('flow', { risk: 'L3', operationGates: { merge: { requiredPermissions: ['merge'] } } }), project({ requestedOperations: ['merge'] }), [], 'OPERATION_MISSING_PERMISSION'],
+  ['protected operation', skill(), project({ policy: { deniedOperations: ['write'], protectedResources: ['repo'] }, requestedOperations: ['write'], targetResources: ['repo'] }), [], 'PROJECT_POLICY'],
+  ['task-selected conflict', skill(), project({ selectedSkillIds: ['other'] }), [['relevant', 'other']], 'CONFLICTING_SKILL'],
+]) test(`startup does not apply ${name}; task evaluator still blocks`, () => {
+  const result = scopeProject({ registry: { skills: [s] }, project: p, conflicts });
+  assert.equal(result.candidates.length, 1);
+  assert.equal(result.candidates[0].state, s.risk === 'L3' ? 'RESTRICTED' : 'CANDIDATE');
+  const task = { ...p, platform: p.runtime, project: p.project_scope, autoInvoke: true, explicitIntent: false, hasPermission: false };
+  assert.equal(evaluateEligibility({ skill: s, task, conflicts, projectPolicy: p.policy }).reasonCode, reason);
 });
 
 function fixture(t) {

@@ -1,10 +1,14 @@
 # Phase 1.4-C: native ORCA skills integration
 
-Status: partial; Decision 17 acceptance is not complete. Tracks issue #11; issue #9 stays open because Phase 1.4-B is
-still partial. Base `744a8ecc0ce36528a8da550d6f954446b11b1071` (PR #8 and #10
+Status: final-review completion recommendation **COMPLETE_WITH_KNOWN_LIMITATIONS**, subject to the delivered-head CI recorded in PR #12. The final acceptance section is authoritative; earlier PARTIAL sections are retained history. Tracks issue #11; issue #9 remains open for the separate Phase 1.4-B limitations. Base `744a8ecc0ce36528a8da550d6f954446b11b1071` (PR #8 and #10
 merged). No merge is performed or authorized in this phase. Canonical bodies,
 registered hashes, EXPERIMENTAL lifecycle and Phase 1.3 routing evidence are
 unchanged.
+
+> History boundary: sections from Runtime audit through the HEAD 52100cb boundary
+> audit retain their original, stricter acceptance judgments. They are dated
+> evidence, not the final disposition under the user-approved final-review criteria.
+> Raw PARTIAL/BLOCKED records are intentionally not rewritten as PASS.
 
 ## Runtime audit
 
@@ -737,3 +741,193 @@ routing evaluators passed with separate ignored output files. `git diff --check`
 passed. Hosted CI for the delivered head is reported in PR #12. The five new
 evidence-helper tests cover historical-log false positives and exact JSON-envelope
 handling; no passing scoper/materializer behavior was reimplemented.
+
+## Final review — classification before changes
+
+Review baseline: 513c7cae3684fc91a5324643f25b54bf20b70926 against main
+744a8ecc0ce36528a8da550d6f954446b11b1071. This is a fresh full-diff review
+by the current agent, not a separate-agent or external-review signoff.
+
+| Changed file | Classification | Why retain / native overlap |
+| --- | --- | --- |
+| scripts/project-scoping.mjs | CORE_REQUIRED / SAFETY_REQUIRED | Startup filtering and canonical managed view; native copying does not preserve ownership |
+| scripts/scoping-transaction.mjs | SAFETY_REQUIRED | Small local preimage/rollback fallback; no daemon or recovery service |
+| scripts/native-parity.mjs | EVIDENCE_ONLY / DEFER_DELETE | Read-only native-copy comparison; only tests call it; its safe field is not an ownership or install authorization |
+| scripts/project-scoping-audit.mjs | EVIDENCE_ONLY | Four-project audit, explicit disposable fixture only; not startup provisioning |
+| scripts/claude-scoping-evidence.mjs | EVIDENCE_ONLY | Historical Claude receipt extractor, not routing |
+| scripts/codex-scoping-evidence.mjs | EVIDENCE_ONLY | Historical bounded Codex extractor, not a general runtime SDK |
+| scripts/codex-boundary-audit.mjs | EVIDENCE_ONLY | Fixed-case transport/omission audit; not production telemetry |
+| scripts/codex-evidence-text.mjs | EVIDENCE_ONLY | Bounded output-envelope helpers; not a command parser or authorization gate |
+| scripts/codex-skill-inventory.mjs | EVIDENCE_ONLY | Explicit quota-free native skills/list client; no model turn or background loop |
+| scripts/__tests__/project-scoping.test.mjs | TEST_ONLY | Behavior and ownership/failure regression |
+| scripts/__tests__/native-parity.test.mjs | TEST_ONLY | Historical native-copy compatibility observations, including fixed six-skill fixtures |
+| scripts/__tests__/codex-evidence-text.test.mjs | TEST_ONLY | Historical-log false-load and serialization regressions |
+| docs/phase-1.4-c-decision17-evidence.json | EVIDENCE_ONLY | Dated four-project/Claude baseline |
+| docs/phase-1.4-c-claude-scoping-evidence.json | EVIDENCE_ONLY | Dated Claude live receipts |
+| docs/phase-1.4-c-codex-scoping-evidence.json | EVIDENCE_ONLY | Dated Codex live receipts; not latest acceptance authority |
+| docs/phase-1.4-c-codex-boundary-evidence.json | EVIDENCE_ONLY | Dated remaining-boundary receipts |
+| docs/phase-1.4-c-native-orca-skills.md | EVIDENCE_ONLY | Architecture, authority and acceptance record |
+| docs/phase-1.4-b-followup.md | EVIDENCE_ONLY | Corrected historical header only |
+| docs/phase-1.4-b-orca-bootstrap.md | EVIDENCE_ONLY | Corrected historical header only |
+| docs/phase-1.4-b-runtime-blockers.md | EVIDENCE_ONLY | Corrected historical header only |
+
+Inherited modules, unchanged by this PR:
+
+| Module/function | Classification | Runtime need / native replacement / safety |
+| --- | --- | --- |
+| orca-bootstrap: safePath, digest | SAFETY_REQUIRED | Reused by the scoped materializer; no native ownership parity |
+| orca-bootstrap: deploy, resolveContext, launch, policyBlock | FALLBACK_ONLY / DEFER_DELETE | Legacy opt-in all-six adapter path, not the Decision 17 production path; native launches/discovery belong to ORCA |
+| orca-bootstrap: release verification, rollback, bridgeEligibility | SAFETY_REQUIRED / FALLBACK_ONLY | Pinned legacy deployment contract and existing evaluator bridge, not host enforcement |
+| orca-launcher.mjs | FALLBACK_ONLY / DEFER_DELETE | Existing explicit wrapper, not automatically registered; retain for Issue #9 |
+| orca-seal-release.mjs | FALLBACK_ONLY / DEFER_DELETE | Operator-only legacy release sealing, no startup repair |
+| install-skills.mjs | FALLBACK_ONLY | Existing adapter distribution; do not use it to populate the full library as Decision 17 defaults |
+
+No file is safe to delete merely because its name resembles native behavior.
+Native selected copying replaces only copying, not receipt ownership, user-edit
+conflicts or safe updates. Evidence helpers can be archived after retention and
+reproduction requirements are separately agreed. No immediate REDUNDANT production
+module was established. FUTURE_SIMPLIFICATION: archive fixed-case diagnostics;
+separate shared path/hash utilities from legacy bootstrap when needed; retire the
+legacy wrapper only after native startup/update parity. None is implemented here.
+
+### Final defect review and minimal correction
+
+One major Hub-controlled defect was reproduced: scopeProject forwarded task-only
+requestedOperations, targetResources and selectedSkillIds into the startup
+eligibility call. A merge-only permission failure, a protected write, or a prior
+task selection could remove an otherwise usable project candidate. Existing
+operation-only coverage passed only because it supplied no requested operation.
+
+RED: three new regressions failed with candidate count 0 instead of 1 (38 existing
+scoper tests passed). Fix: the startup evaluator receives empty task-selection,
+operation and target lists. Its known project-wide requirements, grants, lifecycle,
+risk and explicit skill policy checks are unchanged. The actual task evaluator
+still receives the real operation/target/selection and returns the same three
+BLOCK reason codes. High-risk placement remains RESTRICTED. No task permission
+or approval is fabricated. One old combined assertion was moved to this two-stage
+contract rather than preserving the now-superseded startup/task conflation.
+
+No other blocking Hub-controlled defect was established in this review. In
+particular, an untyped policy reason is diagnostic text, not an authorization
+input: cosmetic/schema tightening alone does not meet this final-review fix gate.
+No metadata, description, router, installer, runtime or background system was added.
+
+Correctness/security review covered preflight and under-lock receipt checks,
+canonical digest verification, stale updates, explicit removal confirmation,
+extra user files, journal refusal, guarded rollback and atomic replacement.
+Path escape and symlink/junction checks are reused; shell execution is absent
+from scoping/reconciliation. Explicit diagnostics use argument arrays and do not
+supply external-write permissions. No newly discovered command-injection or
+permission-fabrication path was established. Locks serialize cooperating Hub
+writers; this is not an adversarial host filesystem monitor or an OS security
+boundary. Crash recovery remains manual and fail-closed, not a new recovery service.
+
+Positive architecture findings: a single existing evaluator owns operation gates;
+canonical bytes are copied unchanged; receipt authority is separate from native
+inventory; unmanaged same-name files are never adopted by the scoped materializer.
+Review verdict after regression validation: approve the bounded phase completion
+candidate, not a merge approval or a claim of universal runtime completeness.
+
+### Minimum production responsibility contract
+
+Hub Library -> Canonical Skills -> deterministic Project Scoper -> project-local
+candidate view -> native discovery -> native semantic selection and execution.
+
+| Responsibility | Owner |
+| --- | --- |
+| Canonical source, hashes/provenance | HUB |
+| Project candidates and project-wide eligibility | HUB |
+| Project policy and L3/L4 operation safety contracts | HUB |
+| Skill discovery, model-visible listing, semantic selection, execution | NATIVE |
+| Local filesystem convention | NATIVE |
+| Ownership and unmanaged conflicts | HUB |
+| Safe update until demonstrated parity | HUB |
+| Rollback/recovery | Minimal Hub fallback only |
+| Global/third-party cleanup | OUT OF SCOPE |
+
+The optional maxCandidates and maxDescriptionBytes fields remain explicit project
+allocation policies, with no default numeric cap. They count candidates and UTF-8
+description bytes; they do not estimate model tokens, predict native truncation,
+or guarantee visibility. Their names are retained to avoid an unnecessary API
+migration. runtimeLimit remains null. An observed overflow flag is evidence, not
+an automatic host-budget probe; an unattributed host warning is not evidence that
+a Hub project allocation caused overflow. There is no description optimizer.
+
+Explicit project preparation through reconcileProject is the tested entrypoint.
+No automatic ORCA registration/startup hook is claimed. The old all-six launcher
+is retained for Issue #9 and is not the new default candidate preparation path.
+Completion of this bounded phase does not complete universal ORCA onboarding.
+
+### Test proportionality and code size
+
+| Tests | Primary role | Coupling / disposition |
+| --- | --- | --- |
+| Scoper filtering, deterministic order, allocation and task separation | Behavior regression | Assert external candidate/gate outcomes; retain |
+| Ownership, modified copy, removal, integrity, extra files | Safety regression | Core data-preservation requirements; retain |
+| Symlink/junction and path fixtures | Platform compatibility / safety | OS-specific fixture construction, same preservation outcome |
+| Receipt/body write failures, lock timing, pending journal | Safety regression with implementation-detail injection | Coupled to write/lock boundaries and journal names; adapt in future refactor, do not treat internal names as product UX |
+| Native parity fixtures | Historical evidence / compatibility | Fixed six-skill and adapter/canonical expectations are historical controls, not a full-library production default |
+| Codex evidence text tests | Evidence regression | Bounded PowerShell/JSON shapes; no general runtime parser claim |
+
+Some hash assertions overlap installer tests but cover different contracts
+(canonical view versus generated adapters). No demonstrably duplicate test needs
+immediate deletion. Test count is not an acceptance target. No wholesale test or
+legacy-code deletion passes the migration/parity gate in this review.
+
+Relative to main, the PR adds 17 files and modifies 3 existing history documents.
+This final-review pass adds no files. New production modules total 262 physical
+lines (178 scoper/materializer + 84 transaction, including comments/blanks).
+Test code totals 340 lines; evidence-helper code totals 436 lines, or 776 combined.
+Markdown/JSON evidence is counted separately, not presented as production LOC.
+Immediately removable production code: none proven. Deferred cleanup: the legacy
+wrapper/bootstrap/sealing path and fixed-case evidence helpers after their
+callers, migration and historical reproducibility requirements are resolved.
+
+### Final acceptance under the revised phase criteria
+
+The user's final-review instruction supersedes the earlier requirement to prove
+exact model-input bytes and assign every host omission reason. It does not turn
+those observations into PASS. Phase completion and runtime completeness are
+separate. No fresh live inference was launched in this final-review pass.
+
+| MUST PASS | Evidence / result |
+| --- | --- |
+| Deterministic project scoping | PASS: focused behavior regressions, including corrected startup/task boundary |
+| Project-local materialization | PASS: actual view remains exactly 2/6 candidates; reconciliation reports both unchanged |
+| Canonical integrity | PASS: local canonical hashes match; skills/registry/adapters have no diff from main |
+| Unmanaged preservation | PASS: same-name and unrelated-copy regression; no third-party changes |
+| User-modified conflict | PASS: exact receipt mismatch and extra-file refusal before mutation |
+| Codex local visibility | PASS: fresh quota-free prompt diagnostic still renders both project-local paths |
+| Implicit positive local selection | PASS for revised path/behavior criterion: P1 planning and P2 announcement tool reads, plus three planning controls; no exact wire-byte claim |
+| Negative no unnecessary Hub load | PASS: preserved N1 arithmetic case has zero tool calls; raw stream hash rechecked |
+| Project policy preservation | PASS: explicit project blocks retained; protected operations still BLOCK in the actual task evaluator |
+| L3/L4 safety | PASS within Hub contract: high-risk candidates remain restricted, actual gates unchanged; not host enforcement |
+| Windows CI | Delivered-head required; final exact-head result/link recorded in PR #12 |
+| Ubuntu CI | Delivered-head required; final exact-head result/link recorded in PR #12 |
+
+Local verification after the correction: focused **54/54**, full verify
+**366 passed / 0 failed / 0 skipped**. Registry 6/inconsistency 0 and adapters
+24/drift 0. Stored real/project/Cursor evaluators ran to separate ignored outputs.
+Their old metrics were not relabeled as new live results. Diff checks preserve
+canonical skills, registry, adapters and Phase 1.3 evidence.
+
+| Known limitation | Final treatment |
+| --- | --- |
+| Exact body transport | KNOWN_RUNTIME_LIMITATION; TRANSPORT_EXACTNESS_BLOCKED remains factual; punctuation loss is observed and internal first boundary is unknown |
+| Undocumented omission | HOST_RUNTIME_VISIBILITY_LIMITATION / OVERFLOW_ATTRIBUTION_UNVERIFIED; no asserted omitted cause |
+| Historical P1 extra read | HISTORICAL_NON_REPRODUCIBLE in three subsequent controls; retained history, not a new correctness failure |
+| Host global budget | Claude HOST_GLOBAL_BUDGET_CONFOUND retained; Codex attribution unverified; no pruning or implied host-wide fix |
+| Native update parity | Known gap; Hub ownership/update protection retained |
+| WSL and remote hosts | NOT TESTED; no cross-host inference |
+| Claude exact local precedence | GLOBAL_COPY_SELECTED remains separately documented; Codex results do not upgrade it |
+| Host-enforced eligibility | Not implemented; existing advisory/model contract only |
+| Automatic universal project onboarding | Not claimed; explicit preparation API and bounded local proof only; Issue #9 remains open |
+| Crash/manual recovery and adversarial writers | Fail-closed journal and cooperative locking only; no native atomic filesystem security boundary claim |
+
+Final recommendation: **COMPLETE_WITH_KNOWN_LIMITATIONS**, conditional only on
+both final delivered-head CI jobs passing. This is a Phase 1.4-C completion
+candidate under the revised MUST PASS list, not universal ORCA runtime completion.
+No unresolved Hub-controlled defect was established after the minimal correction.
+The latest PR #12 report binds the delivered SHA and CI result; the preceding
+PARTIAL/BLOCKED evidence sections remain dated history. PR #12 stays OPEN/DRAFT;
+Issues #11 and #9 stay OPEN. MERGE NOT PERFORMED.
