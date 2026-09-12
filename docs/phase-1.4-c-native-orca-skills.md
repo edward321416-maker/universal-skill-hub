@@ -627,3 +627,113 @@ Bounded evidence and raw-receipt digests are in
 `phase-1.4-c-codex-scoping-evidence.json`; raw prompts, streams and generated
 protocol schemas stay under the ignored probe directory. The tools do not read
 auth stores or modify global configuration.
+
+### Decision 17 remaining-boundary audit (HEAD 52100cb)
+
+This follow-up preserves the passing scoper/materializer and all canonical,
+registry, adapter and Phase 1.3 raw evidence. The new bounded evidence is
+`phase-1.4-c-codex-boundary-evidence.json`; its raw input streams remain local.
+
+#### Exact body transport: BLOCKED
+
+The first **observable** mismatch is between filesystem bytes and persisted tool
+response text. In P1/P2, the first differing Unicode sequence is `U+2014 U+0020`
+(em dash and space) becoming `U+003F U+003F`. Offsets after `name:` are 933 for
+repository planning and 984 for work announcement, after CRLF alignment solely
+for locating the difference. The UTF-8 read control instead returns `U+003F
+U+0020`. This is not a newline-only mismatch.
+
+The audit records original UTF-8 byte counts, UTF-16 units, code-point counts and
+SHA-256 for each observable text stage. P1/P2 persisted tool-response text equals
+the CLI command output exactly. The UTF-8 control uses a JSON output envelope;
+decoding that envelope is recorded separately from its raw serialized text.
+The extractor does not repair characters or substitute normalized hashes.
+
+Raw process stdout bytes before runtime decoding, pre-serialization runtime
+text, and actual model-input wire bytes are not exposed by these records. Their
+values are null. Consequently, the exact first internal corruption boundary
+cannot be assigned to PowerShell decoding, stdout encoding or runtime
+serialization. No speculative encoding change is justified. Final disposition:
+**TRANSPORT_EXACTNESS_BLOCKED**. Verified local filesystem hashes and direct
+local read paths remain separate evidence, not proof of exact model transport.
+
+#### P1 extra candidate read: PARTIAL
+
+The historical P1 command really read both local candidates. Its subsequent
+public statement that the announcement skill was unrelated does not undo that
+body read and does not prove why it happened. Descriptions exist in canonical
+frontmatter, but the captured rendered catalog has zero descriptions: overlap
+of descriptions is not demonstrated as the selection input responsible here.
+
+Fresh controls use the identical implicit prompt, same checkout and inherited
+read-only/never Codex configuration. No Skill ID occurs in the user prompt.
+One local candidate exposes only the planning entry; two expose both entries.
+The global adapters remain installed. The captured project-instruction SHA-256
+is identical: `8618d0e759d2e6f9e83e655dd5946a24d73595d8389caf8c89d2de78eda97eac`.
+
+P1_ONE and P1_TWO each read only the expected local planning body. The first
+control overlapped creation of the audit script, so a further P1_ONE_REPEAT
+control follows P1_TWO with that script unchanged. These are observations, not
+a deterministic routing guarantee. The runtime exposes command events and public
+statements, not a causal semantic-selection trace. No project-instruction
+ablation was performed; its effect remains unverified. No metadata/scoping
+change or regression fixture pretending to explain the historical extra read
+was made. An extractor regression separately ensures that reading an old JSONL
+containing a Skill body is not counted as a new direct Skill read.
+
+#### Context-budget attribution: UNVERIFIED
+
+The preserved paired diagnostics contain 368 enabled discovered entries and
+337 rendered paths. Each of the 31 absent paths is enumerated with classification
+`unknown` and runtime reason null. Same-name rendered copies are recorded as
+facts, not assigned as causes. The invalid-YAML discovery error is separate
+from the enabled-entry difference; it cannot explain one of those 31 entries.
+No invalid/duplicate/unsupported/filtered/budget cause is officially reported
+for an absent enabled path. There is no runtime-issued omitted counter or budget
+warning in these Codex captures. Thus **OVERFLOW_ATTRIBUTION_UNVERIFIED** remains
+appropriate. Both Hub local candidates are visible; this does not turn host-wide
+omission into a Hub failure or prove a host-global budget cause. The historical
+Claude warning and Phase 1.3 Codex crowding evidence remain unchanged.
+
+#### Native ORCA final disposition: PASS for classification, integration PARTIAL
+
+Installed versions remain ORCA 1.4.200 and community skills CLI 1.5.26. The actual
+controls already recorded on this branch, rather than advertised parity, support:
+
+| Function | Disposition | Proven boundary |
+| --- | --- | --- |
+| Selected local install/copy | NATIVE_REPLACES | Community CLI copies one selected canonical Hub skill exactly |
+| External Hub install through ORCA wrapper | GAP | Bundled selector rejects the Hub ID |
+| External local-source update | GAP | Wrapper rejects ID; community update reports no matching installed skill |
+| Ownership | HUB_REMAINS_REQUIRED | Native copy has no demonstrated equivalent to Hub receipt/preimage checks |
+| Conflict protection | HUB_REMAINS_REQUIRED | Reinstall overwrote the disposable synthetic edit |
+| Native rollback | UNVERIFIED | No demonstrated native preimage restoration contract; Hub guarded transaction retained |
+| Installed inventory discovery | NATIVE_REPLACES | Provider/ORCA inventory commands work within their observed scope |
+| Discovery through model-visible selection | UNVERIFIED | Inventory alone does not establish runtime task selection |
+| Production guarded local materialization | FALLBACK_ONLY | Existing Hub entrypoint retained; no native startup hook demonstrated |
+| Fresh global mutation | UNVERIFIED | Not repeated; dry-run and earlier dated controls remain separate |
+
+The final architecture is mixed: Hub canonical registry, eligibility, candidate
+budget allocation and ownership/transaction guards remain authoritative; native
+selected local copying and inventory are usable where verified. The existing
+fallback remains the production entrypoint. Native-only parity is not claimed.
+
+Issue #11 retains its original quota-free scope text and now contains an explicit
+superseding note recording the user's later approval of Decision 17 Codex live
+validation. Issues #11 and #9 remain OPEN; PR #12 remains DRAFT; no merge.
+
+Decision 17 remains **PARTIAL**, not a phase completion candidate. Exact transport,
+historical P1 causal attribution and whole-host omission causes remain limited
+by the evidence boundaries above.
+
+P1_ONE_REPEAT also completed with only the expected direct local read. All three
+new controls therefore have expected-path evidence and remain UNCONFIRMED for
+exact body transport. The two-candidate managed view was restored; both local
+hashes match the registry and all six global adapter snapshot hashes are unchanged.
+
+Follow-up verification: focused scoping/evidence tests **43/43**; local Windows
+`npm run verify` **363 passed / 0 failed / 0 skipped**; stored real/project/Cursor
+routing evaluators passed with separate ignored output files. `git diff --check`
+passed. Hosted CI for the delivered head is reported in PR #12. The five new
+evidence-helper tests cover historical-log false positives and exact JSON-envelope
+handling; no passing scoper/materializer behavior was reimplemented.
