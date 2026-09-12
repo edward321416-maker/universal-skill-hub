@@ -1,0 +1,154 @@
+{
+  "cases": [
+    {
+      "name": "negative",
+      "sessionId": "b0f08159-c3ca-40ed-ada3-1d4d5a787b8e",
+      "runtime": "2.1.225",
+      "model": "claude-opus-5",
+      "completed": true,
+      "raw": [
+        {
+          "file": "C:\\Users\\admin\\AppData\\Local\\Temp\\ush-decision17-P0j3BJ\\negative.jsonl",
+          "sha256": "2d2f6cfbf0599694256bbd4652f51967e5c44df62e7f0313c0df0bf55f1a0d63"
+        },
+        {
+          "file": "C:\\Users\\admin\\AppData\\Local\\Temp\\ush-decision17-P0j3BJ\\negative-debug.log",
+          "sha256": "83ee40efe271f8d0b70338227b448da40d94f45b9b7a102c5edb3811f330e554"
+        }
+      ],
+      "startupHubNames": [
+        "ush-concurrent-edit-coordination",
+        "ush-discord-repo-cross-reference",
+        "ush-example-skill",
+        "ush-game-meeting-plan",
+        "ush-github-task-flow",
+        "ush-repo-evidence-plan",
+        "ush-work-announcement"
+      ],
+      "startupSkillsFieldCount": 286,
+      "startupSkillsFieldHubNames": [
+        "ush-repo-evidence-plan"
+      ],
+      "postBudgetModelVisibleCount": null,
+      "debugSignals": [
+        "2026-09-12T09:35:06.185Z [DEBUG] Loading skills from: managed=C:\\Program Files\\ClaudeCode\\.claude\\skills, user=C:\\Users\\admin\\.claude\\skills, project=[C:\\Users\\admin\\AppData\\Local\\Temp\\ush-decision17-P0j3BJ\\.claude\\skills]",
+        "2026-09-12T09:35:06.318Z [DEBUG] Loaded 146 unique skills (146 unconditional, 0 conditional, managed: 0, user: 145, project: 1, additional: 0, legacy commands: 0)",
+        "2026-09-12T09:35:07.462Z [DEBUG] Total plugin skills loaded: 130 (0 duplicate/user-owned entries skipped)",
+        "2026-09-12T09:35:07.462Z [DEBUG] getSkills returning: 146 skill dir commands, 130 plugin skills, 37 bundled skills, 0 builtin plugin skills",
+        "2026-09-12T09:35:13.290Z [DEBUG] Sending 292 skills via attachment (initial)",
+        "2026-09-12T09:35:13.291Z [WARN] Skill listing over budget: 292 skills, 107759 chars > 30000 budget — descriptions will be truncated. Run /skills to disable some, or raise skillListingBudgetFraction in settings."
+      ],
+      "overflowObserved": true,
+      "toolCalls": [],
+      "hubInvocations": [],
+      "loads": [],
+      "tokenUsage": {
+        "input": 2,
+        "output": 3,
+        "cacheCreationInput": 86371,
+        "cacheReadInput": 0
+      }
+    },
+    {
+      "name": "positive",
+      "sessionId": "799326a7-159a-4646-acb3-f5d83044ea06",
+      "runtime": "2.1.225",
+      "model": "claude-opus-5",
+      "completed": true,
+      "raw": [
+        {
+          "file": "C:\\Users\\admin\\AppData\\Local\\Temp\\ush-decision17-P0j3BJ\\positive.jsonl",
+          "sha256": "8ffc85c62890a791a442964c95ae89679a2ea92096f5cb29934054717bab7588"
+        },
+        {
+          "file": "C:\\Users\\admin\\AppData\\Local\\Temp\\ush-decision17-P0j3BJ\\positive-debug.log",
+          "sha256": "f6bef16dd0cf287dfbc39c230fa6d0b56cdde4b945d055db795fcf1ef275ea75"
+        }
+      ],
+      "startupHubNames": [
+        "ush-concurrent-edit-coordination",
+        "ush-discord-repo-cross-reference",
+        "ush-example-skill",
+        "ush-game-meeting-plan",
+        "ush-github-task-flow",
+        "ush-repo-evidence-plan",
+        "ush-work-announcement"
+      ],
+      "startupSkillsFieldCount": 286,
+      "startupSkillsFieldHubNames": [
+        "ush-repo-evidence-plan"
+      ],
+      "postBudgetModelVisibleCount": null,
+      "debugSignals": [
+        "2026-09-12T09:36:03.824Z [DEBUG] Loading skills from: managed=C:\\Program Files\\ClaudeCode\\.claude\\skills, user=C:\\Users\\admin\\.claude\\skills, project=[C:\\Users\\admin\\AppData\\Local\\Temp\\ush-decision17-P0j3BJ\\.claude\\skills]",
+        "2026-09-12T09:36:03.900Z [DEBUG] Loaded 146 unique skills (146 unconditional, 0 conditional, managed: 0, user: 145, project: 1, additional: 0, legacy commands: 0)",
+        "2026-09-12T09:36:04.363Z [DEBUG] Total plugin skills loaded: 130 (0 duplicate/user-owned entries skipped)",
+        "2026-09-12T09:36:04.364Z [DEBUG] getSkills returning: 146 skill dir commands, 130 plugin skills, 37 bundled skills, 0 builtin plugin skills",
+        "2026-09-12T09:36:07.491Z [DEBUG] Sending 292 skills via attachment (initial)",
+        "2026-09-12T09:36:07.493Z [WARN] Skill listing over budget: 292 skills, 107759 chars > 30000 budget — descriptions will be truncated. Run /skills to disable some, or raise skillListingBudgetFraction in settings."
+      ],
+      "overflowObserved": true,
+      "toolCalls": [
+        {
+          "name": "Read"
+        },
+        {
+          "name": "Skill",
+          "skill": "ush-repo-evidence-plan"
+        },
+        {
+          "name": "Read"
+        },
+        {
+          "name": "Read"
+        },
+        {
+          "name": "Read"
+        },
+        {
+          "name": "Read"
+        },
+        {
+          "name": "Read"
+        },
+        {
+          "name": "Read"
+        },
+        {
+          "name": "Read"
+        },
+        {
+          "name": "Read"
+        },
+        {
+          "name": "Read"
+        }
+      ],
+      "hubInvocations": [
+        "ush-repo-evidence-plan"
+      ],
+      "loads": [
+        {
+          "skill": "ush-repo-evidence-plan",
+          "reportedFile": "C:\\Users\\admin\\.claude\\skills\\ush-repo-evidence-plan\\SKILL.md",
+          "observedFileSha256": "9d4ac9623dc9ec1bb064113816471c7440e035e4a39ff5f2cb34d80a55cd5684",
+          "completeRenderedBodyMatched": true,
+          "projectLocal": false,
+          "messageUuid": "7dc87152-ef6e-4cbf-87c6-29b3fed98b90"
+        }
+      ],
+      "tokenUsage": {
+        "input": 10,
+        "output": 5455,
+        "cacheCreationInput": 19888,
+        "cacheReadInput": 421916
+      }
+    }
+  ],
+  "acceptance": "PARTIAL",
+  "limitations": [
+    "HOST_GLOBAL_BUDGET_CONFOUND",
+    "GLOBAL_COPY_SELECTED",
+    "HISTORICAL_WARNING_NOT_REPRODUCED"
+  ]
+}

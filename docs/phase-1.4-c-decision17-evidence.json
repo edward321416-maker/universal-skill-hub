@@ -1,0 +1,506 @@
+{
+  "observedAt": "2026-09-12T09:34:45.198Z",
+  "sourceHead": "34b613659f9b0b6dd03802a90b11d6b8105e286a",
+  "warning": {
+    "origin": "USER_SUPPLIED_BASELINE",
+    "excludedReported": 66,
+    "reproduced": null,
+    "exact": "Exceeded skills context budget.\nAll skill descriptions were removed and 66 additional skills were not included in the model-visible skills list."
+  },
+  "host": {
+    "homeInventories": [
+      {
+        "root": "C:\\Users\\admin\\.claude\\skills",
+        "files": 145,
+        "descriptionBytes": 63263,
+        "duplicateNames": [
+          "gstack",
+          "open-gstack-browser"
+        ],
+        "hubNames": [
+          "ush-concurrent-edit-coordination",
+          "ush-discord-repo-cross-reference",
+          "ush-game-meeting-plan",
+          "ush-github-task-flow",
+          "ush-repo-evidence-plan",
+          "ush-work-announcement"
+        ]
+      },
+      {
+        "root": "C:\\Users\\admin\\.agents\\skills",
+        "files": 213,
+        "descriptionBytes": 92871,
+        "duplicateNames": [
+          "autoplan",
+          "benchmark",
+          "benchmark-models",
+          "browse",
+          "canary",
+          "careful",
+          "context-restore",
+          "context-save",
+          "cso",
+          "design-consultation",
+          "design-html",
+          "design-review",
+          "design-shotgun",
+          "devex-review",
+          "document-release",
+          "freeze",
+          "open-gstack-browser",
+          "guard",
+          "health",
+          "investigate",
+          "land-and-deploy",
+          "landing-report",
+          "learn",
+          "make-pdf",
+          "office-hours",
+          "pair-agent",
+          "plan-ceo-review",
+          "plan-design-review",
+          "plan-devex-review",
+          "plan-eng-review",
+          "plan-tune",
+          "qa",
+          "qa-only",
+          "retro",
+          "review",
+          "scrape",
+          "setup-browser-cookies",
+          "setup-deploy",
+          "setup-gbrain",
+          "ship",
+          "skillify",
+          "sync-gbrain",
+          "unfreeze"
+        ],
+        "hubNames": [
+          "ush-concurrent-edit-coordination",
+          "ush-discord-repo-cross-reference",
+          "ush-game-meeting-plan",
+          "ush-github-task-flow",
+          "ush-repo-evidence-plan",
+          "ush-work-announcement"
+        ]
+      }
+    ],
+    "runtimeDiscoveredTotal": null,
+    "runtimeModelVisibleTotal": null,
+    "ordering": "UNVERIFIED",
+    "pluginActiveInventory": null,
+    "categorySumObserved": 313,
+    "attachmentCountObserved": 292,
+    "activePluginSkillsObserved": 130,
+    "bundledSkillsObserved": 37
+  },
+  "results": [
+    {
+      "identity": "Hub repo",
+      "root": "C:\\Users\\admin\\orca\\workspaces\\edward321416-makeruniversal-skill-hub\\phase-1.4-c-native-orca-skills",
+      "manifests": [
+        "package.json"
+      ],
+      "project": {
+        "identity": "Hub repo",
+        "project_scope": "Hub repo",
+        "runtime": "claude-code",
+        "policy": {
+          "enabledSkillIds": [
+            "ush-repo-evidence-plan"
+          ]
+        },
+        "availableInputs": [
+          "repository"
+        ],
+        "availableTools": [
+          "git_diff_read"
+        ],
+        "availableCapabilities": [
+          "repository_evidence"
+        ],
+        "grantedPermissions": []
+      },
+      "metrics": {
+        "hubSkillsTotal": 6,
+        "projectCandidates": 2,
+        "materializedHubSkills": 0,
+        "candidateReductionRatio": 0.6666666666666667,
+        "requirementsExcluded": 1,
+        "policyExcluded": 0,
+        "runtimeExcluded": 0,
+        "scopeExcluded": 3,
+        "budgetExcluded": 0,
+        "unmanagedPreserved": null,
+        "visibilityConfirmed": null,
+        "visibilityUnknown": null,
+        "overflowObserved": null
+      },
+      "budget": {
+        "descriptionBytes": 774,
+        "descriptionCharacters": 770,
+        "runtimeLimit": null,
+        "status": "UNVERIFIED",
+        "policyLimit": {
+          "candidates": null,
+          "descriptionBytes": null
+        }
+      },
+      "candidateIds": [
+        "ush-repo-evidence-plan",
+        "ush-concurrent-edit-coordination"
+      ],
+      "excluded": [
+        {
+          "skill_id": "ush-discord-repo-cross-reference",
+          "category": "scopeExcluded",
+          "reason": "DOMAIN_NOT_EXPLICITLY_SCOPED"
+        },
+        {
+          "skill_id": "ush-game-meeting-plan",
+          "category": "scopeExcluded",
+          "reason": "DOMAIN_NOT_EXPLICITLY_SCOPED"
+        },
+        {
+          "skill_id": "ush-github-task-flow",
+          "category": "requirementsExcluded",
+          "reason": "RUNTIME_REQUIREMENT_MISSING"
+        },
+        {
+          "skill_id": "ush-work-announcement",
+          "category": "scopeExcluded",
+          "reason": "DOMAIN_NOT_EXPLICITLY_SCOPED"
+        }
+      ],
+      "localInventoryBefore": {
+        "root": "C:\\Users\\admin\\orca\\workspaces\\edward321416-makeruniversal-skill-hub\\phase-1.4-c-native-orca-skills\\.claude\\skills",
+        "files": 0,
+        "descriptionBytes": 0,
+        "duplicateNames": [],
+        "hubNames": []
+      },
+      "sharedInventoryBefore": {
+        "root": "C:\\Users\\admin\\orca\\workspaces\\edward321416-makeruniversal-skill-hub\\phase-1.4-c-native-orca-skills\\.agents\\skills",
+        "files": 0,
+        "descriptionBytes": 0,
+        "duplicateNames": [],
+        "hubNames": []
+      },
+      "materialization": "READ_ONLY_AUDIT",
+      "hubModelVisible": null,
+      "overflowWarning": null,
+      "actualLoadedSkill": null
+    },
+    {
+      "identity": "final-check",
+      "root": "D:/Users/admin/Desktop/ai공모전/final-check",
+      "manifests": [
+        "frontend/package.json",
+        "backend/requirements.txt"
+      ],
+      "project": {
+        "identity": "final-check",
+        "project_scope": "final-check",
+        "runtime": "claude-code",
+        "policy": {
+          "enabledSkillIds": [
+            "ush-repo-evidence-plan"
+          ]
+        },
+        "availableInputs": [
+          "repository"
+        ],
+        "availableTools": [
+          "git_diff_read"
+        ],
+        "availableCapabilities": [
+          "repository_evidence"
+        ],
+        "grantedPermissions": []
+      },
+      "metrics": {
+        "hubSkillsTotal": 6,
+        "projectCandidates": 2,
+        "materializedHubSkills": 0,
+        "candidateReductionRatio": 0.6666666666666667,
+        "requirementsExcluded": 1,
+        "policyExcluded": 0,
+        "runtimeExcluded": 0,
+        "scopeExcluded": 3,
+        "budgetExcluded": 0,
+        "unmanagedPreserved": null,
+        "visibilityConfirmed": null,
+        "visibilityUnknown": null,
+        "overflowObserved": null
+      },
+      "budget": {
+        "descriptionBytes": 774,
+        "descriptionCharacters": 770,
+        "runtimeLimit": null,
+        "status": "UNVERIFIED",
+        "policyLimit": {
+          "candidates": null,
+          "descriptionBytes": null
+        }
+      },
+      "candidateIds": [
+        "ush-repo-evidence-plan",
+        "ush-concurrent-edit-coordination"
+      ],
+      "excluded": [
+        {
+          "skill_id": "ush-discord-repo-cross-reference",
+          "category": "scopeExcluded",
+          "reason": "DOMAIN_NOT_EXPLICITLY_SCOPED"
+        },
+        {
+          "skill_id": "ush-game-meeting-plan",
+          "category": "scopeExcluded",
+          "reason": "DOMAIN_NOT_EXPLICITLY_SCOPED"
+        },
+        {
+          "skill_id": "ush-github-task-flow",
+          "category": "requirementsExcluded",
+          "reason": "RUNTIME_REQUIREMENT_MISSING"
+        },
+        {
+          "skill_id": "ush-work-announcement",
+          "category": "scopeExcluded",
+          "reason": "DOMAIN_NOT_EXPLICITLY_SCOPED"
+        }
+      ],
+      "localInventoryBefore": {
+        "root": "D:\\Users\\admin\\Desktop\\ai공모전\\final-check\\.claude\\skills",
+        "files": 0,
+        "descriptionBytes": 0,
+        "duplicateNames": [],
+        "hubNames": []
+      },
+      "sharedInventoryBefore": {
+        "root": "D:\\Users\\admin\\Desktop\\ai공모전\\final-check\\.agents\\skills",
+        "files": 6,
+        "descriptionBytes": 2870,
+        "duplicateNames": [],
+        "hubNames": [
+          "ush-concurrent-edit-coordination",
+          "ush-discord-repo-cross-reference",
+          "ush-game-meeting-plan",
+          "ush-github-task-flow",
+          "ush-repo-evidence-plan",
+          "ush-work-announcement"
+        ]
+      },
+      "materialization": "READ_ONLY_AUDIT",
+      "hubModelVisible": null,
+      "overflowWarning": null,
+      "actualLoadedSkill": null
+    },
+    {
+      "identity": "decode",
+      "root": "D:/Users/admin/Desktop/ai공모전/decode/decode/harlequin",
+      "manifests": [],
+      "project": {
+        "identity": "decode",
+        "project_scope": "decode",
+        "runtime": "claude-code",
+        "policy": {
+          "denyAll": true,
+          "reason": "Project policy review pending; existing D021 router preserved"
+        },
+        "availableInputs": [
+          "repository"
+        ],
+        "availableTools": [
+          "git_diff_read"
+        ],
+        "availableCapabilities": [
+          "repository_evidence"
+        ],
+        "grantedPermissions": []
+      },
+      "metrics": {
+        "hubSkillsTotal": 6,
+        "projectCandidates": 0,
+        "materializedHubSkills": 0,
+        "candidateReductionRatio": 1,
+        "requirementsExcluded": 0,
+        "policyExcluded": 6,
+        "runtimeExcluded": 0,
+        "scopeExcluded": 0,
+        "budgetExcluded": 0,
+        "unmanagedPreserved": null,
+        "visibilityConfirmed": null,
+        "visibilityUnknown": null,
+        "overflowObserved": null
+      },
+      "budget": {
+        "descriptionBytes": 0,
+        "descriptionCharacters": 0,
+        "runtimeLimit": null,
+        "status": "UNVERIFIED",
+        "policyLimit": {
+          "candidates": null,
+          "descriptionBytes": null
+        }
+      },
+      "candidateIds": [],
+      "excluded": [
+        {
+          "skill_id": "ush-concurrent-edit-coordination",
+          "category": "policyExcluded",
+          "reason": "PROJECT_POLICY"
+        },
+        {
+          "skill_id": "ush-discord-repo-cross-reference",
+          "category": "policyExcluded",
+          "reason": "PROJECT_POLICY"
+        },
+        {
+          "skill_id": "ush-game-meeting-plan",
+          "category": "policyExcluded",
+          "reason": "PROJECT_POLICY"
+        },
+        {
+          "skill_id": "ush-github-task-flow",
+          "category": "policyExcluded",
+          "reason": "PROJECT_POLICY"
+        },
+        {
+          "skill_id": "ush-repo-evidence-plan",
+          "category": "policyExcluded",
+          "reason": "PROJECT_POLICY"
+        },
+        {
+          "skill_id": "ush-work-announcement",
+          "category": "policyExcluded",
+          "reason": "PROJECT_POLICY"
+        }
+      ],
+      "localInventoryBefore": {
+        "root": "D:\\Users\\admin\\Desktop\\ai공모전\\decode\\decode\\harlequin\\.claude\\skills",
+        "files": 0,
+        "descriptionBytes": 0,
+        "duplicateNames": [],
+        "hubNames": []
+      },
+      "sharedInventoryBefore": {
+        "root": "D:\\Users\\admin\\Desktop\\ai공모전\\decode\\decode\\harlequin\\.agents\\skills",
+        "files": 0,
+        "descriptionBytes": 0,
+        "duplicateNames": [],
+        "hubNames": []
+      },
+      "materialization": "READ_ONLY_AUDIT",
+      "hubModelVisible": null,
+      "overflowWarning": null,
+      "actualLoadedSkill": null
+    },
+    {
+      "identity": "synthetic",
+      "root": "C:\\Users\\admin\\AppData\\Local\\Temp\\ush-decision17-P0j3BJ",
+      "manifests": [
+        "package.json"
+      ],
+      "project": {
+        "identity": "synthetic",
+        "project_scope": "synthetic",
+        "runtime": "claude-code",
+        "policy": {
+          "allowedSkillIds": [
+            "ush-repo-evidence-plan"
+          ],
+          "enabledSkillIds": [
+            "ush-repo-evidence-plan"
+          ]
+        },
+        "availableInputs": [
+          "repository"
+        ],
+        "availableTools": [],
+        "availableCapabilities": [],
+        "grantedPermissions": []
+      },
+      "metrics": {
+        "hubSkillsTotal": 6,
+        "projectCandidates": 1,
+        "materializedHubSkills": 1,
+        "candidateReductionRatio": 0.8333333333333334,
+        "requirementsExcluded": 0,
+        "policyExcluded": 5,
+        "runtimeExcluded": 0,
+        "scopeExcluded": 0,
+        "budgetExcluded": 0,
+        "unmanagedPreserved": 0,
+        "visibilityConfirmed": null,
+        "visibilityUnknown": null,
+        "overflowObserved": null
+      },
+      "budget": {
+        "descriptionBytes": 235,
+        "descriptionCharacters": 235,
+        "runtimeLimit": null,
+        "status": "UNVERIFIED",
+        "policyLimit": {
+          "candidates": null,
+          "descriptionBytes": null
+        }
+      },
+      "candidateIds": [
+        "ush-repo-evidence-plan"
+      ],
+      "excluded": [
+        {
+          "skill_id": "ush-concurrent-edit-coordination",
+          "category": "policyExcluded",
+          "reason": "PROJECT_POLICY"
+        },
+        {
+          "skill_id": "ush-discord-repo-cross-reference",
+          "category": "policyExcluded",
+          "reason": "PROJECT_POLICY"
+        },
+        {
+          "skill_id": "ush-game-meeting-plan",
+          "category": "policyExcluded",
+          "reason": "PROJECT_POLICY"
+        },
+        {
+          "skill_id": "ush-github-task-flow",
+          "category": "policyExcluded",
+          "reason": "PROJECT_POLICY"
+        },
+        {
+          "skill_id": "ush-work-announcement",
+          "category": "policyExcluded",
+          "reason": "PROJECT_POLICY"
+        }
+      ],
+      "localInventoryBefore": {
+        "root": "C:\\Users\\admin\\AppData\\Local\\Temp\\ush-decision17-P0j3BJ\\.claude\\skills",
+        "files": 0,
+        "descriptionBytes": 0,
+        "duplicateNames": [],
+        "hubNames": []
+      },
+      "sharedInventoryBefore": {
+        "root": "C:\\Users\\admin\\AppData\\Local\\Temp\\ush-decision17-P0j3BJ\\.agents\\skills",
+        "files": 0,
+        "descriptionBytes": 0,
+        "duplicateNames": [],
+        "hubNames": []
+      },
+      "materialization": "ACTUAL_CANONICAL_LOCAL_FALLBACK",
+      "hubModelVisible": null,
+      "overflowWarning": null,
+      "actualLoadedSkill": null,
+      "freshSession": {
+        "overflowObserved": true,
+        "globalConfirmedLoads": 1,
+        "projectLocalConfirmedLoads": 0,
+        "projectLocalVisibility": null,
+        "source": "phase-1.4-c-claude-scoping-evidence.json"
+      }
+    }
+  ],
+  "freshRuntimeEvidence": "phase-1.4-c-claude-scoping-evidence.json"
+}
