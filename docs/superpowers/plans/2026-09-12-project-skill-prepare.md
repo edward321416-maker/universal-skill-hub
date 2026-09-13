@@ -1,6 +1,6 @@
 # Decision 18 implementation plan
 
-Status: PLAN REVIEW ONLY. Implementation NOT STARTED. Execute only after the user reviews the [design](../specs/2026-09-12-project-skill-prepare-design.md).
+Status: user approved the [design](../specs/2026-09-12-project-skill-prepare-design.md) and execution on 2026-09-13. The original plan-review-only delivery remains in commit `aaf44b9`. See [implementation validation](../../project-skill-prepare.md).
 
 Base: `d1f5eb39562e458f850e91b70724b716f912ce11`; branch `phase/project-skill-prepare`; Issue #9. No automatic issue closure or merge.
 
@@ -38,4 +38,4 @@ Expected files: `README.md` usage link/command and a bounded `docs/project-skill
 
 ## Scope and stop conditions
 
-No daemon, router, installer replacement, legacy cleanup, global hooks, metadata framework, credential access or runtime internals research. If an existing core defect is discovered, capture evidence and report the smallest separately reviewable fix; do not turn this wrapper task into a core refactor. No implementation or live model validation occurs in the current design-only session.
+No daemon, router, installer replacement, legacy cleanup, global hooks, metadata framework, credential access or runtime internals research. If an existing core defect is discovered, capture evidence and report the smallest separately reviewable fix; do not turn this wrapper task into a core refactor. Implementation and the bounded live validation were separately authorized after the original design-only session.

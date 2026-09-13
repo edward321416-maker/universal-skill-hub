@@ -1,6 +1,6 @@
 # Decision 18: Explicit project Skill Prepare
 
-Status: proposed interface and implementation plan, pending user review. The one-time preparation direction is approved; production implementation is not authorized yet.
+Status: design and implementation plan approved by the user on 2026-09-13. Implementation follows this bounded design; see [usage and validation](../../project-skill-prepare.md). The original design-only delivery was commit `aaf44b9`.
 
 Baseline: main `d1f5eb39562e458f850e91b70724b716f912ce11`. Related: Issue #9; Decision 17 in [Phase 1.4-C](../../phase-1.4-c-native-orca-skills.md), completed with known limitations. This decision supersedes Issue #9's universal automatic startup completion target without deleting its history.
 
@@ -127,4 +127,4 @@ Expected new production code: approximately 60–100 nonblank lines plus one npm
 
 ### Design self-review
 
-Reviewed against the existing main exports and CLI conventions: no duplicated scoper, description hydration, receipt writer, transaction engine or router is needed. Explicit source/target separation avoids npm CWD mistakes. Policy review remains an operator responsibility, not fabricated permissions. No-op semantics do not overpromise receipt stability. Runtime evidence remains separate from placement. The trade-off is an explicit initial context file and command instead of zero-click setup. Interface and plan await user review before implementation.
+Reviewed against the existing main exports and CLI conventions: no duplicated scoper, description hydration, receipt writer, transaction engine or router is needed. Explicit source/target separation avoids npm CWD mistakes. Policy review remains an operator responsibility, not fabricated permissions. No-op semantics do not overpromise receipt stability. Runtime evidence remains separate from placement. The trade-off is an explicit initial context file and command instead of zero-click setup. User review approved this interface and plan on 2026-09-13.
