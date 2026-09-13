@@ -93,6 +93,12 @@ kept in adapter-side overrides rather than the canonical body.
 
 ## Quick start
 
+For one-time project preparation, use [Prepare project Skills](docs/project-skill-prepare.md).
+`npm run prepare-project -- --project-root <absolute-project-root> --context <absolute-context-json>`
+previews eligible candidates; add `--apply` to materialize them using the existing ownership contract.
+Ordinary tasks then use native discovery and selection. Global installation below is an explicit
+compatibility/user-selected option, not the default project preparation path.
+
 ```bash
 npm test                    # run all unit tests (validator, adapters, drift, eligibility, installer, ...)
 npm run validate            # validate every skill under skills/

@@ -1,0 +1,263 @@
+{
+  "decision": 18,
+  "date": "2026-09-13",
+  "base": "d1f5eb39562e458f850e91b70724b716f912ce11",
+  "implementationCommit": "e62d51c",
+  "codexVersion": "0.154.0",
+  "placement": [
+    {
+      "project": "hub",
+      "runtime": "codex",
+      "status": 0,
+      "mode": "PREVIEW",
+      "candidates": [
+        "ush-repo-evidence-plan"
+      ],
+      "actions": [
+        {
+          "id": "ush-repo-evidence-plan",
+          "action": "create"
+        }
+      ],
+      "metrics": {
+        "hubSkillsTotal": 6,
+        "projectCandidates": 1,
+        "materializedHubSkills": 0,
+        "candidateReductionRatio": 0.8333333333333334,
+        "requirementsExcluded": 0,
+        "policyExcluded": 5,
+        "runtimeExcluded": 0,
+        "scopeExcluded": 0,
+        "budgetExcluded": 0,
+        "unmanagedPreserved": 0,
+        "visibilityConfirmed": null,
+        "visibilityUnknown": null,
+        "overflowObserved": null
+      }
+    },
+    {
+      "project": "final-check",
+      "runtime": "claude-code",
+      "status": 0,
+      "mode": "PREVIEW",
+      "candidates": [
+        "ush-repo-evidence-plan"
+      ],
+      "actions": [
+        {
+          "id": "ush-repo-evidence-plan",
+          "action": "create"
+        }
+      ],
+      "metrics": {
+        "hubSkillsTotal": 6,
+        "projectCandidates": 1,
+        "materializedHubSkills": 0,
+        "candidateReductionRatio": 0.8333333333333334,
+        "requirementsExcluded": 0,
+        "policyExcluded": 5,
+        "runtimeExcluded": 0,
+        "scopeExcluded": 0,
+        "budgetExcluded": 0,
+        "unmanagedPreserved": 0,
+        "visibilityConfirmed": null,
+        "visibilityUnknown": null,
+        "overflowObserved": null
+      }
+    },
+    {
+      "project": "synthetic-codex",
+      "runtime": "codex",
+      "status": 0,
+      "mode": "APPLIED",
+      "candidates": [
+        "ush-repo-evidence-plan"
+      ],
+      "actions": [
+        {
+          "id": "ush-repo-evidence-plan",
+          "action": "create"
+        }
+      ],
+      "metrics": {
+        "hubSkillsTotal": 6,
+        "projectCandidates": 1,
+        "materializedHubSkills": 1,
+        "candidateReductionRatio": 0.8333333333333334,
+        "requirementsExcluded": 0,
+        "policyExcluded": 5,
+        "runtimeExcluded": 0,
+        "scopeExcluded": 0,
+        "budgetExcluded": 0,
+        "unmanagedPreserved": 0,
+        "visibilityConfirmed": null,
+        "visibilityUnknown": null,
+        "overflowObserved": null
+      }
+    },
+    {
+      "project": "synthetic-codex",
+      "runtime": "codex",
+      "status": 0,
+      "mode": "APPLIED",
+      "candidates": [
+        "ush-repo-evidence-plan"
+      ],
+      "actions": [
+        {
+          "id": "ush-repo-evidence-plan",
+          "action": "unchanged"
+        }
+      ],
+      "metrics": {
+        "hubSkillsTotal": 6,
+        "projectCandidates": 1,
+        "materializedHubSkills": 1,
+        "candidateReductionRatio": 0.8333333333333334,
+        "requirementsExcluded": 0,
+        "policyExcluded": 5,
+        "runtimeExcluded": 0,
+        "scopeExcluded": 0,
+        "budgetExcluded": 0,
+        "unmanagedPreserved": 0,
+        "visibilityConfirmed": null,
+        "visibilityUnknown": null,
+        "overflowObserved": null
+      }
+    },
+    {
+      "project": "synthetic-claude-code",
+      "runtime": "claude-code",
+      "status": 0,
+      "mode": "APPLIED",
+      "candidates": [
+        "ush-repo-evidence-plan"
+      ],
+      "actions": [
+        {
+          "id": "ush-repo-evidence-plan",
+          "action": "create"
+        }
+      ],
+      "metrics": {
+        "hubSkillsTotal": 6,
+        "projectCandidates": 1,
+        "materializedHubSkills": 1,
+        "candidateReductionRatio": 0.8333333333333334,
+        "requirementsExcluded": 0,
+        "policyExcluded": 5,
+        "runtimeExcluded": 0,
+        "scopeExcluded": 0,
+        "budgetExcluded": 0,
+        "unmanagedPreserved": 0,
+        "visibilityConfirmed": null,
+        "visibilityUnknown": null,
+        "overflowObserved": null
+      }
+    },
+    {
+      "project": "synthetic-claude-code",
+      "runtime": "claude-code",
+      "status": 0,
+      "mode": "APPLIED",
+      "candidates": [
+        "ush-repo-evidence-plan"
+      ],
+      "actions": [
+        {
+          "id": "ush-repo-evidence-plan",
+          "action": "unchanged"
+        }
+      ],
+      "metrics": {
+        "hubSkillsTotal": 6,
+        "projectCandidates": 1,
+        "materializedHubSkills": 1,
+        "candidateReductionRatio": 0.8333333333333334,
+        "requirementsExcluded": 0,
+        "policyExcluded": 5,
+        "runtimeExcluded": 0,
+        "scopeExcluded": 0,
+        "budgetExcluded": 0,
+        "unmanagedPreserved": 0,
+        "visibilityConfirmed": null,
+        "visibilityUnknown": null,
+        "overflowObserved": null
+      }
+    }
+  ],
+  "canonicalHash": "352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688",
+  "filesystemHashes": {
+    ".agents": "352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688",
+    ".claude": "352228bb6f66153a09bdb7fa7f127080ba1401ead4f64994ddbcdb3cc07f6688"
+  },
+  "cases": {
+    "positive": {
+      "status": "COMPLETED",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "high",
+      "sandbox": "read-only",
+      "commandCount": 5,
+      "skillReadEvents": [
+        {
+          "id": "item_3",
+          "exitCode": 0,
+          "relativePath": ".agents/skills/ush-repo-evidence-plan/SKILL.md",
+          "operation": "Get-Content -Raw -LiteralPath",
+          "bodyObserved": true
+        }
+      ],
+      "observedHubLoads": 1,
+      "overflowWarnings": [
+        "Exceeded skills context budget. All skill descriptions were removed and 70 additional skills were not included in the model-visible skills list."
+      ],
+      "nonLoadClarification": "item_8 reads ownership receipts and excludes SKILL.md from a search; it is not a Skill body load."
+    },
+    "negative": {
+      "status": "COMPLETED",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "high",
+      "sandbox": "read-only",
+      "commandCount": 0,
+      "skillReadEvents": [],
+      "observedHubLoads": 0,
+      "overflowWarnings": [
+        "Exceeded skills context budget. All skill descriptions were removed and 70 additional skills were not included in the model-visible skills list."
+      ],
+      "answer": "42"
+    }
+  },
+  "visibility": {
+    "mechanism": "codex debug prompt-input",
+    "localCandidateListed": true,
+    "modelVisibleHubCandidates": 1
+  },
+  "transport": "KNOWN_RUNTIME_LIMITATION: punctuation loss; exact filesystem bytes do not prove exact model-input bytes",
+  "overflowAttribution": "OVERFLOW_ATTRIBUTION_UNVERIFIED",
+  "globalInventory": {
+    "sampledFiles": 1030,
+    "changedOrMissingPaths": 10,
+    "missingPaths": 10,
+    "affectedPlugin": "openai-curated-remote/product-design/0.1.54",
+    "attribution": "UNVERIFIED: no global writes in Prepare code or observed model commands; independent host activity not traced",
+    "claim": "Host-wide unchanged inventory is NOT CONFIRMED"
+  },
+  "artifacts": {
+    "positive.jsonl": {
+      "localRoot": "dist/decision18 (ignored)",
+      "sha256": "105e7e21e29e7f87eb1f91a448bd0957fd9089de1d9a171f07cdb8835fabd610"
+    },
+    "negative.jsonl": {
+      "localRoot": "dist/decision18 (ignored)",
+      "sha256": "44b00e05d9932dce8550904e04f2c042ba189862ce1d80addb7b1479aec907b7"
+    },
+    "prompt-input.json": {
+      "localRoot": "dist/decision18 (ignored)",
+      "sha256": "0f3f65e3abca40cfbce85a5870ef2560e437b3b5039c3cdafb77e3e6602b4074"
+    },
+    "placement.json": {
+      "localRoot": "dist/decision18 (ignored)",
+      "sha256": "bae7b024f552f1523bac8c350aee84ac612ea2890f8d06d87c57de1c6f2485ba"
+    }
+  }
+}
