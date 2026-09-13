@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "description": "Central registry of canonical, cross-platform Agent Skills with routing, safety, and drift verification.",
   "type": "module",
+  "bin": {
+    "ush": "scripts/ush.mjs"
+  },
   "engines": {
     "node": ">=22"
   },
