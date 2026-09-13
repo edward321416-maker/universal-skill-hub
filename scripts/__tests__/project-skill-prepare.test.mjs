@@ -25,6 +25,17 @@ function fixture(t, runtime = 'codex') {
 }
 const reports = r => { assert.equal(r.status, 0, r.stderr); return r.stdout.trim().split('\n').map(line => JSON.parse(line)); };
 
+test('Windows short directory spelling identifies the same Git root', { skip: process.platform !== 'win32' }, t => {
+  const f = fixture(t);
+  const short = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', '(New-Object -ComObject Scripting.FileSystemObject).GetFolder($env:USH_TEST_TARGET).ShortPath'], { encoding: 'utf8', env: { ...process.env, USH_TEST_TARGET: f.target } });
+  assert.equal(short.status, 0, short.stderr);
+  const alias = short.stdout.trim();
+  if (!alias.includes('~')) { t.skip('8.3 aliases unavailable on this volume'); return; }
+  const r = spawnSync(process.execPath, [cli, '--project-root', alias, '--context', f.context, '--apply'], { encoding: 'utf8' });
+  assert.equal(reports(r).at(-1).mode, 'APPLIED');
+  assert.deepEqual(fs.readFileSync(path.join(f.target, '.agents/skills', id, 'SKILL.md')), canonical);
+});
+
 test('preview is read-only; explicit apply from foreign CWD places only exact candidates', t => {
   const f = fixture(t);
   const before = fs.readdirSync(f.target);

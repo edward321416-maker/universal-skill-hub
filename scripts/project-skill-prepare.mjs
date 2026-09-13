@@ -29,7 +29,7 @@ try {
   const targetRoot = safePath(args['--project-root']);
   if (!fs.statSync(targetRoot).isDirectory()) fail('INVALID_PROJECT_ROOT');
   const gitRoot = execFileSync('git', ['-C', targetRoot, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-  if (fs.realpathSync(targetRoot) !== fs.realpathSync(gitRoot)) fail('INVALID_PROJECT_ROOT');
+  if (fs.realpathSync.native(targetRoot) !== fs.realpathSync.native(gitRoot)) fail('INVALID_PROJECT_ROOT');
   const contextFile = safePath(args['--context']);
   const readJson = file => {
     try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
